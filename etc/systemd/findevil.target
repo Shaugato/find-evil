@@ -1,0 +1,14 @@
+[Unit]
+Description=FIND EVIL — autonomous DFIR platform (stigmergic + adversarial + fractal)
+Documentation=file:///opt/findevil/repo/README.md
+# These dependencies are data-plane infrastructure; if they disappear, FIND EVIL
+# stops. We bind tightly via Requires= and start after they're fully online.
+Requires=valkey-findevil.service nats-findevil.service
+Wants=findevil-mcp.service findevil-ingest.service findevil-cacao.service findevil-watcher.service findevil-narrator.service findevil-decay.service findevil-dashboard.service findevil-llamacpp.service
+After=valkey-findevil.service nats-findevil.service findevil-mcp.service
+# Bringing down the target cascades to every service that declares
+# PartOf=findevil.target (all the findevil-*.service units).
+StopWhenUnneeded=false
+
+[Install]
+WantedBy=multi-user.target

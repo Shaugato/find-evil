@@ -1,0 +1,23 @@
+[Unit]
+Description=FIND EVIL — LangGraph narrator (prosecutor / defense / judge debate)
+After=network-online.target findevil-ingest.service nats-findevil.service
+Requires=nats-findevil.service
+PartOf=findevil.target
+
+[Service]
+Type=simple
+User=findevil
+Group=findevil
+EnvironmentFile=-/opt/findevil/etc/.env
+ExecStart=/opt/findevil/venv/bin/findevil narrator
+Restart=on-failure
+RestartSec=2s
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/findevil/data /opt/findevil/logs /opt/findevil/run
+LimitNOFILE=65536
+
+[Install]
+WantedBy=findevil.target

@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>FIND EVIL Operator Dashboard</title>
+  <script src="https://unpkg.com/htmx.org@2.0.3"></script>
+  <script src="https://cdn.jsdelivr.net/npm/cytoscape@3.30.0/dist/cytoscape.min.js"></script>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0a0e14;
+      --panel: #111927;
+      --line: #145ca7;
+      --green: #00ff9f;
+      --amber: #ffb86c;
+      --red: #ff3864;
+      --text: #d8f3ff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font: 14px/1.4 Consolas, "Liberation Mono", monospace;
+    }
+    header {
+      height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 18px;
+      border-bottom: 1px solid var(--line);
+      color: var(--green);
+      letter-spacing: 0;
+    }
+    main {
+      display: grid;
+      grid-template-columns: minmax(420px, 1fr) 420px;
+      grid-template-rows: minmax(340px, 1fr) 260px;
+      gap: 10px;
+      height: calc(100vh - 52px);
+      padding: 10px;
+    }
+    section {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      min-width: 0;
+      min-height: 0;
+      overflow: hidden;
+    }
+    h2 {
+      margin: 0;
+      padding: 10px 12px;
+      color: var(--green);
+      font-size: 13px;
+      border-bottom: 1px solid rgba(20, 92, 167, 0.65);
+    }
+    #cy { height: calc(100% - 38px); width: 100%; }
+    #mitre, #ledger, #consensus, #cacao { padding: 10px 12px; overflow: auto; }
+    #consensus { display: grid; gap: 8px; }
+    .row {
+      display: grid;
+      grid-template-columns: 86px 1fr;
+      gap: 8px;
+      border-bottom: 1px solid rgba(216, 243, 255, 0.08);
+      padding-bottom: 6px;
+    }
+    .tag { color: var(--amber); }
+    .bad { color: var(--red); }
+    table { width: 100%; border-collapse: collapse; }
+    td, th { padding: 4px 6px; border-bottom: 1px solid rgba(216, 243, 255, 0.08); }
+    @media (max-width: 900px) {
+      main { grid-template-columns: 1fr; grid-template-rows: 360px 260px 220px 220px; height: auto; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <strong>FIND EVIL</strong>
+    <span id="status">connecting</span>
+  </header>
+  <main>
+    <section>
+      <h2>PHEROMONE GRAPH</h2>
+      <div id="cy"></div>
+    </section>
+    <section>
+      <h2>MITRE ATT&amp;CK MATRIX</h2>
+      <div id="mitre"></div>
+    </section>
+    <section>
+      <h2>CONSENSUS FEED</h2>
+      <div id="consensus"></div>
+    </section>
+    <section>
+      <h2>CACAO QUEUE</h2>
+      <div id="cacao" hx-get="/fragment/cacao" hx-trigger="load, every 2s"></div>
+    </section>
+  </main>
+  <script>
+    const statusEl = document.getElementById('status');
+    const consensusEl = document.getElementById('consensus');
+    const mitreEl = document.getElementById('mitre');
+    const nodeMap = new Map();
+    const cy = cytoscape({
+      container: document.getElementById('cy'),
+      elements: [],
+      style: [
+        { selector: 'node', style: {
+          'background-color': 'data(color)',
+          'label': 'data(label)',
+          'color': '#d8f3ff',
+          'font-size': 9,
+          'text-outline-color': '#0a0e14',
+          'text-outline-width': 2,
+          'width': 'data(size)',
+          'height': 'data(size)'
+        }},
+        { selector: 'edge', style: {
+          'line-color': '#145ca7',
+          'opacity': 0.45,
+          'width': 1
+        }}
+      ],
+      layout: { name: 'cose', animate: false }
+    });
+
+    function colorFor(n) {
+      if ((n.bel_evil || 0) >= 0.8) return '#ff3864';
+      if ((n.tau || 0) >= 0.5) return '#ffb86c';
+      return '#00ff9f';
+    }
+    function upsertNode(n) {
+      const id = n.pher_key || n.key;
+      if (!id) return;
+      const data = {
+        id,
+        label: id.replace(/^pher:/, '').slice(0, 36),
+        color: colorFor(n),
+        size: Math.max(18, Math.min(56, 18 + Number(n.tau || 0) * 6))
+      };
+      nodeMap.set(id, data);
+      const existing = cy.getElementById(id);
+      if (existing.length) existing.data(data);
+      else cy.add({ group: 'nodes', data });
+    }
+    function relayout() {
+      cy.layout({ name: 'cose', animate: false, fit: true, padding: 30 }).run();
+    }
+    async function bootstrap() {
+      const snap = await fetch('/api/pher/snapshot').then(r => r.json());
+      (snap.nodes || []).forEach(upsertNode);
+      relayout();
+      const path = await fetch('/api/attack_path').then(r => r.json());
+      mitreEl.innerHTML = (path.techniques || []).map(t => `<div class="tag">${t}</div>`).join('') || 'no active chain';
+      statusEl.textContent = snap.valkey_available ? 'live' : 'valkey unavailable';
+    }
+    function addConsensus(frame) {
+      upsertNode(frame);
+      const div = document.createElement('div');
+      div.className = 'row';
+      div.innerHTML = `<span class="${frame.action === 'mitigate' ? 'bad' : 'tag'}">${frame.action || '-'}</span><span>${frame.pher_key || '-'} bel=${Number(frame.belief_evil || 0).toFixed(3)} K=${Number(frame.conflict_K || 0).toFixed(3)}</span>`;
+      consensusEl.prepend(div);
+      while (consensusEl.children.length > 24) consensusEl.lastChild.remove();
+      relayout();
+    }
+    bootstrap().catch(() => { statusEl.textContent = 'bootstrap failed'; });
+    const es = new EventSource('/stream/consensus');
+    es.onmessage = (ev) => {
+      try {
+        const envelope = JSON.parse(ev.data);
+        const payload = typeof envelope.payload === 'string' ? JSON.parse(envelope.payload) : envelope;
+        addConsensus(payload);
+        statusEl.textContent = 'live';
+      } catch (_) {}
+    };
+    es.onerror = () => { statusEl.textContent = 'stream reconnecting'; };
+  </script>
+</body>
+</html>

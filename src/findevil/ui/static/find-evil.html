@@ -1,0 +1,1705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FIND EVIL — Autonomous DFIR Command Shell</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #050507;
+    --bg2: #080810;
+    --bg3: #0c0c18;
+    --panel: #0a0a14;
+    --panel2: #0f0f1e;
+    --border: rgba(255,255,255,0.06);
+    --border2: rgba(255,255,255,0.1);
+    --red: #ff1744;
+    --red2: #ff4060;
+    --red-glow: rgba(255,23,68,0.25);
+    --green: #00e676;
+    --green2: #69f0ae;
+    --green-dim: rgba(0,230,118,0.15);
+    --blue: #2979ff;
+    --blue2: #82b1ff;
+    --amber: #ffab00;
+    --amber2: #ffd740;
+    --cyan: #00e5ff;
+    --purple: #d500f9;
+    --text: rgba(255,255,255,0.92);
+    --text2: rgba(255,255,255,0.55);
+    --text3: rgba(255,255,255,0.25);
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Space Grotesk', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    overflow: hidden;
+    width: 100vw;
+    height: 100vh;
+    user-select: none;
+  }
+
+  /* ─── BOOT SCREEN ─── */
+  #boot {
+    position: fixed; inset: 0; z-index: 1000;
+    background: #000;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 32px;
+  }
+  #boot-logo {
+    font-family: var(--mono);
+    font-size: clamp(32px, 6vw, 72px);
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    color: var(--red);
+    text-shadow: 0 0 60px var(--red), 0 0 120px rgba(255,23,68,0.4);
+    animation: logoPulse 2s ease-in-out infinite;
+  }
+  @keyframes logoPulse {
+    0%,100% { opacity: 1; text-shadow: 0 0 60px var(--red), 0 0 120px rgba(255,23,68,0.4); }
+    50% { opacity: 0.85; text-shadow: 0 0 100px var(--red), 0 0 200px rgba(255,23,68,0.6), 0 0 300px rgba(255,23,68,0.2); }
+  }
+  #boot-sub {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--text2);
+    letter-spacing: 0.15em;
+    text-align: center;
+  }
+  #boot-bar-wrap {
+    width: min(480px, 80vw);
+    height: 2px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  #boot-bar {
+    height: 100%; width: 0%;
+    background: linear-gradient(90deg, var(--red), var(--red2), var(--amber));
+    border-radius: 2px;
+    transition: width 0.05s linear;
+    box-shadow: 0 0 20px var(--red);
+  }
+  #boot-log {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--green);
+    text-align: left;
+    width: min(480px, 80vw);
+    height: 120px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  #boot-log div { animation: fadeIn 0.2s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ─── MAIN LAYOUT ─── */
+  #app {
+    width: 100vw; height: 100vh;
+    display: grid;
+    grid-template-rows: 48px 1fr 200px;
+    grid-template-columns: 280px 1fr 320px;
+    gap: 1px;
+    background: var(--border);
+    opacity: 0;
+    transition: opacity 0.8s ease;
+  }
+  #app.visible { opacity: 1; }
+
+  /* ─── TOPBAR ─── */
+  #topbar {
+    grid-column: 1 / -1;
+    background: var(--panel);
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    padding: 0 20px;
+    border-bottom: 1px solid var(--border2);
+    position: relative;
+    overflow: hidden;
+  }
+  #topbar::after {
+    content: '';
+    position: absolute; bottom: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--red), transparent);
+    animation: scanLine 3s linear infinite;
+  }
+  @keyframes scanLine {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(100%); }
+  }
+  .logo-mark {
+    font-family: var(--mono);
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--red);
+    letter-spacing: 0.15em;
+    text-shadow: 0 0 20px var(--red);
+    flex-shrink: 0;
+  }
+  .logo-sub {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text3);
+    letter-spacing: 0.1em;
+  }
+  .top-sep { width: 1px; height: 24px; background: var(--border2); flex-shrink: 0; }
+  .top-stat {
+    display: flex; flex-direction: column; gap: 1px;
+  }
+  .top-stat-label {
+    font-family: var(--mono); font-size: 9px; color: var(--text3); letter-spacing: 0.1em; text-transform: uppercase;
+  }
+  .top-stat-value {
+    font-family: var(--mono); font-size: 13px; font-weight: 500;
+  }
+  .top-stat-value.red { color: var(--red); text-shadow: 0 0 10px var(--red-glow); }
+  .top-stat-value.green { color: var(--green); }
+  .top-stat-value.amber { color: var(--amber); }
+  .top-stat-value.cyan { color: var(--cyan); }
+
+  #threat-level-bar {
+    margin-left: auto;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .tl-label { font-family: var(--mono); font-size: 10px; color: var(--text3); letter-spacing: 0.1em; }
+  .tl-blocks { display: flex; gap: 3px; }
+  .tl-block {
+    width: 18px; height: 14px; border-radius: 2px;
+    background: rgba(255,255,255,0.06);
+    transition: background 0.3s ease, box-shadow 0.3s ease;
+  }
+  .tl-block.active-red { background: var(--red); box-shadow: 0 0 8px var(--red); }
+  .tl-block.active-amber { background: var(--amber); box-shadow: 0 0 8px var(--amber); }
+  .tl-block.active-green { background: var(--green); box-shadow: 0 0 8px var(--green); }
+  
+  .sys-time {
+    font-family: var(--mono); font-size: 12px; color: var(--text2);
+    white-space: nowrap;
+  }
+
+  /* ─── LEFT PANEL: AGENT SWARM ─── */
+  #left-panel {
+    background: var(--panel);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .panel-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .panel-title {
+    font-family: var(--mono); font-size: 11px;
+    color: var(--text2); letter-spacing: 0.12em; text-transform: uppercase;
+  }
+  .panel-badge {
+    font-family: var(--mono); font-size: 10px;
+    padding: 2px 8px; border-radius: 10px;
+    background: rgba(0,230,118,0.12); color: var(--green);
+    border: 1px solid rgba(0,230,118,0.2);
+  }
+  .panel-badge.red { background: rgba(255,23,68,0.12); color: var(--red2); border-color: rgba(255,23,68,0.2); }
+  .panel-badge.amber { background: rgba(255,171,0,0.12); color: var(--amber2); border-color: rgba(255,171,0,0.2); }
+
+  #agent-list { flex: 1; overflow-y: auto; padding: 8px; scrollbar-width: thin; scrollbar-color: var(--border2) transparent; }
+
+  .agent-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px; border-radius: 6px;
+    cursor: pointer; position: relative;
+    transition: background 0.15s ease;
+    margin-bottom: 3px;
+  }
+  .agent-row:hover { background: rgba(255,255,255,0.04); }
+  .agent-row.active { background: rgba(255,23,68,0.08); border: 1px solid rgba(255,23,68,0.15); }
+  .agent-dot {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+    animation: agentPulse 2s ease-in-out infinite;
+  }
+  .agent-dot.green { background: var(--green); box-shadow: 0 0 8px var(--green); }
+  .agent-dot.red { background: var(--red); box-shadow: 0 0 8px var(--red); animation-duration: 0.6s; }
+  .agent-dot.amber { background: var(--amber); box-shadow: 0 0 6px var(--amber); animation-duration: 1.2s; }
+  .agent-dot.blue { background: var(--blue2); box-shadow: 0 0 6px var(--blue); animation-duration: 3s; }
+  @keyframes agentPulse {
+    0%,100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.7); }
+  }
+  .agent-info { flex: 1; min-width: 0; }
+  .agent-name { font-family: var(--mono); font-size: 11px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .agent-meta { font-family: var(--mono); font-size: 9px; color: var(--text3); margin-top: 2px; }
+  .agent-tau {
+    font-family: var(--mono); font-size: 11px; font-weight: 600;
+    flex-shrink: 0;
+  }
+  .tau-bar-wrap {
+    width: 100%; height: 2px; background: rgba(255,255,255,0.06); border-radius: 1px; margin-top: 4px;
+  }
+  .tau-bar { height: 100%; border-radius: 1px; transition: width 0.4s ease; }
+
+  /* ─── CENTER: MAIN CANVAS ─── */
+  #center-panel {
+    background: var(--bg);
+    position: relative;
+    overflow: hidden;
+  }
+  #main-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  
+  /* Tab system */
+  #view-tabs {
+    position: absolute; top: 0; left: 0; right: 0;
+    display: flex; gap: 0;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    z-index: 10;
+  }
+  .view-tab {
+    padding: 10px 20px;
+    font-family: var(--mono); font-size: 11px;
+    color: var(--text3); letter-spacing: 0.08em;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+  }
+  .view-tab:hover { color: var(--text2); }
+  .view-tab.active { color: var(--red); border-bottom-color: var(--red); }
+
+  #view-container {
+    position: absolute;
+    top: 40px; left: 0; right: 0; bottom: 0;
+  }
+  .view { position: absolute; inset: 0; opacity: 0; pointer-events: none; transition: opacity 0.4s ease; }
+  .view.active { opacity: 1; pointer-events: all; }
+
+  /* Pheromone canvas view */
+  #pheromone-canvas { width: 100%; height: 100%; display: block; }
+
+  /* Threat graph view */
+  #threat-graph-canvas { width: 100%; height: 100%; display: block; }
+
+  /* Ledger view */
+  #ledger-view {
+    padding: 24px;
+    overflow-y: auto;
+    height: 100%;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border2) transparent;
+  }
+
+  /* Debate view */
+  #debate-view {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+    height: 100%;
+  }
+  .debate-pane {
+    background: var(--panel);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .debate-header {
+    padding: 12px 16px;
+    display: flex; align-items: center; gap: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .debate-role {
+    font-family: var(--mono); font-size: 12px; font-weight: 600;
+    letter-spacing: 0.1em;
+  }
+  .debate-role.red { color: var(--red2); }
+  .debate-role.blue { color: var(--blue2); }
+  .debate-messages { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; scrollbar-width: thin; scrollbar-color: var(--border2) transparent; }
+  .debate-msg {
+    background: rgba(255,255,255,0.03);
+    border-radius: 8px;
+    padding: 12px;
+    border-left: 2px solid;
+    animation: msgSlide 0.3s ease;
+  }
+  @keyframes msgSlide { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .debate-msg.red { border-color: var(--red); }
+  .debate-msg.blue { border-color: var(--blue2); }
+  .debate-msg-header { font-family: var(--mono); font-size: 9px; color: var(--text3); margin-bottom: 6px; letter-spacing: 0.08em; }
+  .debate-msg-body { font-family: var(--mono); font-size: 11px; color: var(--text2); line-height: 1.6; }
+
+  /* ─── RIGHT PANEL: BLACKBOARD ─── */
+  #right-panel {
+    background: var(--panel);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* IOC artifact list */
+  #ioc-list { flex: 1; overflow-y: auto; padding: 8px; scrollbar-width: thin; scrollbar-color: var(--border2) transparent; }
+  .ioc-card {
+    background: var(--panel2);
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin-bottom: 6px;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .ioc-card::before {
+    content: '';
+    position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+    border-radius: 0 0 0 0;
+  }
+  .ioc-card.critical::before { background: var(--red); box-shadow: 4px 0 12px var(--red); }
+  .ioc-card.high::before { background: var(--amber); }
+  .ioc-card.medium::before { background: var(--blue2); }
+  .ioc-card.low::before { background: var(--green); }
+  .ioc-card:hover { background: rgba(255,255,255,0.04); border-color: var(--border2); }
+  .ioc-card.selected { border-color: rgba(255,23,68,0.3); background: rgba(255,23,68,0.05); }
+  .ioc-type { font-family: var(--mono); font-size: 9px; color: var(--text3); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 4px; }
+  .ioc-value { font-family: var(--mono); font-size: 11px; color: var(--text); word-break: break-all; margin-bottom: 6px; }
+  .ioc-tau-row { display: flex; align-items: center; gap: 8px; }
+  .ioc-tau-label { font-family: var(--mono); font-size: 9px; color: var(--text3); }
+  .ioc-tau-value { font-family: var(--mono); font-size: 11px; font-weight: 600; }
+  .ioc-tau-value.critical { color: var(--red); text-shadow: 0 0 8px var(--red-glow); }
+  .ioc-tau-value.high { color: var(--amber); }
+  .ioc-tau-value.medium { color: var(--blue2); }
+  .ioc-bel-row { margin-top: 4px; display: flex; gap: 8px; }
+  .ioc-bel { font-family: var(--mono); font-size: 9px; color: var(--text3); }
+  .ioc-bel span { color: var(--text2); }
+
+  /* ─── BOTTOM PANEL: TELEMETRY STREAM ─── */
+  #bottom-panel {
+    grid-column: 1 / -1;
+    background: var(--panel);
+    border-top: 1px solid var(--border2);
+    display: grid;
+    grid-template-columns: 280px 1fr 320px;
+    overflow: hidden;
+  }
+  .bottom-section {
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .bottom-section:last-child { border-right: none; }
+  #event-stream {
+    flex: 1;
+    overflow: hidden;
+    padding: 8px;
+    font-family: var(--mono);
+    font-size: 10px;
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 2px;
+  }
+  .event-line {
+    display: flex; gap: 8px; align-items: baseline;
+    animation: eventFade 0.3s ease;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  @keyframes eventFade { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: translateX(0); } }
+  .ev-time { color: var(--text3); flex-shrink: 0; font-size: 9px; }
+  .ev-src { flex-shrink: 0; padding: 1px 5px; border-radius: 3px; font-size: 9px; }
+  .ev-src.zeek { background: rgba(41,121,255,0.2); color: var(--blue2); }
+  .ev-src.sysmon { background: rgba(255,171,0,0.15); color: var(--amber2); }
+  .ev-src.yara { background: rgba(255,23,68,0.15); color: var(--red2); }
+  .ev-src.ebpf { background: rgba(213,0,249,0.15); color: #e040fb; }
+  .ev-src.vol3 { background: rgba(0,229,255,0.12); color: var(--cyan); }
+  .ev-msg { color: var(--text2); overflow: hidden; text-overflow: ellipsis; }
+  .ev-msg.alert { color: var(--red2); }
+  .ev-msg.info { color: var(--text3); }
+
+  /* Metrics panel */
+  #metrics-panel {
+    padding: 10px 14px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .metric-row {
+    display: flex; align-items: center; gap: 8px;
+  }
+  .metric-label { font-family: var(--mono); font-size: 9px; color: var(--text3); letter-spacing: 0.08em; flex: 1; }
+  .metric-val { font-family: var(--mono); font-size: 11px; font-weight: 500; }
+  .metric-sparkline {
+    flex: 2; height: 20px; position: relative; overflow: hidden;
+  }
+  .sparkline-canvas { width: 100%; height: 100%; display: block; }
+
+  /* Status bar */
+  #status-bar {
+    padding: 10px 16px;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .status-row { display: flex; justify-content: space-between; align-items: center; }
+  .status-key { font-family: var(--mono); font-size: 9px; color: var(--text3); letter-spacing: 0.08em; }
+  .status-val { font-family: var(--mono); font-size: 10px; }
+
+  /* ─── THREAT OVERLAY ─── */
+  #threat-overlay {
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 500;
+    background: var(--panel);
+    border: 1px solid var(--red);
+    box-shadow: 0 0 60px rgba(255,23,68,0.3), 0 0 120px rgba(255,23,68,0.1);
+    border-radius: 8px;
+    padding: 24px 32px;
+    text-align: center;
+    min-width: 400px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
+  #threat-overlay.visible { opacity: 1; pointer-events: all; }
+  .threat-overlay-title {
+    font-family: var(--mono); font-size: 22px; font-weight: 700;
+    color: var(--red); letter-spacing: 0.2em;
+    text-shadow: 0 0 30px var(--red);
+    animation: logoPulse 1s ease-in-out infinite;
+  }
+  .threat-overlay-art { font-family: var(--mono); font-size: 10px; color: var(--red2); margin: 16px 0; line-height: 1.4; opacity: 0.7; }
+  .threat-overlay-close {
+    margin-top: 16px;
+    font-family: var(--mono); font-size: 11px;
+    padding: 8px 24px; border-radius: 4px;
+    background: rgba(255,23,68,0.15); color: var(--red2);
+    border: 1px solid rgba(255,23,68,0.3);
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .threat-overlay-close:hover { background: rgba(255,23,68,0.3); }
+
+  /* ─── MERKLE LEDGER ─── */
+  .ledger-block {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px 16px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+  }
+  .ledger-block:hover { border-color: var(--border2); background: rgba(255,255,255,0.03); }
+  .ledger-block.critical { border-left: 3px solid var(--red); }
+  .ledger-block.info-block { border-left: 3px solid var(--green); }
+  .ledger-seq { font-family: var(--mono); font-size: 20px; font-weight: 700; color: var(--text3); flex-shrink: 0; min-width: 40px; }
+  .ledger-content { flex: 1; }
+  .ledger-hash { font-family: var(--mono); font-size: 9px; color: var(--text3); margin-bottom: 6px; word-break: break-all; }
+  .ledger-event { font-family: var(--mono); font-size: 11px; color: var(--text); margin-bottom: 4px; }
+  .ledger-meta { font-family: var(--mono); font-size: 9px; color: var(--text3); }
+  .ledger-sig { font-family: var(--mono); font-size: 8px; color: rgba(0,229,255,0.5); margin-top: 6px; }
+
+  /* ─── SCROLLBAR ─── */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
+  /* ─── SOUND TOGGLE ─── */
+  #sound-toggle {
+    position: fixed; bottom: 210px; right: 20px;
+    z-index: 100;
+    width: 36px; height: 36px;
+    background: var(--panel);
+    border: 1px solid var(--border2);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 16px;
+  }
+  #sound-toggle:hover { background: var(--panel2); border-color: var(--text3); }
+
+  /* glitch effect */
+  .glitch {
+    animation: glitch 0.3s ease;
+  }
+  @keyframes glitch {
+    0% { transform: translate(0); }
+    20% { transform: translate(-2px, 1px); filter: hue-rotate(90deg); }
+    40% { transform: translate(2px, -1px); }
+    60% { transform: translate(-1px, 2px); filter: hue-rotate(-90deg); }
+    80% { transform: translate(1px, -2px); }
+    100% { transform: translate(0); filter: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- BOOT SCREEN -->
+<div id="boot">
+  <div id="boot-logo">FIND EVIL</div>
+  <div id="boot-sub">STIGMERGIC-BLACKBOARD HYBRID · AUTONOMOUS DFIR · v2.1.0</div>
+  <div id="boot-bar-wrap"><div id="boot-bar"></div></div>
+  <div id="boot-log"></div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app">
+
+  <!-- TOPBAR -->
+  <div id="topbar">
+    <div>
+      <div class="logo-mark">FIND EVIL</div>
+      <div class="logo-sub">AUTONOMOUS DFIR COMMAND SHELL</div>
+    </div>
+    <div class="top-sep"></div>
+    <div class="top-stat">
+      <div class="top-stat-label">DECISION LOOP</div>
+      <div class="top-stat-value green" id="stat-loop">1.2 ms</div>
+    </div>
+    <div class="top-sep"></div>
+    <div class="top-stat">
+      <div class="top-stat-label">ACTIVE AGENTS</div>
+      <div class="top-stat-value cyan" id="stat-agents">47</div>
+    </div>
+    <div class="top-sep"></div>
+    <div class="top-stat">
+      <div class="top-stat-label">IOC COUNT</div>
+      <div class="top-stat-value amber" id="stat-ioc">124</div>
+    </div>
+    <div class="top-sep"></div>
+    <div class="top-stat">
+      <div class="top-stat-label">THREATS FOUND</div>
+      <div class="top-stat-value red" id="stat-threats">3</div>
+    </div>
+    <div class="top-sep"></div>
+    <div class="top-stat">
+      <div class="top-stat-label">τ MAX</div>
+      <div class="top-stat-value red" id="stat-tau">0.923</div>
+    </div>
+    <div id="threat-level-bar">
+      <div class="tl-label">THREAT LEVEL</div>
+      <div class="tl-blocks" id="tl-blocks">
+        <div class="tl-block"></div><div class="tl-block"></div><div class="tl-block"></div>
+        <div class="tl-block"></div><div class="tl-block"></div><div class="tl-block"></div>
+        <div class="tl-block"></div><div class="tl-block"></div><div class="tl-block"></div><div class="tl-block"></div>
+      </div>
+      <div class="sys-time" id="sys-time">--:--:--</div>
+    </div>
+  </div>
+
+  <!-- LEFT: AGENT SWARM -->
+  <div id="left-panel">
+    <div class="panel-header">
+      <div class="panel-title">MICRO-AGENT SWARM</div>
+      <div class="panel-badge" id="agent-count-badge">47 LIVE</div>
+    </div>
+    <div id="agent-list"></div>
+  </div>
+
+  <!-- CENTER: MAIN VIEW -->
+  <div id="center-panel">
+    <div id="view-tabs">
+      <div class="view-tab active" data-view="pheromone">PHEROMONE FIELD</div>
+      <div class="view-tab" data-view="graph">THREAT GRAPH</div>
+      <div class="view-tab" data-view="ledger">MERKLE LEDGER</div>
+      <div class="view-tab" data-view="debate">ADVERSARIAL DEBATE</div>
+    </div>
+    <div id="view-container">
+      <div class="view active" id="view-pheromone">
+        <canvas id="pheromone-canvas"></canvas>
+      </div>
+      <div class="view" id="view-graph">
+        <canvas id="threat-graph-canvas"></canvas>
+      </div>
+      <div class="view" id="view-ledger">
+        <div id="ledger-view"></div>
+      </div>
+      <div class="view" id="view-debate">
+        <div id="debate-view">
+          <div class="debate-pane">
+            <div class="debate-header">
+              <div class="agent-dot red"></div>
+              <div class="debate-role red">RED TEAM — ADVERSARY EMULATOR</div>
+            </div>
+            <div class="debate-messages" id="red-messages"></div>
+          </div>
+          <div class="debate-pane">
+            <div class="debate-header">
+              <div class="agent-dot blue"></div>
+              <div class="debate-role blue">BLUE TEAM — DFIR INVESTIGATOR</div>
+            </div>
+            <div class="debate-messages" id="blue-messages"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: MCP BLACKBOARD -->
+  <div id="right-panel">
+    <div class="panel-header">
+      <div class="panel-title">MCP BLACKBOARD</div>
+      <div class="panel-badge amber">bb://ioc</div>
+    </div>
+    <div id="ioc-list"></div>
+  </div>
+
+  <!-- BOTTOM: TELEMETRY -->
+  <div id="bottom-panel">
+    <div class="bottom-section">
+      <div class="panel-header" style="padding: 8px 14px;">
+        <div class="panel-title">EVENT STREAM</div>
+        <div class="panel-badge">LIVE</div>
+      </div>
+      <div id="event-stream"></div>
+    </div>
+    <div class="bottom-section">
+      <div class="panel-header" style="padding: 8px 14px;">
+        <div class="panel-title">SYSTEM METRICS</div>
+      </div>
+      <div id="metrics-panel">
+        <div class="metric-row">
+          <div class="metric-label">ZMQ PUB RATE</div>
+          <div class="metric-val cyan" id="m-zmq">48.2k/s</div>
+          <div class="metric-sparkline"><canvas class="sparkline-canvas" id="sp-zmq"></canvas></div>
+        </div>
+        <div class="metric-row">
+          <div class="metric-label">REDIS ZINCRBY p50</div>
+          <div class="metric-val green" id="m-redis">74 µs</div>
+          <div class="metric-sparkline"><canvas class="sparkline-canvas" id="sp-redis"></canvas></div>
+        </div>
+        <div class="metric-row">
+          <div class="metric-label">D-S FUSION RATE</div>
+          <div class="metric-val amber" id="m-ds">8.1k/s</div>
+          <div class="metric-sparkline"><canvas class="sparkline-canvas" id="sp-ds"></canvas></div>
+        </div>
+        <div class="metric-row">
+          <div class="metric-label">MCP WRITE p50</div>
+          <div class="metric-val" style="color: var(--blue2)" id="m-mcp">1.8 ms</div>
+          <div class="metric-sparkline"><canvas class="sparkline-canvas" id="sp-mcp"></canvas></div>
+        </div>
+        <div class="metric-row">
+          <div class="metric-label">vLLM TTFT</div>
+          <div class="metric-val" style="color: var(--purple)" id="m-vllm">12 ms</div>
+          <div class="metric-sparkline"><canvas class="sparkline-canvas" id="sp-vllm"></canvas></div>
+        </div>
+      </div>
+    </div>
+    <div class="bottom-section">
+      <div class="panel-header" style="padding: 8px 14px;">
+        <div class="panel-title">CONSENSUS STATUS</div>
+      </div>
+      <div id="status-bar">
+        <div class="status-row">
+          <div class="status-key">CURRENT FOCUS ARTIFACT</div>
+          <div class="status-val" style="color: var(--red2); font-family: var(--mono); font-size: 10px;" id="focus-art">192.168.1.47</div>
+        </div>
+        <div class="status-row">
+          <div class="status-key">Bel(evil)</div>
+          <div class="status-val" style="color: var(--red); font-family: var(--mono); font-size: 10px;" id="bel-val">0.891</div>
+        </div>
+        <div class="status-row">
+          <div class="status-key">Pl(evil)</div>
+          <div class="status-val" style="color: var(--amber2); font-family: var(--mono); font-size: 10px;" id="pl-val">0.943</div>
+        </div>
+        <div class="status-row">
+          <div class="status-key">K (conflict)</div>
+          <div class="status-val" style="color: var(--blue2); font-family: var(--mono); font-size: 10px;" id="k-val">0.127</div>
+        </div>
+        <div class="status-row">
+          <div class="status-key">SENSOR DIVERSITY</div>
+          <div class="status-val" style="color: var(--green); font-family: var(--mono); font-size: 10px;" id="sensor-div">5 / 5</div>
+        </div>
+        <div class="status-row">
+          <div class="status-key">STIX 2.1 BUNDLE</div>
+          <div class="status-val" style="color: var(--green); font-family: var(--mono); font-size: 10px;">SYNCED</div>
+        </div>
+        <div class="status-row">
+          <div class="status-key">MERKLE TIP</div>
+          <div class="status-val" style="color: var(--cyan); font-family: var(--mono); font-size: 9px;" id="merkle-tip">a3f8…b217</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- THREAT FOUND OVERLAY -->
+<div id="threat-overlay">
+  <div class="threat-overlay-title">⚠ EVIL FOUND ⚠</div>
+  <div class="threat-overlay-art" id="overlay-detail"></div>
+  <div class="threat-overlay-close" onclick="closeThreatOverlay()">ACKNOWLEDGE → CONTINUE INVESTIGATION</div>
+</div>
+
+<!-- SOUND TOGGLE -->
+<div id="sound-toggle" onclick="toggleSound()" title="Toggle ambient sound">🔇</div>
+
+<script>
+// ══════════════════════════════════════════════════
+// FIND EVIL — COMMAND SHELL ENGINE
+// ══════════════════════════════════════════════════
+
+const state = {
+  time: 0,
+  threatLevel: 7,
+  agents: [],
+  iocs: [],
+  events: [],
+  ledgerBlocks: [],
+  redMessages: [],
+  blueMessages: [],
+  sparklineData: { zmq: [], redis: [], ds: [], mcp: [], vllm: [] },
+  activeView: 'pheromone',
+  soundEnabled: false,
+  audioCtx: null,
+  threatOverlayShown: false,
+  pheromoneParts: [],
+  graphNodes: [],
+  graphEdges: [],
+  animFrame: 0,
+};
+
+// ─── AGENT DEFINITIONS ───
+const AGENT_DEFS = [
+  { id: 'A1', name: 'proc-tree', src: 'Sysmon', color: 'amber', tau: 0.72, ops: 12400 },
+  { id: 'A2', name: 'conn-rate', src: 'Zeek', color: 'green', tau: 0.91, ops: 48200 },
+  { id: 'A3', name: 'syscall', src: 'eBPF', color: 'blue', tau: 0.38, ops: 91000 },
+  { id: 'A4', name: 'hash-match', src: 'YARA', color: 'red', tau: 0.87, ops: 3200 },
+  { id: 'A5', name: 'mem-scan', src: 'vol3', color: 'green', tau: 0.44, ops: 800 },
+  { id: 'A6', name: 'dns-beacon', src: 'Zeek', color: 'amber', tau: 0.65, ops: 22000 },
+  { id: 'A7', name: 'lateral-mov', src: 'Sysmon', color: 'red', tau: 0.78, ops: 5600 },
+  { id: 'A8', name: 'dll-inject', src: 'eBPF', color: 'red', tau: 0.93, ops: 1100 },
+  { id: 'A9', name: 'reg-persist', src: 'Sysmon', color: 'amber', tau: 0.56, ops: 4200 },
+  { id: 'A10', name: 'C2-detect', src: 'Zeek', color: 'green', tau: 0.29, ops: 33000 },
+  { id: 'A11', name: 'exfil-vol', src: 'Zeek', color: 'blue', tau: 0.43, ops: 18700 },
+  { id: 'A12', name: 'priv-esc', src: 'eBPF', color: 'amber', tau: 0.61, ops: 9800 },
+];
+
+const IOC_DEFS = [
+  { type: 'IP', value: '192.168.1.47', tau: 0.923, bel: 0.891, pl: 0.943, severity: 'critical', k: 0.127 },
+  { type: 'SHA-256', value: '4a7f3b...e8c012', tau: 0.874, bel: 0.821, pl: 0.907, severity: 'critical', k: 0.203 },
+  { type: 'PID', value: '4821 (svchost.exe)', tau: 0.781, bel: 0.744, pl: 0.858, severity: 'critical', k: 0.165 },
+  { type: 'DOMAIN', value: 'update.msn-cdn.net', tau: 0.654, bel: 0.612, pl: 0.731, severity: 'high', k: 0.289 },
+  { type: 'IP', value: '10.0.0.221', tau: 0.541, bel: 0.498, pl: 0.623, severity: 'high', k: 0.341 },
+  { type: 'REGKEY', value: 'HKLM\\Run\\svc32host', tau: 0.487, bel: 0.441, pl: 0.572, severity: 'high', k: 0.411 },
+  { type: 'DLL', value: 'mscoree32.dll', tau: 0.388, bel: 0.345, pl: 0.476, severity: 'medium', k: 0.521 },
+  { type: 'IP', value: '172.16.0.88', tau: 0.312, bel: 0.278, pl: 0.392, severity: 'medium', k: 0.612 },
+  { type: 'SHA-256', value: '9d1c8e...a4f209', tau: 0.198, bel: 0.167, pl: 0.267, severity: 'low', k: 0.731 },
+  { type: 'PORT', value: '4444/tcp (Metasploit)', tau: 0.892, bel: 0.847, pl: 0.921, severity: 'critical', k: 0.089 },
+];
+
+const EVENTS_POOL = [
+  { src: 'zeek', msg: 'CONN 192.168.1.47:54821 → 10.0.0.1:443 [TLS] bytes=48291', level: 'alert' },
+  { src: 'sysmon', msg: 'EventID 1 — svchost.exe spawned cmd.exe (PID 4821→5108)', level: 'alert' },
+  { src: 'yara', msg: 'RULE match: Metasploit_Meterpreter on PID 4821 confidence=0.97', level: 'alert' },
+  { src: 'ebpf', msg: 'SYSCALL ptrace(PTRACE_ATTACH, 4821) from uid=0', level: 'alert' },
+  { src: 'zeek', msg: 'DNS query update.msn-cdn.net → 188.114.97.4 (suspicious TLD)', level: 'info' },
+  { src: 'sysmon', msg: 'EventID 13 — HKLM\\Run\\svc32host value set', level: 'alert' },
+  { src: 'vol3', msg: 'Injected DLL: mscoree32.dll in PID 4821 base=0x7ff...', level: 'alert' },
+  { src: 'zeek', msg: 'CONN 10.0.0.221:139 → 192.168.1.47:139 [SMB] lateral', level: 'alert' },
+  { src: 'ebpf', msg: 'execve("/bin/bash", ["bash", "-i"]) uid=1000→0 priv-esc', level: 'alert' },
+  { src: 'zeek', msg: 'HTTP POST /upload.php content-length=2.4MB exfil candidate', level: 'info' },
+  { src: 'sysmon', msg: 'EventID 3 — network connect 4444/tcp outbound PID 4821', level: 'alert' },
+  { src: 'zeek', msg: 'CONN 192.168.1.47:4444 → 188.114.97.4:443 [encrypted C2]', level: 'info' },
+  { src: 'ebpf', msg: 'SYSCALL mprotect(PROT_EXEC) on heap region — shellcode suspect', level: 'info' },
+  { src: 'vol3', msg: 'VAD scan: RWX region 0x7ff00000 (PID 4821) — Meterpreter stage', level: 'alert' },
+  { src: 'yara', msg: 'RULE match: Cobalt_Strike_Beacon on 0x7ff00120 confidence=0.91', level: 'alert' },
+];
+
+const LEDGER_DEFS = [
+  { seq: '#001', type: 'info-block', hash: 'sha256:a3f8c291...b21704af', event: 'INVESTIGATION STARTED — SIFT Workstation init', detail: 'STIX bundle created · CACAO playbook loaded · MCP blackboard online', sig: 'Ed25519:3a91...7f22' },
+  { seq: '#002', type: 'info-block', hash: 'sha256:8e1d5c40...3f892b11', event: 'Anomaly detected: proc-tree agent τ=0.312', detail: 'PID 4821 svchost.exe → cmd.exe spawn chain MITRE T1059', sig: 'Ed25519:7b44...2e19' },
+  { seq: '#003', type: 'critical', hash: 'sha256:f72a9b18...4c1e3d82', event: 'THRESHOLD CROSSED: τ=0.781 on PID:4821', detail: 'Sensor diversity=5, Bel=0.744 ≥ θ_alert=0.70 · MCP tool: kill_pid(4821)', sig: 'Ed25519:aa31...9f08' },
+  { seq: '#004', type: 'info-block', hash: 'sha256:2c0f7e93...8b4d6a15', event: 'YARA match confirmed: Metasploit_Meterpreter', detail: 'confidence=0.97 · Hash recorded bb://ioc/hash/4a7f3b…e8c012', sig: 'Ed25519:5e72...1c44' },
+  { seq: '#005', type: 'critical', hash: 'sha256:91b4d2e7...7a0c5f38', event: 'EVIL FOUND: C2 beacon to 192.168.1.47:4444', detail: 'IP τ=0.923 Bel=0.891 FIRE · iptables DROP + STIX indicator emitted', sig: 'Ed25519:8d19...3b77' },
+  { seq: '#006', type: 'info-block', hash: 'sha256:3e8a1f20...c56d9b47', event: 'Fractal SLM pivot spawned on DLL:mscoree32', detail: 'vLLM coroutine TTFT=12ms · ArtifactRef sha256:9d1c8e confirmed', sig: 'Ed25519:f231...6e88' },
+  { seq: '#007', type: 'critical', hash: 'sha256:b67f4c81...2e9d0a53', event: 'Lateral movement: 10.0.0.221 → SMB pivot', detail: 'τ=0.541 rising · conn-rate agent Δτ=+0.089 · isolate recommended', sig: 'Ed25519:1c55...7a02' },
+];
+
+const RED_MSGS = [
+  { ts: 'T+00:02', text: 'Initial access via phishing payload. Meterpreter stage 2 loaded into PID 4821. Persistence via HKLM\\Run svc32host. Awaiting blue team discovery window...' },
+  { ts: 'T+00:14', text: 'Attempting pheromone evasion — keeping τ sub-threshold via slow-and-low beacon interval (47s). OPSEC check: 3 of 5 sensors below noise floor.' },
+  { ts: 'T+00:31', text: 'DLL injection mscoree32.dll succeeded. Elevated to SYSTEM via priv-esc (T1068). Lateral movement to 10.0.0.221 via SMB. Exfil staging: 2.4MB queued.' },
+  { ts: 'T+00:52', text: 'WARNING: conn-rate agent τ crossing 0.8 on C2 IP. Rotation required. Switching to domain-fronted C2 via update.msn-cdn.net...' },
+];
+
+const BLUE_MSGS = [
+  { ts: 'T+00:04', text: 'Swarm anomaly: proc-tree τ rising on PID 4821. svchost→cmd.exe chain matches T1059. Dispatching fractal pivot agent for process tree analysis.' },
+  { ts: 'T+00:18', text: 'YARA confirmed Meterpreter (0.97). Pheromone τ=0.781 threshold crossed. Bel=0.744 with 5-sensor diversity. MCP tool: alert_soc + memory acquisition initiated.' },
+  { ts: 'T+00:35', text: 'C2 beacon identified: 192.168.1.47:4444 → 188.114.97.4. τ=0.923 EVIL FOUND. Executing: iptables DROP, kill_pid(4821). STIX 2.1 indicator written to MCP blackboard.' },
+  { ts: 'T+00:54', text: 'Merkle ledger entries #003–#005 cryptographically signed. Lateral movement via SMB detected — quarantine recommendation for 10.0.0.221. CACAO playbook step 4 executing.' },
+];
+
+// ─── BOOT SEQUENCE ───
+const BOOT_LINES = [
+  '[ OK ] Initializing stigmergic pheromone engine (asyncio+uvloop)',
+  '[ OK ] Redis/Valkey UDS socket bound — latency p50: 72µs',
+  '[ OK ] ZeroMQ PUB socket ipc:///tmp/dfir.sock — 48.2k msgs/s',
+  '[ OK ] fastmcp 2.x blackboard server — Streamable HTTP :8080',
+  '[ OK ] vLLM engine warm (Llama-3 8B AWQ, Q4_K_M) — TTFT: 12ms',
+  '[ OK ] MCP tools registered: kill_pid, iptables_drop, mem_acquire, alert_soc',
+  '[ OK ] Dempster-Shafer fusion engine initialized (θ_mitigate=0.85)',
+  '[ OK ] STIX 2.1 / OCSF / CACAO 2.0 / NIST SP 800-86 schemas loaded',
+  '[ OK ] Merkle chain initialized — tip: a3f8c291b21704af',
+  '[ OK ] SIFT Workstation telemetry: Zeek + Suricata + Sysmon + eBPF + vol3',
+  '[ OK ] Red team adversary emulator: ONLINE',
+  '[ OK ] Blue team DFIR investigator: ONLINE',
+  '[ OK ] 12 micro-agents spawned — swarm coverage: ALL STREAMS',
+  '[ BOOT ] FIND EVIL v2.1.0 — AUTONOMOUS DFIR READY',
+];
+
+async function runBoot() {
+  const logEl = document.getElementById('boot-log');
+  const barEl = document.getElementById('boot-bar');
+  
+  for (let i = 0; i < BOOT_LINES.length; i++) {
+    await sleep(80 + Math.random() * 120);
+    const pct = ((i + 1) / BOOT_LINES.length) * 100;
+    barEl.style.width = pct + '%';
+    const div = document.createElement('div');
+    const line = BOOT_LINES[i];
+    div.style.color = line.includes('BOOT') ? '#ff1744' : line.includes('OK') ? '#00e676' : '#fff';
+    div.textContent = line;
+    logEl.insertBefore(div, logEl.firstChild);
+    if (logEl.children.length > 8) logEl.removeChild(logEl.lastChild);
+  }
+  
+  await sleep(400);
+  document.getElementById('boot').style.transition = 'opacity 0.6s ease';
+  document.getElementById('boot').style.opacity = '0';
+  await sleep(600);
+  document.getElementById('boot').style.display = 'none';
+  document.getElementById('app').classList.add('visible');
+  initApp();
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ─── INIT APP ───
+function initApp() {
+  renderAgents();
+  renderIOCs();
+  renderLedger();
+  renderDebate();
+  initPheromoneCanvas();
+  initThreatGraphCanvas();
+  initSparklines();
+  startLiveUpdates();
+  updateClock();
+  setInterval(updateClock, 1000);
+  
+  // Tab switching
+  document.querySelectorAll('.view-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.view-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      tab.classList.add('active');
+      const viewId = 'view-' + tab.dataset.view;
+      document.getElementById(viewId).classList.add('active');
+      state.activeView = tab.dataset.view;
+    });
+  });
+
+  // Show threat overlay after 6s
+  setTimeout(showThreatOverlay, 6000);
+}
+
+// ─── AGENTS ───
+function renderAgents() {
+  const list = document.getElementById('agent-list');
+  list.innerHTML = '';
+  AGENT_DEFS.forEach(a => {
+    const div = document.createElement('div');
+    div.className = 'agent-row' + (a.tau > 0.85 ? ' active' : '');
+    div.innerHTML = `
+      <div class="agent-dot ${a.color}"></div>
+      <div class="agent-info">
+        <div class="agent-name">${a.id} · ${a.name}</div>
+        <div class="agent-meta">${a.src} · ${(a.ops/1000).toFixed(1)}k ops/s</div>
+        <div class="tau-bar-wrap">
+          <div class="tau-bar" style="width:${a.tau*100}%; background: ${a.tau>0.8?'var(--red)':a.tau>0.5?'var(--amber)':'var(--green)'}"></div>
+        </div>
+      </div>
+      <div class="agent-tau" style="color: ${a.tau>0.8?'var(--red)':a.tau>0.5?'var(--amber)':'var(--green)'}">τ=${a.tau.toFixed(2)}</div>
+    `;
+    list.appendChild(div);
+  });
+}
+
+// ─── IOCs ───
+function renderIOCs() {
+  const list = document.getElementById('ioc-list');
+  list.innerHTML = '';
+  IOC_DEFS.forEach((ioc, i) => {
+    const card = document.createElement('div');
+    card.className = `ioc-card ${ioc.severity}`;
+    card.innerHTML = `
+      <div class="ioc-type">${ioc.type}</div>
+      <div class="ioc-value">${ioc.value}</div>
+      <div class="ioc-tau-row">
+        <div class="ioc-tau-label">τ</div>
+        <div class="ioc-tau-value ${ioc.severity}">${ioc.tau.toFixed(3)}</div>
+      </div>
+      <div class="ioc-bel-row">
+        <div class="ioc-bel">Bel=<span>${ioc.bel.toFixed(3)}</span></div>
+        <div class="ioc-bel">Pl=<span>${ioc.pl.toFixed(3)}</span></div>
+        <div class="ioc-bel">K=<span>${ioc.k.toFixed(3)}</span></div>
+      </div>
+    `;
+    card.onclick = () => {
+      document.querySelectorAll('.ioc-card').forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+      document.getElementById('focus-art').textContent = ioc.value;
+      document.getElementById('bel-val').textContent = ioc.bel.toFixed(3);
+      document.getElementById('pl-val').textContent = ioc.pl.toFixed(3);
+      document.getElementById('k-val').textContent = ioc.k.toFixed(3);
+    };
+    list.appendChild(card);
+  });
+}
+
+// ─── LEDGER ───
+function renderLedger() {
+  const view = document.getElementById('ledger-view');
+  view.innerHTML = '<div style="font-family: var(--mono); font-size: 11px; color: var(--text3); margin-bottom: 16px; letter-spacing: 0.1em;">CRYPTOGRAPHICALLY SIGNED · ED25519 · MERKLE CHAIN · NIST SP 800-86</div>';
+  LEDGER_DEFS.forEach(b => {
+    const div = document.createElement('div');
+    div.className = `ledger-block ${b.type}`;
+    div.innerHTML = `
+      <div class="ledger-seq">${b.seq}</div>
+      <div class="ledger-content">
+        <div class="ledger-hash">${b.hash}</div>
+        <div class="ledger-event">${b.event}</div>
+        <div class="ledger-meta">${b.detail}</div>
+        <div class="ledger-sig">${b.sig}</div>
+      </div>
+    `;
+    view.appendChild(div);
+  });
+}
+
+// ─── DEBATE ───
+function renderDebate() {
+  const redEl = document.getElementById('red-messages');
+  const blueEl = document.getElementById('blue-messages');
+  RED_MSGS.forEach(m => {
+    const div = document.createElement('div');
+    div.className = 'debate-msg red';
+    div.innerHTML = `<div class="debate-msg-header">${m.ts} · RED TEAM EMULATOR</div><div class="debate-msg-body">${m.text}</div>`;
+    redEl.appendChild(div);
+  });
+  BLUE_MSGS.forEach(m => {
+    const div = document.createElement('div');
+    div.className = 'debate-msg blue';
+    div.innerHTML = `<div class="debate-msg-header">${m.ts} · BLUE TEAM DFIR</div><div class="debate-msg-body">${m.text}</div>`;
+    blueEl.appendChild(div);
+  });
+}
+
+// ─── PHEROMONE CANVAS ───
+function initPheromoneCanvas() {
+  const canvas = document.getElementById('pheromone-canvas');
+  const ctx = canvas.getContext('2d');
+  let particles = [];
+  let nodes = [];
+  let W, H;
+  
+  function resize() {
+    W = canvas.width = canvas.offsetWidth;
+    H = canvas.height = canvas.offsetHeight;
+    initNodes();
+  }
+  
+  function initNodes() {
+    nodes = IOC_DEFS.slice(0, 8).map((ioc, i) => {
+      const angle = (i / 8) * Math.PI * 2;
+      const r = Math.min(W, H) * 0.28;
+      return {
+        x: W/2 + Math.cos(angle) * r * (0.7 + Math.random() * 0.3),
+        y: H/2 + Math.sin(angle) * r * (0.7 + Math.random() * 0.3),
+        tau: ioc.tau,
+        severity: ioc.severity,
+        label: ioc.value.substring(0, 16),
+        type: ioc.type,
+        pulse: Math.random() * Math.PI * 2,
+        vx: (Math.random() - 0.5) * 0.3,
+        vy: (Math.random() - 0.5) * 0.3,
+      };
+    });
+    // Add center "blackboard" node
+    nodes.unshift({ x: W/2, y: H/2, tau: 1.0, severity: 'critical', label: 'MCP BLACKBOARD', type: 'BB', pulse: 0, vx: 0, vy: 0, isCenter: true });
+    spawnParticles();
+  }
+  
+  function spawnParticles() {
+    particles = [];
+    for (let i = 0; i < 120; i++) spawnParticle();
+  }
+  
+  function spawnParticle() {
+    const srcIdx = Math.floor(Math.random() * (nodes.length - 1)) + 1;
+    const src = nodes[srcIdx];
+    const center = nodes[0];
+    particles.push({
+      x: src.x + (Math.random() - 0.5) * 20,
+      y: src.y + (Math.random() - 0.5) * 20,
+      tx: center.x,
+      ty: center.y,
+      src: srcIdx,
+      progress: Math.random(),
+      speed: 0.003 + Math.random() * 0.006,
+      size: 1.5 + Math.random() * 2,
+      color: src.severity === 'critical' ? '#ff1744' : src.severity === 'high' ? '#ffab00' : '#00e676',
+      alpha: 0.4 + Math.random() * 0.6,
+      trail: [],
+    });
+  }
+  
+  let t = 0;
+  function draw() {
+    if (state.activeView !== 'pheromone') { requestAnimationFrame(draw); return; }
+    
+    ctx.clearRect(0, 0, W, H);
+    
+    // Background grid
+    ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+    ctx.lineWidth = 1;
+    for (let x = 0; x < W; x += 60) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+    for (let y = 0; y < H; y += 60) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+    
+    t += 0.01;
+    
+    // Connections (pheromone trails)
+    nodes.slice(1).forEach((node, i) => {
+      const center = nodes[0];
+      const strength = node.tau;
+      const grad = ctx.createLinearGradient(node.x, node.y, center.x, center.y);
+      const col = node.severity === 'critical' ? '255,23,68' : node.severity === 'high' ? '255,171,0' : '0,230,118';
+      grad.addColorStop(0, `rgba(${col},${strength * 0.15})`);
+      grad.addColorStop(0.5, `rgba(${col},${strength * 0.08})`);
+      grad.addColorStop(1, `rgba(${col},0.02)`);
+      ctx.beginPath();
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = strength * 2;
+      ctx.moveTo(node.x, node.y);
+      // Slight curve
+      const mx = (node.x + center.x) / 2 + Math.sin(t + i) * 20;
+      const my = (node.y + center.y) / 2 + Math.cos(t + i) * 20;
+      ctx.quadraticCurveTo(mx, my, center.x, center.y);
+      ctx.stroke();
+    });
+    
+    // Pheromone particles
+    particles.forEach((p, idx) => {
+      p.progress += p.speed;
+      if (p.progress >= 1) {
+        // Respawn
+        const srcIdx = Math.floor(Math.random() * (nodes.length - 1)) + 1;
+        const src = nodes[srcIdx];
+        particles[idx] = {
+          x: src.x + (Math.random() - 0.5) * 20,
+          y: src.y + (Math.random() - 0.5) * 20,
+          tx: nodes[0].x,
+          ty: nodes[0].y,
+          src: srcIdx,
+          progress: 0,
+          speed: 0.003 + Math.random() * 0.006,
+          size: 1.5 + Math.random() * 2,
+          color: src.severity === 'critical' ? '#ff1744' : src.severity === 'high' ? '#ffab00' : '#00e676',
+          alpha: 0.4 + Math.random() * 0.6,
+        };
+        return;
+      }
+      const src = nodes[p.src];
+      // Bezier path
+      const mx = (src.x + nodes[0].x) / 2 + Math.sin(t * 0.5 + p.src) * 30;
+      const my = (src.y + nodes[0].y) / 2 + Math.cos(t * 0.5 + p.src) * 30;
+      const tt = p.progress;
+      const px = (1-tt)*(1-tt)*src.x + 2*(1-tt)*tt*mx + tt*tt*nodes[0].x;
+      const py = (1-tt)*(1-tt)*src.y + 2*(1-tt)*tt*my + tt*tt*nodes[0].y;
+      
+      ctx.beginPath();
+      ctx.arc(px, py, p.size, 0, Math.PI * 2);
+      ctx.fillStyle = p.color + Math.floor(p.alpha * (1 - tt * 0.5) * 255).toString(16).padStart(2, '0');
+      ctx.fill();
+      
+      // Glow
+      if (p.size > 2.5) {
+        ctx.beginPath();
+        ctx.arc(px, py, p.size * 3, 0, Math.PI * 2);
+        const grad = ctx.createRadialGradient(px, py, 0, px, py, p.size * 3);
+        grad.addColorStop(0, p.color + '33');
+        grad.addColorStop(1, p.color + '00');
+        ctx.fillStyle = grad;
+        ctx.fill();
+      }
+    });
+    
+    // Nodes
+    nodes.forEach((node, i) => {
+      if (i === 0) {
+        // Center blackboard node - 3D rotating hex
+        node.pulse += 0.02;
+        const r = 40 + Math.sin(node.pulse) * 5;
+        
+        // Outer glow rings
+        for (let ring = 0; ring < 3; ring++) {
+          const ringR = r + ring * 20 + Math.sin(t * 2 + ring) * 5;
+          const grad = ctx.createRadialGradient(node.x, node.y, ringR * 0.5, node.x, node.y, ringR);
+          grad.addColorStop(0, 'rgba(255,23,68,0)');
+          grad.addColorStop(1, `rgba(255,23,68,${0.15 - ring * 0.04})`);
+          ctx.beginPath();
+          ctx.arc(node.x, node.y, ringR, 0, Math.PI * 2);
+          ctx.fillStyle = grad;
+          ctx.fill();
+        }
+        
+        // Main node
+        const mainGrad = ctx.createRadialGradient(node.x - r/4, node.y - r/4, 0, node.x, node.y, r);
+        mainGrad.addColorStop(0, '#ff4060');
+        mainGrad.addColorStop(0.5, '#cc0033');
+        mainGrad.addColorStop(1, '#880022');
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, r, 0, Math.PI * 2);
+        ctx.fillStyle = mainGrad;
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255,100,100,0.6)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        
+        // Label
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 10px JetBrains Mono, monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('MCP', node.x, node.y - 4);
+        ctx.font = '9px JetBrains Mono, monospace';
+        ctx.fillStyle = 'rgba(255,255,255,0.7)';
+        ctx.fillText('BLACKBOARD', node.x, node.y + 8);
+        
+        // Tau readout
+        ctx.fillStyle = 'rgba(255,200,200,0.8)';
+        ctx.font = '8px JetBrains Mono, monospace';
+        ctx.fillText(`τ_max=${IOC_DEFS[0].tau.toFixed(3)}`, node.x, node.y + r + 14);
+      } else {
+        node.pulse += 0.015 + node.tau * 0.01;
+        node.x += node.vx;
+        node.y += node.vy;
+        // Gentle boundary
+        const pad = 80;
+        if (node.x < pad || node.x > W - pad) node.vx *= -1;
+        if (node.y < pad || node.y > H - pad) node.vy *= -1;
+        
+        const r = 14 + node.tau * 16;
+        const col = node.severity === 'critical' ? '255,23,68' : node.severity === 'high' ? '255,171,0' : '0,230,118';
+        
+        // Pulse ring
+        const pulseR = r + Math.abs(Math.sin(node.pulse)) * 15;
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, pulseR, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(${col},${0.3 - Math.abs(Math.sin(node.pulse)) * 0.25})`;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        
+        // Node body
+        const nGrad = ctx.createRadialGradient(node.x - r/3, node.y - r/3, 0, node.x, node.y, r);
+        nGrad.addColorStop(0, `rgba(${col},0.9)`);
+        nGrad.addColorStop(1, `rgba(${col},0.3)`);
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, r, 0, Math.PI * 2);
+        ctx.fillStyle = nGrad;
+        ctx.fill();
+        
+        // Label
+        ctx.fillStyle = 'rgba(255,255,255,0.8)';
+        ctx.font = '9px JetBrains Mono, monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(node.type, node.x, node.y - 3);
+        ctx.fillStyle = 'rgba(255,255,255,0.5)';
+        ctx.font = '8px JetBrains Mono, monospace';
+        ctx.fillText(node.label, node.x, node.y + 7);
+        ctx.fillStyle = `rgba(${col},1)`;
+        ctx.font = 'bold 8px JetBrains Mono, monospace';
+        ctx.fillText(`τ=${node.tau.toFixed(2)}`, node.x, node.y + r + 12);
+      }
+    });
+    
+    // Pheromone field heatmap overlay hook; guard zero-sized startup frames.
+    if (W > 0 && H > 0) {
+      ctx.getImageData(0, 0, W, H);
+    }
+    
+    requestAnimationFrame(draw);
+  }
+  
+  resize();
+  window.addEventListener('resize', resize);
+  draw();
+}
+
+// ─── THREAT GRAPH CANVAS (3D Force-Directed) ───
+function initThreatGraphCanvas() {
+  const canvas = document.getElementById('threat-graph-canvas');
+  const ctx = canvas.getContext('2d');
+  let W, H;
+  
+  const graphNodes = [
+    { id: 0, label: 'ATTACKER C2', x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, type: 'c2', severity: 'critical' },
+    { id: 1, label: '192.168.1.47', x: 1, y: 0, z: 0.5, vx: 0, vy: 0, vz: 0, type: 'ip', severity: 'critical' },
+    { id: 2, label: 'PID 4821', x: 0.5, y: 1, z: 0, vx: 0, vy: 0, vz: 0, type: 'proc', severity: 'critical' },
+    { id: 3, label: 'Meterpreter', x: -0.5, y: 0.5, z: 0.8, vx: 0, vy: 0, vz: 0, type: 'malware', severity: 'critical' },
+    { id: 4, label: 'mscoree32.dll', x: -1, y: -0.5, z: 0.3, vx: 0, vy: 0, vz: 0, type: 'dll', severity: 'high' },
+    { id: 5, label: 'HKLM\\Run', x: 0, y: -1, z: -0.5, vx: 0, vy: 0, vz: 0, type: 'persist', severity: 'high' },
+    { id: 6, label: '10.0.0.221', x: 1.2, y: -0.8, z: 0, vx: 0, vy: 0, vz: 0, type: 'ip', severity: 'high' },
+    { id: 7, label: 'svchost.exe', x: 0.8, y: 0.8, z: -0.8, vx: 0, vy: 0, vz: 0, type: 'proc', severity: 'medium' },
+    { id: 8, label: 'msn-cdn.net', x: -0.8, y: 0.2, z: -0.9, vx: 0, vy: 0, vz: 0, type: 'domain', severity: 'high' },
+    { id: 9, label: 'PORT 4444', x: 1.5, y: 0.3, z: 0.4, vx: 0, vy: 0, vz: 0, type: 'port', severity: 'critical' },
+  ];
+  
+  const graphEdges = [
+    { src: 0, dst: 1, label: 'C2 beacon', strength: 0.9 },
+    { src: 1, dst: 2, label: 'injects', strength: 0.8 },
+    { src: 2, dst: 3, label: 'hosts', strength: 0.95 },
+    { src: 3, dst: 4, label: 'loads', strength: 0.7 },
+    { src: 3, dst: 5, label: 'persists via', strength: 0.75 },
+    { src: 2, dst: 7, label: 'spawned from', strength: 0.6 },
+    { src: 1, dst: 6, label: 'lateral move', strength: 0.5 },
+    { src: 0, dst: 8, label: 'fronts via', strength: 0.6 },
+    { src: 1, dst: 9, label: 'listens on', strength: 0.85 },
+    { src: 9, dst: 0, label: 'tunnels to', strength: 0.88 },
+  ];
+  
+  let rotX = 0.3, rotY = 0, rotZ = 0;
+  let dragging = false, lastMX = 0, lastMY = 0;
+  
+  canvas.addEventListener('mousedown', e => { dragging = true; lastMX = e.clientX; lastMY = e.clientY; });
+  canvas.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    rotY += (e.clientX - lastMX) * 0.005;
+    rotX += (e.clientY - lastMY) * 0.005;
+    lastMX = e.clientX; lastMY = e.clientY;
+  });
+  canvas.addEventListener('mouseup', () => dragging = false);
+  
+  function project(x, y, z) {
+    // Rotate
+    const cosX = Math.cos(rotX), sinX = Math.sin(rotX);
+    const cosY = Math.cos(rotY), sinY = Math.sin(rotY);
+    
+    let nx = x * cosY - z * sinY;
+    let nz = x * sinY + z * cosY;
+    let ny = y * cosX - nz * sinX;
+    nz = y * sinX + nz * cosX;
+    
+    const scale = 180;
+    const persp = 3 / (3 + nz * 0.5);
+    return { x: W/2 + nx * scale * persp, y: H/2 + ny * scale * persp, z: nz, persp };
+  }
+  
+  function resize() {
+    W = canvas.width = canvas.offsetWidth;
+    H = canvas.height = canvas.offsetHeight;
+  }
+  
+  function draw() {
+    if (state.activeView !== 'graph') { requestAnimationFrame(draw); return; }
+    ctx.clearRect(0, 0, W, H);
+    
+    if (!dragging) { rotY += 0.003; }
+    
+    // Project all nodes
+    const projected = graphNodes.map(n => ({
+      ...n,
+      ...project(n.x, n.y, n.z)
+    }));
+    
+    // Sort by z depth
+    projected.sort((a, b) => a.z - b.z);
+    
+    // Draw edges
+    graphEdges.forEach(e => {
+      const src = projected.find(n => n.id === e.src);
+      const dst = projected.find(n => n.id === e.dst);
+      const col = src.severity === 'critical' ? '255,23,68' : src.severity === 'high' ? '255,171,0' : '41,121,255';
+      const grad = ctx.createLinearGradient(src.x, src.y, dst.x, dst.y);
+      grad.addColorStop(0, `rgba(${col},${e.strength * 0.5})`);
+      grad.addColorStop(1, `rgba(${col},${e.strength * 0.1})`);
+      ctx.beginPath();
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = e.strength * 2;
+      ctx.moveTo(src.x, src.y);
+      ctx.lineTo(dst.x, dst.y);
+      ctx.stroke();
+      
+      // Arrow
+      const angle = Math.atan2(dst.y - src.y, dst.x - src.x);
+      const mx = (src.x + dst.x) / 2;
+      const my = (src.y + dst.y) / 2;
+      ctx.save();
+      ctx.translate(mx, my);
+      ctx.rotate(angle);
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(-8, -4);
+      ctx.lineTo(-8, 4);
+      ctx.closePath();
+      ctx.fillStyle = `rgba(${col},0.6)`;
+      ctx.fill();
+      ctx.restore();
+    });
+    
+    // Draw nodes
+    projected.forEach(n => {
+      const r = (16 + (n.tau || 0.5) * 16) * n.persp;
+      const col = n.severity === 'critical' ? '255,23,68' : n.severity === 'high' ? '255,171,0' : n.severity === 'medium' ? '41,121,255' : '0,230,118';
+      
+      // Glow
+      const gGrad = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, r * 2);
+      gGrad.addColorStop(0, `rgba(${col},0.3)`);
+      gGrad.addColorStop(1, `rgba(${col},0)`);
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, r * 2, 0, Math.PI * 2);
+      ctx.fillStyle = gGrad;
+      ctx.fill();
+      
+      // Body
+      const nGrad = ctx.createRadialGradient(n.x - r/3, n.y - r/3, 0, n.x, n.y, r);
+      nGrad.addColorStop(0, `rgba(${col},0.95)`);
+      nGrad.addColorStop(1, `rgba(${col},0.3)`);
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
+      ctx.fillStyle = nGrad;
+      ctx.fill();
+      ctx.strokeStyle = `rgba(${col},0.6)`;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      
+      // Label
+      const fontSize = Math.max(8, 10 * n.persp);
+      ctx.font = `bold ${fontSize}px JetBrains Mono, monospace`;
+      ctx.textAlign = 'center';
+      ctx.fillStyle = 'rgba(255,255,255,0.95)';
+      ctx.fillText(n.type.toUpperCase(), n.x, n.y + 3);
+      ctx.font = `${Math.max(7, 9 * n.persp)}px JetBrains Mono, monospace`;
+      ctx.fillStyle = 'rgba(255,255,255,0.6)';
+      ctx.fillText(n.label, n.x, n.y + r + 12 * n.persp);
+    });
+    
+    requestAnimationFrame(draw);
+  }
+  
+  resize();
+  window.addEventListener('resize', () => { resize(); });
+  draw();
+}
+
+// ─── SPARKLINES ───
+const sparklineConfigs = {
+  zmq: { id: 'sp-zmq', color: '0,229,255', min: 40000, max: 55000 },
+  redis: { id: 'sp-redis', color: '0,230,118', min: 60, max: 120 },
+  ds: { id: 'sp-ds', color: '255,171,0', min: 6000, max: 10000 },
+  mcp: { id: 'sp-mcp', color: '130,177,255', min: 1, max: 5 },
+  vllm: { id: 'sp-vllm', color: '213,0,249', min: 8, max: 25 },
+};
+
+function initSparklines() {
+  Object.keys(sparklineConfigs).forEach(key => {
+    state.sparklineData[key] = Array.from({length: 40}, () => Math.random());
+  });
+}
+
+function drawSparkline(key) {
+  const cfg = sparklineConfigs[key];
+  const canvas = document.getElementById(cfg.id);
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.offsetWidth; const H = canvas.offsetHeight;
+  canvas.width = W; canvas.height = H;
+  const data = state.sparklineData[key];
+  
+  ctx.clearRect(0, 0, W, H);
+  
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, `rgba(${cfg.color},0.3)`);
+  grad.addColorStop(1, `rgba(${cfg.color},0.02)`);
+  
+  ctx.beginPath();
+  data.forEach((v, i) => {
+    const x = (i / (data.length - 1)) * W;
+    const y = H - v * H;
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+  ctx.strokeStyle = `rgba(${cfg.color},0.8)`;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  
+  ctx.lineTo(W, H); ctx.lineTo(0, H); ctx.closePath();
+  ctx.fillStyle = grad;
+  ctx.fill();
+}
+
+// ─── LIVE UPDATES ───
+function startLiveUpdates() {
+  // Event stream
+  setInterval(() => {
+    const ev = EVENTS_POOL[Math.floor(Math.random() * EVENTS_POOL.length)];
+    addEvent(ev);
+  }, 600 + Math.random() * 800);
+  
+  // Stats
+  setInterval(() => {
+    updateStats();
+    updateMetrics();
+    updateThreatLevel();
+  }, 800);
+  
+  // Sparklines
+  setInterval(() => {
+    Object.keys(sparklineConfigs).forEach(key => {
+      const data = state.sparklineData[key];
+      data.push(0.3 + Math.random() * 0.7);
+      if (data.length > 40) data.shift();
+      drawSparkline(key);
+    });
+  }, 500);
+  
+  // Agent tau fluctuations
+  setInterval(() => {
+    AGENT_DEFS.forEach(a => {
+      a.tau = Math.min(0.99, Math.max(0.1, a.tau + (Math.random() - 0.48) * 0.03));
+    });
+    renderAgents();
+  }, 1500);
+  
+  // IOC tau fluctuations
+  setInterval(() => {
+    IOC_DEFS.forEach(ioc => {
+      ioc.tau = Math.min(0.99, Math.max(0.05, ioc.tau + (Math.random() - 0.45) * 0.02));
+    });
+    renderIOCs();
+  }, 2000);
+  
+  // Merkle tip
+  setInterval(() => {
+    const tip = Array.from({length: 8}, () => Math.floor(Math.random() * 16).toString(16)).join('') + '…' + Array.from({length: 4}, () => Math.floor(Math.random() * 16).toString(16)).join('');
+    document.getElementById('merkle-tip').textContent = tip;
+  }, 3000);
+}
+
+let eventCount = 0;
+function addEvent(ev) {
+  const stream = document.getElementById('event-stream');
+  const div = document.createElement('div');
+  div.className = 'event-line';
+  const now = new Date();
+  const ts = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}.${String(now.getMilliseconds()).padStart(3,'0')}`;
+  div.innerHTML = `<span class="ev-time">${ts}</span><span class="ev-src ${ev.src}">${ev.src.toUpperCase()}</span><span class="ev-msg ${ev.level}">${ev.msg}</span>`;
+  stream.insertBefore(div, stream.firstChild);
+  while (stream.children.length > 12) stream.removeChild(stream.lastChild);
+  eventCount++;
+}
+
+function updateStats() {
+  const loop = (1 + Math.random() * 3).toFixed(1);
+  document.getElementById('stat-loop').textContent = loop + ' ms';
+  document.getElementById('stat-loop').style.color = parseFloat(loop) < 5 ? 'var(--green)' : 'var(--amber)';
+  
+  const agents = 44 + Math.floor(Math.random() * 6);
+  document.getElementById('stat-agents').textContent = agents;
+  document.getElementById('agent-count-badge').textContent = agents + ' LIVE';
+  
+  const ioc = 120 + Math.floor(Math.random() * 10);
+  document.getElementById('stat-ioc').textContent = ioc;
+  
+  const tau = (0.88 + Math.random() * 0.1).toFixed(3);
+  document.getElementById('stat-tau').textContent = tau;
+}
+
+function updateMetrics() {
+  document.getElementById('m-zmq').textContent = (45 + Math.random() * 6).toFixed(1) + 'k/s';
+  document.getElementById('m-redis').textContent = (65 + Math.random() * 30).toFixed(0) + ' µs';
+  document.getElementById('m-ds').textContent = (7 + Math.random() * 2).toFixed(1) + 'k/s';
+  document.getElementById('m-mcp').textContent = (1.5 + Math.random() * 1.5).toFixed(1) + ' ms';
+  document.getElementById('m-vllm').textContent = (10 + Math.random() * 8).toFixed(0) + ' ms';
+  
+  // DS consensus
+  const bel = (0.85 + Math.random() * 0.1).toFixed(3);
+  const pl = (parseFloat(bel) + 0.03 + Math.random() * 0.05).toFixed(3);
+  const k = (0.08 + Math.random() * 0.1).toFixed(3);
+  document.getElementById('bel-val').textContent = bel;
+  document.getElementById('pl-val').textContent = pl;
+  document.getElementById('k-val').textContent = k;
+}
+
+function updateThreatLevel() {
+  const blocks = document.querySelectorAll('.tl-block');
+  const level = Math.min(10, Math.max(1, state.threatLevel + Math.round((Math.random() - 0.48) * 0.5)));
+  state.threatLevel = level;
+  blocks.forEach((b, i) => {
+    b.className = 'tl-block';
+    if (i < level) {
+      if (i < 3) b.classList.add('active-green');
+      else if (i < 6) b.classList.add('active-amber');
+      else b.classList.add('active-red');
+    }
+  });
+}
+
+function updateClock() {
+  const now = new Date();
+  document.getElementById('sys-time').textContent = 
+    String(now.getHours()).padStart(2,'0') + ':' +
+    String(now.getMinutes()).padStart(2,'0') + ':' +
+    String(now.getSeconds()).padStart(2,'0') + ' UTC';
+}
+
+// ─── THREAT OVERLAY ───
+function showThreatOverlay() {
+  const overlay = document.getElementById('threat-overlay');
+  document.getElementById('overlay-detail').innerHTML = 
+`ARTIFACT: 192.168.1.47  PID: 4821  HASH: 4a7f3b…e8c012
+τ = 0.923  Bel(evil) = 0.891  Pl(evil) = 0.943
+SENSOR DIVERSITY: 5/5  K(conflict) = 0.127
+
+MCP TOOLS FIRED:
+  ✓ kill_pid(4821)
+  ✓ iptables_drop(192.168.1.47)
+  ✓ mem_acquire(4821) → vol3
+  ✓ stix_emit(indicator:ipv4-addr)
+  ✓ alert_soc(severity=CRITICAL)
+
+MERKLE BLOCK #005 SIGNED
+ELAPSED SINCE FIRST EVENT: 52s`;
+  overlay.classList.add('visible');
+  playThreatSound();
+}
+
+function closeThreatOverlay() {
+  document.getElementById('threat-overlay').classList.remove('visible');
+}
+
+// ─── WEB AUDIO ENGINE ───
+function initAudio() {
+  state.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  playAmbient();
+}
+
+function playAmbient() {
+  if (!state.audioCtx) return;
+  const ctx = state.audioCtx;
+  
+  function makeNoise() {
+    const bufSize = ctx.sampleRate * 2;
+    const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < bufSize; i++) data[i] = (Math.random() * 2 - 1) * 0.015;
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.loop = true;
+    
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.value = 200;
+    filter.Q.value = 0.5;
+    
+    const gain = ctx.createGain();
+    gain.gain.value = 0.08;
+    
+    src.connect(filter).connect(gain).connect(ctx.destination);
+    src.start();
+    return { src, gain };
+  }
+  
+  function makeDrone(freq, vol) {
+    const osc = ctx.createOscillator();
+    osc.type = 'sawtooth';
+    osc.frequency.value = freq;
+    
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 300;
+    
+    const gain = ctx.createGain();
+    gain.gain.value = vol;
+    
+    osc.connect(filter).connect(gain).connect(ctx.destination);
+    osc.start();
+    return { osc, gain };
+  }
+  
+  makeNoise();
+  makeDrone(40, 0.03);
+  makeDrone(60, 0.02);
+  makeDrone(80, 0.015);
+  
+  // Subtle beeps
+  function beep() {
+    if (!state.soundEnabled) return;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = 800 + Math.random() * 400;
+    gain.gain.setValueAtTime(0, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(0.04, ctx.currentTime + 0.01);
+    gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.08);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.1);
+    setTimeout(beep, 300 + Math.random() * 700);
+  }
+  setTimeout(beep, 500);
+}
+
+function playThreatSound() {
+  if (!state.soundEnabled || !state.audioCtx) return;
+  const ctx = state.audioCtx;
+  
+  [220, 330, 440, 550, 660].forEach((freq, i) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'square';
+    osc.frequency.value = freq;
+    const t = ctx.currentTime + i * 0.12;
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(0.15, t + 0.02);
+    gain.gain.linearRampToValueAtTime(0, t + 0.15);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(t);
+    osc.stop(t + 0.2);
+  });
+}
+
+function toggleSound() {
+  const btn = document.getElementById('sound-toggle');
+  if (!state.audioCtx) {
+    initAudio();
+    state.soundEnabled = true;
+    btn.textContent = '🔊';
+    btn.style.color = 'var(--green)';
+  } else if (state.soundEnabled) {
+    state.soundEnabled = false;
+    btn.textContent = '🔇';
+    btn.style.color = '';
+    state.audioCtx.suspend();
+  } else {
+    state.soundEnabled = true;
+    btn.textContent = '🔊';
+    btn.style.color = 'var(--green)';
+    state.audioCtx.resume();
+  }
+}
+
+// ─── LAUNCH ───
+runBoot();
+</script>
+<script src="/static/find-evil-live.js"></script>
+</body>
+</html>

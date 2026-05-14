@@ -1,0 +1,26 @@
+[Unit]
+Description=FIND EVIL — Valkey (blackboard deposits + pheromone heatmap)
+Documentation=https://valkey.io
+After=network.target
+# Valkey is the pheromone store; every FIND EVIL service reads/writes it.
+Before=findevil.target
+
+[Service]
+Type=simple
+User=findevil
+Group=findevil
+ExecStart=/usr/bin/valkey-server /opt/findevil/etc/valkey.conf --supervised systemd
+ExecStop=/usr/bin/valkey-cli -s /opt/findevil/run/valkey.sock shutdown nosave
+Restart=on-failure
+RestartSec=2s
+# Valkey uses a Unix socket under /opt/findevil/run — give it write access.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/opt/findevil/data /opt/findevil/run /opt/findevil/logs
+LimitNOFILE=65536
+OOMScoreAdjust=-200
+
+[Install]
+WantedBy=multi-user.target
+Alias=findevil-valkey.service

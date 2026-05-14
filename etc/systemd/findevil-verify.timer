@@ -1,0 +1,12 @@
+[Unit]
+Description=FIND EVIL - hourly signed ledger verification
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=1h
+AccuracySec=1min
+Persistent=true
+Unit=findevil-verify.service
+
+[Install]
+WantedBy=timers.target

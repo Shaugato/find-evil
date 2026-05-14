@@ -1,0 +1,18 @@
+[Unit]
+Description=FIND EVIL - signed ledger tamper verification
+Documentation=file:/opt/findevil/repo/implementation_document.txt
+After=valkey-findevil.service nats-findevil.service
+
+[Service]
+Type=oneshot
+User=findevil
+Group=findevil
+WorkingDirectory=/opt/findevil/repo
+EnvironmentFile=/opt/findevil/etc/.env
+ExecStart=/opt/findevil/venv/bin/findevil verify
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/findevil/logs
+ReadOnlyPaths=/opt/findevil/data/ledger /opt/findevil/etc

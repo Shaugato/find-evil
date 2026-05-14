@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>FIND EVIL — Living Cybernetic Organism</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/static/style.css" />
+<script type="importmap">
+{
+  "imports": {
+    "three":         "https://esm.sh/three@0.160.0",
+    "three/addons/": "https://esm.sh/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+
+<!-- ===================== AMBIENT BACKDROP ============================ -->
+<div id="vignette"></div>
+<canvas id="swarm-canvas"></canvas>
+
+<!-- ===================== TOP STRIP =================================== -->
+<header id="top-strip">
+  <div class="brand">
+    <span class="brand-mark">▾</span>
+    <span class="brand-name">FIND EVIL</span>
+    <span class="brand-sub">Living Cybernetic Organism</span>
+  </div>
+  <div id="telemetry">
+    <span class="telem"><label>nodes</label><b id="t-nodes">0</b></span>
+    <span class="telem"><label>edges</label><b id="t-edges">0</b></span>
+    <span class="telem"><label>active spawns</label><b id="t-spawns">0</b></span>
+    <span class="telem"><label>tip seq</label><b id="t-seq">—</b></span>
+    <span class="telem"><label>K</label><b id="t-k">0.000</b></span>
+    <span class="telem"><label>posture</label><b id="t-posture">observe</b></span>
+  </div>
+  <button id="audio-toggle" aria-pressed="false" title="Engage ambient audio (browsers require a click)">
+    <span class="dot"></span><span class="lbl">audio · off</span>
+  </button>
+</header>
+
+<!-- ===================== BOTTOM STATUS RAIL ========================== -->
+<footer id="bottom-rail">
+  <div class="leg">
+    <span class="leg-dot calm"></span>observe
+    <span class="leg-dot conflict"></span>conflict
+    <span class="leg-dot escalate"></span>escalate
+    <span class="leg-dot mitigate"></span>mitigate
+  </div>
+  <div class="hostid"><label>host</label><b id="t-host">findevil</b></div>
+  <div class="cluster-stamp"><span id="t-clock">--:--:--</span></div>
+</footer>
+
+<!-- ===================== EPHEMERAL AGENT LAYER ======================= -->
+<div id="spawn-layer" aria-live="polite"></div>
+
+<!-- ===================== CRYPTOGRAPHIC HUD =========================== -->
+<aside id="hud">
+  <div class="hud-head">
+    <span class="hud-title">FORENSIC LEDGER</span>
+    <span class="hud-sub">ed25519 · blake3 · sigstore</span>
+  </div>
+  <ol id="hud-feed" reversed></ol>
+  <div class="hud-foot">
+    <span id="hud-status">listening…</span>
+  </div>
+</aside>
+
+<!-- ===================== APP BOOTSTRAP =============================== -->
+<script type="module" src="/static/app.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,72 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.venv/
+venv/
+ENV/
+build/
+dist/
+
+# uv
+uv.lock
+.uv-cache/
+
+# Tests
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project runtime (never commit)
+data/ledger/*.sqlite*
+data/ledger/*.db*
+data/redis/
+data/nats/
+data/rocksdb/
+data/models/
+data/evidence/
+data/ledger_anchors/
+data/calibrators/*.joblib
+data/hf-cache/
+data/quarantine/
+etc/keys/*.sk
+etc/keys/*.pk
+etc/keys/fpr
+etc/.env
+log/
+logs/
+run/
+var/
+
+# Local/private research and generated work products
+implementation_document.txt
+docs/FIND_EVIL_Implementation_Document.docx
+docs/FIND EVIL_ A Stigmergic-Blackboard Hybrid Architecture for Autonomous DFIR.pdf
+docs/_canonical_doc.txt
+docs/runbook.md
+.codex_analysis/
+.claude/
+validation-artifacts/
+Find Evil UI design/
+_unpacked/
+_extract.py
+
+# Generated caches
+__pycache__/
+*.pyc

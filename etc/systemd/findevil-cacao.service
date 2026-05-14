@@ -1,0 +1,25 @@
+[Unit]
+Description=FIND EVIL — CACAO 2.0 playbook executor
+After=network-online.target findevil-ingest.service nats-findevil.service
+Requires=nats-findevil.service valkey-findevil.service
+PartOf=findevil.target
+
+[Service]
+Type=simple
+User=findevil
+Group=findevil
+EnvironmentFile=-/opt/findevil/etc/.env
+# CACAO actuators may invoke OS-level tools (volatility, yara, evtxecmd, etc.);
+# those run as subprocesses under the same 'findevil' user. No sudo here.
+ExecStart=/opt/findevil/venv/bin/findevil cacao
+Restart=on-failure
+RestartSec=2s
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/findevil/data /opt/findevil/logs /opt/findevil/run
+LimitNOFILE=65536
+
+[Install]
+WantedBy=findevil.target

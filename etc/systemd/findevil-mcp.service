@@ -1,0 +1,33 @@
+[Unit]
+Description=FIND EVIL — MCP blackboard (fastmcp 2.x)
+Documentation=https://modelcontextprotocol.io
+After=network-online.target valkey-findevil.service nats-findevil.service
+Wants=network-online.target
+Requires=valkey-findevil.service nats-findevil.service
+PartOf=findevil.target
+
+[Service]
+Type=simple
+User=findevil
+Group=findevil
+EnvironmentFile=-/opt/findevil/etc/.env
+ExecStart=/opt/findevil/venv/bin/findevil mcp
+Restart=on-failure
+RestartSec=2s
+# hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/findevil/data /opt/findevil/logs /opt/findevil/run
+CapabilityBoundingSet=
+AmbientCapabilities=
+LockPersonality=true
+MemoryDenyWriteExecute=false
+RestrictRealtime=true
+RestrictNamespaces=true
+SystemCallArchitectures=native
+LimitNOFILE=65536
+
+[Install]
+WantedBy=findevil.target

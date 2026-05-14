@@ -1,0 +1,28 @@
+[Unit]
+Description=FIND EVIL — Bytewax ingest dataflow (NATS → parse → D-S fuse → consensus)
+After=network-online.target valkey-findevil.service nats-findevil.service findevil-mcp.service
+Wants=network-online.target
+Requires=valkey-findevil.service nats-findevil.service
+PartOf=findevil.target
+
+[Service]
+Type=simple
+User=findevil
+Group=findevil
+EnvironmentFile=-/opt/findevil/etc/.env
+ExecStart=/opt/findevil/venv/bin/findevil ingest
+Restart=on-failure
+RestartSec=2s
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/findevil/data /opt/findevil/logs /opt/findevil/run
+LimitNOFILE=65536
+# bytewax can pin a CPU; respect cgroup-based accounting.
+CPUAccounting=true
+MemoryAccounting=true
+
+[Install]
+WantedBy=findevil.target
+Alias=findevil-bytewax.service

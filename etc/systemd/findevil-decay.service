@@ -1,0 +1,24 @@
+[Unit]
+Description=FIND EVIL — pheromone evaporation + long-window z-score alerter
+After=network-online.target valkey-findevil.service
+Requires=valkey-findevil.service
+PartOf=findevil.target
+
+[Service]
+Type=simple
+User=findevil
+Group=findevil
+EnvironmentFile=-/opt/findevil/etc/.env
+# Runs findevil.swarm.decay.run_forever via the CLI entry point.
+ExecStart=/opt/findevil/venv/bin/python -m findevil.swarm.decay
+Restart=on-failure
+RestartSec=5s
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/findevil/data /opt/findevil/logs /opt/findevil/run
+LimitNOFILE=65536
+
+[Install]
+WantedBy=findevil.target

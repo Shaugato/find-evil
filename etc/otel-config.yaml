@@ -1,0 +1,74 @@
+# OpenTelemetry Collector config for FIND EVIL — /opt/findevil/etc/otel-config.yaml
+#
+# All FIND EVIL services push OTLP/gRPC to this collector (see
+# findevil.observability.tracing.configure_tracing). The collector fans out to:
+#   - Prometheus exporter (pulled by whatever Prom scrape target you run)
+#   - File exporter (last-resort local tail for forensic purposes)
+#   - Optional OTLP exporter to a remote backend (disabled by default)
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 127.0.0.1:4317
+      http:
+        endpoint: 127.0.0.1:4318
+
+processors:
+  batch:
+    send_batch_size: 512
+    timeout: 2s
+  memory_limiter:
+    check_interval: 5s
+    limit_mib: 512
+    spike_limit_mib: 128
+  resource/findevil:
+    attributes:
+      - key: service.namespace
+        value: findevil
+        action: upsert
+
+exporters:
+  # Expose metrics for Prometheus. findevil.observability.metrics also exposes
+  # its own /metrics endpoint; this collector-side exporter is additive and
+  # carries OTel-native histograms the Python client cannot emit directly.
+  prometheus:
+    endpoint: 127.0.0.1:8889
+    namespace: findevil
+    send_timestamps: true
+    metric_expiration: 10m
+    enable_open_metrics: true
+
+  file:
+    path: /opt/findevil/logs/otel-trace.jsonl
+    rotation:
+      max_megabytes: 128
+      max_days: 7
+      max_backups: 4
+
+  # Uncomment to forward to a remote collector (e.g. SIEM with OTLP ingest).
+  # otlp/remote:
+  #   endpoint: otel-gateway.corp.local:4317
+  #   tls:
+  #     insecure: false
+  #     ca_file: /opt/findevil/etc/keys/otel-ca.pem
+
+service:
+  telemetry:
+    logs:
+      level: info
+    metrics:
+      level: basic
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, resource/findevil, batch]
+      exporters: [file]
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, resource/findevil, batch]
+      exporters: [prometheus]
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, resource/findevil, batch]
+      exporters: [file]

@@ -1,0 +1,25 @@
+[Unit]
+Description=FIND EVIL — fractal ephemeral agent watcher (pivot spawns)
+After=network-online.target findevil-ingest.service nats-findevil.service
+Requires=nats-findevil.service
+PartOf=findevil.target
+
+[Service]
+Type=simple
+User=findevil
+Group=findevil
+EnvironmentFile=-/opt/findevil/etc/.env
+Environment=FINDEVIL_WATCHER_CONC=1
+Environment=FINDEVIL_FRACTAL__TTL_MS=120000
+ExecStart=/opt/findevil/venv/bin/findevil watcher
+Restart=on-failure
+RestartSec=2s
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/findevil/data /opt/findevil/logs /opt/findevil/run
+LimitNOFILE=65536
+
+[Install]
+WantedBy=findevil.target

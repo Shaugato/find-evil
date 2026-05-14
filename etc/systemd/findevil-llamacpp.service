@@ -1,0 +1,24 @@
+[Unit]
+Description=FIND EVIL - llama-cpp OpenAI-compatible inference server
+After=network-online.target valkey-findevil.service
+Wants=network-online.target
+PartOf=findevil.target
+
+[Service]
+Type=simple
+User=findevil
+Group=findevil
+EnvironmentFile=-/opt/findevil/etc/.env
+Environment=HF_HOME=/opt/findevil/data/hf-cache
+ExecStart=/opt/findevil/venv/bin/python -m llama_cpp.server --host 127.0.0.1 --port 8080 --model /opt/findevil/data/models/Llama-3.2-3B-Instruct-Q4_K_M.gguf --model_alias llama-3.2-3b-instruct --n_gpu_layers 28 --n_ctx 2048 --n_batch 256 --n_threads 8 --use_mlock false
+Restart=on-failure
+RestartSec=5s
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/findevil/data /opt/findevil/logs /opt/findevil/run
+LimitNOFILE=65536
+
+[Install]
+WantedBy=findevil.target

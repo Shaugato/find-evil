@@ -1,0 +1,22 @@
+[Unit]
+Description=FIND EVIL — FastAPI + HTMX operator dashboard (SSE + Cytoscape)
+After=network-online.target findevil-mcp.service
+PartOf=findevil.target
+
+[Service]
+Type=simple
+User=findevil
+Group=findevil
+EnvironmentFile=-/opt/findevil/etc/.env
+ExecStart=/opt/findevil/venv/bin/findevil dashboard
+Restart=on-failure
+RestartSec=2s
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/findevil/data /opt/findevil/logs /opt/findevil/run
+LimitNOFILE=65536
+
+[Install]
+WantedBy=findevil.target

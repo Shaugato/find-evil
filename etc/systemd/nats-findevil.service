@@ -1,0 +1,27 @@
+[Unit]
+Description=FIND EVIL — NATS JetStream (durable evidence backbone)
+Documentation=https://docs.nats.io
+After=network-online.target
+Wants=network-online.target
+Before=findevil.target
+
+[Service]
+Type=simple
+User=findevil
+Group=findevil
+ExecStart=/usr/local/bin/nats-server -c /opt/findevil/etc/nats-server.conf
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+RestartSec=2s
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/opt/findevil/data /opt/findevil/run /opt/findevil/logs
+LimitNOFILE=65536
+LimitNPROC=4096
+# JetStream maps large files for stream storage; keep swap off the hot path.
+OOMScoreAdjust=-100
+
+[Install]
+WantedBy=multi-user.target
+Alias=findevil-nats.service
