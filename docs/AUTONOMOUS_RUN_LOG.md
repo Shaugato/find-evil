@@ -92,6 +92,42 @@ at the top at end of run.
   metrics ports :8890-:8894 each serving 80 `findevil_*` lines.
 - Status: done (operational note, no code change)
 
+## [2026-06-12 ~01:00Z] G4 — GPU offload closed: CPU retained, with evidence
+
+- What was done: completed the full investigation matrix. (a) Prebuilt
+  cu124 wheel 0.3.28 → SIGILL on import (no sm_61 kernels). (b) CUDA 13
+  dropped Pascal; installed CUDA 12.6 toolkit (WSL-Ubuntu keyring).
+  (c) Source-built llama-cpp-python 0.3.21 with
+  `-DGGML_CUDA=on -DCMAKE_CUDA_ARCHITECTURES=61` at bounded `-j4` (the
+  unbounded build OOM-crashed the WSL VM) in an isolated venv.
+- Verification evidence: build OK — `gpu_offload: True`, ggml found
+  `Quadro P620, compute capability 6.1`, model load 1.7s. BUT identical
+  8-token completions: **GPU 4565-5053 ms vs CPU 1399-2198 ms** —
+  GPU is 2-3× slower (no tensor cores; ggml's modern CUDA kernels are
+  not Pascal-optimized; 512 cores / 80 GB/s is below the floor).
+- Decision: **production stays on the CPU wheel** — deploying the GPU
+  build would regress narrator/pivot latency. The blueprint's 25-40 ms
+  TTFT target is unreachable on this GPU; documented as a permanent
+  hardware constraint. Hot path (deterministic, no LLM) unaffected.
+  Logs: /opt/findevil/logs/cuda_build.log; scripts/build_llamacpp_cuda.sh,
+  scripts/cpu_bench_compare.sh.
+- Status: done (investigated; constraint documented)
+
+## [2026-06-12 ~01:05Z] Hackathon — official sample case data located
+
+- Official Devpost starter share (Egnyte `HACKATHON-2026`, shared by Rob
+  Lee, accessible until **Jun 17, 2026**) enumerated via browser:
+  - `Standard Forensic Case`: ROCBA-BACKGROUND.pptx (38.3 MB),
+    rocba-cdrive.e01 (22.1 GB), Rocba-Memory.zip (5.3 GB)
+  - `Standard Forensics Case 2`: VANKO.zip (40.7 GB) + scenario docx
+  - `Compromised APT Attack Scenarios/SRL-2015`: 4 host zips 11-16 GB each
+    (+ SRL-2018 variant)
+- Decision: use **Standard Forensic Case (ROCBA)** — downloaded the
+  38.3 MB background deck and the **5.3 GB Rocba-Memory.zip** (memory
+  image = ideal for the volatility/yara MCP pipeline). The 22-40 GB disk
+  images deliberately skipped (size/time; documented in dataset.md).
+- Status: pptx done; memory zip downloading
+
 ## [2026-06-12 ~00:50Z] Part 12 — bulk_extractor MCP shim
 
 - What was done: `src/findevil/tools/shims/bulk_extractor.py` —

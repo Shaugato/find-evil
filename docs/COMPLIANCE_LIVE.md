@@ -14,7 +14,7 @@ Last full re-verification: 2026-06-11 (autonomous sprint, see
 |---|---|---|
 | WSL2 Ubuntu 24.04 + systemd enabled | done | `ps -p 1` → systemd; 11 units active |
 | GPU passthrough visible | done | `nvidia-smi` → Quadro P620, driver 582.41 |
-| CUDA toolkit in WSL2 | partial | Doc says CUDA 13.0, but CUDA 13 dropped Pascal (sm_61); CUDA 12.6 install in progress as the correct toolkit for this GPU |
+| CUDA toolkit in WSL2 | done | CUDA 12.6 installed (doc says 13.0, but CUDA 13 dropped Pascal sm_61 — 12.6 is the correct toolkit for this GPU); nvcc `Build cuda_12.6.r12.6` |
 | SIFT toolchain binaries for shims | done | yara 4.5.0, zeek 8.1.2, tshark 4.2.2, fls 4.12.1, vol3, sqlite3 3.45.1, plaso 20260119, **bulk_extractor 2.1.1 (built from source 2026-06-11; dropped from Ubuntu 24.04 apt)** |
 | Windows victim lab VM | partial | Red-team emulation used synthetic telemetry generators instead (Part 13 note); documented limitation |
 | Storage layout /opt/findevil/{repo,venv,data,etc,logs,run} | done | verified via `ls /opt/findevil/` |
@@ -42,7 +42,7 @@ Last full re-verification: 2026-06-11 (autonomous sprint, see
 | Req | Status | Evidence / Gap |
 |---|---|---|
 | llama-cpp-python OpenAI server (Profile A) | done | findevil-llamacpp.service active, Llama-3.2-3B Q4_K_M |
-| GPU offload (n_gpu_layers) | partial → in progress | Wheel is CPU-only; prebuilt cu124 wheel SIGILLs; CUDA 12.6 + sm_61 source build running (G4) |
+| GPU offload (n_gpu_layers) | done (investigated; CPU retained by evidence) | G4 closed 2026-06-12: sm_61 CUDA source build **works** (`gpu_offload=True`, model loads on P620) but is **2-3× slower than CPU** for identical 8-token completions (GPU 4.5-5.0s vs CPU 1.4-2.2s) — modern ggml CUDA kernels are unoptimized for tensor-core-less Pascal; P620 (512 cores / 80GB/s) is below the practical floor. CPU inference is the correct production config on this hardware. Prebuilt cu124 wheel SIGILLs (no sm_61 kernels); CUDA 13 dropped Pascal. Hot path unaffected (no LLM). Evidence: /opt/findevil/logs/cuda_build.log + scripts/cpu_bench_compare.sh |
 | vLLM Profile B | missing | 4 GB VRAM Pascal cannot run vLLM 0.12 usefully; documented permanent constraint of this workstation |
 | Outlines structured output guardrail | done | src/findevil/inference/outlines_schemas.py + test_outlines_schemas.py |
 | Inference facade | done | src/findevil/inference/facade.py |
