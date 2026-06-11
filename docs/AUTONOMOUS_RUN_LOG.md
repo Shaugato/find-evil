@@ -128,6 +128,29 @@ at the top at end of run.
   images deliberately skipped (size/time; documented in dataset.md).
 - Status: pptx done; memory zip downloading
 
+## [2026-06-12 ~09:05Z] Hackathon scaffolding — license, vol shims, Docker, deliverables
+
+- License: added MIT `LICENSE`; flipped pyproject `license` from Proprietary
+  to MIT (the simpler default for a research/defensive project; no patent
+  concern that would justify Apache-2.0).
+- Volatility shims: added `volatility.pslist/pstree/netscan/cmdline` for
+  structured memory analysis (the existing shims were malfind/ldrmodules/
+  hollowfind/handles only).
+- Docker (Deliverable 7 + installer foundation): `deploy/` — all-in-one
+  app Dockerfile (Python 3.12 + yara/tshark/sleuthkit/sqlite + volatility3;
+  heavy tools optional), docker-compose.yml (valkey+nats+otel sibling
+  containers + findevil app under supervisord — co-located because ZMQ
+  ipc:// needs a shared FS), entrypoint (key bootstrap, genesis seed,
+  NATS streams, optional GGUF download), otel docker config, README.
+  `docker compose config` validates clean; full image build deferred —
+  Docker daemon not running in this session (documented limitation).
+- Deliverable docs: architecture-diagram.md (Mermaid; architectural-vs-
+  prompt guardrails explicitly split; names Approach #2), dataset.md,
+  project-description.md (Devpost story), try-it-out.md.
+- Verification: suite 87 passed, 1 skipped after vol shims; commits
+  b2478de, d8f2c47 pushed.
+- Status: done (Docker build-verify pending daemon)
+
 ## [2026-06-12 ~22:45Z] Appendix D / FOR578 — CTI plane: TAXII ingest + Diamond Model
 
 - What was done: new `src/findevil/cti/` package. `stix_priors.py` parses
