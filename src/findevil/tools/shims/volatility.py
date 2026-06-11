@@ -42,6 +42,42 @@ async def version(_commands: list[dict]) -> dict[str, Any]:
     return fallback
 
 
+@register("volatility.pslist")
+async def pslist(commands: list[dict]) -> dict[str, Any]:
+    t = first_target(commands)
+    img = t.get("image") or t.get("value")
+    if not img:
+        return {"ok": False, "error": "missing target.image"}
+    return await _vol("windows.pslist.PsList", img)
+
+
+@register("volatility.pstree")
+async def pstree(commands: list[dict]) -> dict[str, Any]:
+    t = first_target(commands)
+    img = t.get("image") or t.get("value")
+    if not img:
+        return {"ok": False, "error": "missing target.image"}
+    return await _vol("windows.pstree.PsTree", img)
+
+
+@register("volatility.netscan")
+async def netscan(commands: list[dict]) -> dict[str, Any]:
+    t = first_target(commands)
+    img = t.get("image") or t.get("value")
+    if not img:
+        return {"ok": False, "error": "missing target.image"}
+    return await _vol("windows.netscan.NetScan", img)
+
+
+@register("volatility.cmdline")
+async def cmdline(commands: list[dict]) -> dict[str, Any]:
+    t = first_target(commands)
+    img = t.get("image") or t.get("value")
+    if not img:
+        return {"ok": False, "error": "missing target.image"}
+    return await _vol("windows.cmdline.CmdLine", img)
+
+
 @register("volatility.malfind")
 async def malfind(commands: list[dict]) -> dict[str, Any]:
     t = first_target(commands)
