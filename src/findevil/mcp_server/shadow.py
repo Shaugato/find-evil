@@ -25,7 +25,7 @@ import anyio
 import msgspec
 
 from findevil.observability.logging import get_logger
-from findevil.observability.metrics import SHADOW_DROPS
+from findevil.observability.metrics import BACKPRESSURE_DROPS, MCP_WRITE_TPS, SHADOW_DROPS
 from findevil.transport.valkey import get_valkey
 from findevil.transport.zmq_bus import (
     SUBJ_CONSENSUS,
@@ -67,8 +67,10 @@ async def _forward(bus: ZmqBus, subject: str, shadow_chan: str) -> None:
             try:
                 env = _envelope(subject, frame)
                 await vc.publish(shadow_chan, env)
+                MCP_WRITE_TPS.labels(resource_prefix=shadow_chan).inc()
             except Exception:
                 SHADOW_DROPS.labels(reason="publish_error").inc()
+                BACKPRESSURE_DROPS.labels(source=subject).inc()
                 log.exception(
                     "shadow_forward_failed", subject=subject, chan=shadow_chan
                 )

@@ -74,3 +74,41 @@ at the top at end of run.
   source build with `-DCMAKE_CUDA_ARCHITECTURES=61` is the supported path.
   Build running in background in isolated venv before touching prod.
 - Status: in progress
+
+## [2026-06-12 ~00:35Z] Operational incident — WSL VM lifecycle (resolved)
+
+- Symptom: services appeared to "restart" every ~25s, metrics ports refused
+  connections, /tmp venv vanished, CUDA build died (exit 1) mid-compile.
+- Root cause: the **WSL2 VM idle-shuts-down between tool invocations** once
+  no client handle is open (long 6h gap earlier let it stop; unbounded
+  `make -j$(nproc)` CUDA compile also crashed the VM once around 00:25).
+  Each subsequent command cold-booted the VM — journal "Started" lines were
+  per-boot starts, not crash loops. Confirmed via `Startup finished in
+  2.115s` + `uptime -s`.
+- Fix: persistent keep-alive client (`wsl.exe bash -c 'sleep 14400'` in
+  background), restarted whenever it expires. CUDA rebuild will be re-run
+  with bounded parallelism to avoid OOM.
+- Post-fix evidence: 10/10 services active, NRestarts=0, ledger 936/936,
+  metrics ports :8890-:8894 each serving 80 `findevil_*` lines.
+- Status: done (operational note, no code change)
+
+## [2026-06-12 ~00:40Z] Part 14 — TABLE 11 Prometheus metric inventory
+
+- What was done: added all doc-named metrics to
+  `observability/metrics.py` and wired them at the correct call sites:
+  `ds_fusion_seconds`/`ds_conflict_K`/`consensus_fire_total`/
+  `schema_validation_fail_total` in ingest/flow.py; `ledger_append_seconds`
+  + outcome-labelled `ledger_appends` in ledger/writer.py;
+  `rekor_anchor_age_seconds` in ledger/anchor.py with a new
+  `update_anchor_age()` refreshed every 60s by a background task in the MCP
+  server (anchoring is a oneshot CLI, so the long-running MCP process owns
+  the gauge); `vllm_ttft_seconds` in inference/facade.py;
+  `backpressure_drops_total`/`mcp_write_tps` in mcp_server/shadow.py;
+  `fractal_live_agents` in fractal/watcher.py.
+- Verification evidence: `tests/test_metrics_inventory.py` (3 new tests) —
+  suite now **76 passed, 1 skipped**; live `/metrics` on :8890-:8894 shows
+  80 findevil lines each incl. ledger_append_seconds /
+  rekor_anchor_age_seconds / fractal_live_agents (label-less names);
+  labelled counters emit on first observation by design. Ledger 936/936
+  clean after service restarts.
+- Status: done

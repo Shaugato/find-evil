@@ -11,12 +11,19 @@ import datetime as dt
 import os
 import sqlite3
 import threading
+import time
 import uuid
 from pathlib import Path
 from typing import Any, Iterable, Optional
 
 import blake3
 from nacl.signing import SigningKey
+
+from findevil.observability.metrics import (
+    LEDGER_APPEND_SECONDS,
+    LEDGER_APPENDS,
+    LEDGER_CHAIN_LENGTH,
+)
 
 from .schema import (
     ArtifactRef,
@@ -117,6 +124,7 @@ class LedgerWriter:
         mitre: Optional[list[str]] = None,
         cvss: Optional[float] = None,
     ) -> LedgerEntry:
+        t_start = time.perf_counter_ns()
         with self._lock:
             prev_hash, _ = self.tip()
             now = dt.datetime.now(tz=dt.timezone.utc)
@@ -160,17 +168,25 @@ class LedgerWriter:
                 entry.canonical_bytes(include_signature=True)
             ).hexdigest()
 
-            self.conn.execute(
-                "INSERT INTO ledger(finding_id, entry_hash, prev_hash, ts_ns, payload) "
-                "VALUES (?, ?, ?, ?, ?)",
-                (
-                    str(fid),
-                    entry_hash,
-                    prev_hash,
-                    int(now.timestamp() * 1e9),
-                    entry.canonical_bytes(include_signature=True),
-                ),
-            )
+            try:
+                cur = self.conn.execute(
+                    "INSERT INTO ledger(finding_id, entry_hash, prev_hash, ts_ns, payload) "
+                    "VALUES (?, ?, ?, ?, ?)",
+                    (
+                        str(fid),
+                        entry_hash,
+                        prev_hash,
+                        int(now.timestamp() * 1e9),
+                        entry.canonical_bytes(include_signature=True),
+                    ),
+                )
+            except Exception:
+                LEDGER_APPENDS.labels(outcome="error").inc()
+                raise
+            LEDGER_APPENDS.labels(outcome="ok").inc()
+            if cur.lastrowid is not None:
+                LEDGER_CHAIN_LENGTH.set(cur.lastrowid)
+            LEDGER_APPEND_SECONDS.observe((time.perf_counter_ns() - t_start) / 1e9)
             return entry
 
     def close(self) -> None:

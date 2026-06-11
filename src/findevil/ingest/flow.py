@@ -44,8 +44,12 @@ from findevil.observability.metrics import (
     CONSENSUS_ACTIONS,
     CONSENSUS_CONFLICT_K,
     CONSENSUS_DURATION,
+    CONSENSUS_FIRE,
     DECISION_LATENCY,
+    DS_CONFLICT_K,
+    DS_FUSION_SECONDS,
     PHEROMONE_GAUGE,
+    SCHEMA_VALIDATION_FAIL,
 )
 from findevil.swarm.evaluator import evaluate as evaluate_action
 from findevil.transport.valkey import (
@@ -288,9 +292,13 @@ async def _process_window(
     action = evaluate_action(
         reports, pheromone_tau=cur_tau, sensor_diversity=sensor_diversity
     )
-    CONSENSUS_DURATION.observe((time.perf_counter_ns() - t_fuse_start) / 1e9)
+    fuse_seconds = (time.perf_counter_ns() - t_fuse_start) / 1e9
+    CONSENSUS_DURATION.observe(fuse_seconds)
     CONSENSUS_ACTIONS.labels(action=action["action"]).inc()
     CONSENSUS_CONFLICT_K.observe(action["conflict_K"])
+    DS_FUSION_SECONDS.labels(n_reports=str(len(reports))).observe(fuse_seconds)
+    DS_CONFLICT_K.labels(indicator_kind=_pher_kind(tup)).observe(action["conflict_K"])
+    CONSENSUS_FIRE.labels(action=action["action"]).inc()
 
     # Deposit on Valkey — tau delta proportional to (belief - uncertainty)
     tau_delta = max(0.01, action["belief_evil"] - 0.5 * action["uncertainty"])
@@ -392,6 +400,7 @@ def build_flow():
         try:
             raw_evt = _raw_event_from_payload(raw_bytes)
         except Exception as exc:
+            SCHEMA_VALIDATION_FAIL.labels(failure_class="decode_failed").inc()
             payload = {
                 "subject": SUBJ_RAW_MALFORMED,
                 "reason": f"decode_failed:{type(exc).__name__}",
@@ -412,6 +421,7 @@ def build_flow():
 
         event_time = raw_evt.timestamp_ns
         if event_time is None:
+            SCHEMA_VALIDATION_FAIL.labels(failure_class="missing_event_time_ns").inc()
             payload = {
                 "subject": SUBJ_RAW_MALFORMED,
                 "reason": "missing_event_time_ns",

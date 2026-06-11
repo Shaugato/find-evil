@@ -21,7 +21,7 @@ import msgspec
 from findevil.config.settings import settings
 from findevil.inference.facade import InferenceFacade
 from findevil.observability.logging import get_logger
-from findevil.observability.metrics import FRACTAL_SPAWNS
+from findevil.observability.metrics import FRACTAL_LIVE_AGENTS, FRACTAL_SPAWNS
 from findevil.transport.zmq_bus import (
     SUBJ_FRACTAL_REPORT,
     SUBJ_FRACTAL_SPAWN,
@@ -69,12 +69,14 @@ class Watcher:
         if self.live >= settings.fractal.max_width:
             raise WidthExceeded()
         self.live += 1
+        FRACTAL_LIVE_AGENTS.set(self.live)
         try:
             async with self.sem:
                 FRACTAL_SPAWNS.labels(seed_technique=spawn.seed_technique or "unknown").inc()
                 rep = await run_pivot(spawn, facade=self.facade)
         finally:
             self.live -= 1
+            FRACTAL_LIVE_AGENTS.set(self.live)
 
         # emit report
         try:

@@ -9,6 +9,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import time
 from pathlib import Path
 from typing import Any
 
@@ -16,6 +17,7 @@ import httpx
 import msgspec
 
 from findevil.config.settings import settings
+from findevil.observability.metrics import VLLM_TTFT_SECONDS
 
 from .outlines_schemas import (
     DebateArgument,
@@ -208,10 +210,14 @@ class InferenceFacade:
             "response_format": {"type": "json_object"},
         }
         lock_fh = await asyncio.to_thread(_acquire_inference_lock)
+        t_req = time.perf_counter()
         try:
             r = await self.client.post("/chat/completions", json=payload)
             r.raise_for_status()
         finally:
+            VLLM_TTFT_SECONDS.labels(model=self.model_name, cached="false").observe(
+                time.perf_counter() - t_req
+            )
             await asyncio.to_thread(_release_inference_lock, lock_fh)
         body = r.json()
         content = body["choices"][0]["message"]["content"]

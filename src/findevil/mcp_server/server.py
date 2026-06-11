@@ -368,13 +368,34 @@ def _key_to_uri(key: str) -> str | None:
     return None
 
 
+async def _anchor_age_refresher(interval_s: float = 60.0) -> None:
+    """Keep findevil_rekor_anchor_age_seconds growing between anchor runs.
+
+    Anchoring itself is a oneshot CLI job, so the gauge must be owned by a
+    long-running process — this server is the natural home (it already owns
+    the ledger tools and the :+1 metrics port).
+    """
+    from findevil.ledger.anchor import update_anchor_age
+
+    try:
+        while True:
+            try:
+                await asyncio.to_thread(update_anchor_age, settings.ledger.sqlite_path)
+            except Exception:  # pragma: no cover - never kill the refresher
+                log.exception("anchor_age_refresh failed")
+            await asyncio.sleep(interval_s)
+    except asyncio.CancelledError:
+        pass
+
+
 async def _run_async() -> None:
     from .shadow import run_shadow_publisher
 
     mcp = build_server()
-    # background tasks: keyspace notifier + shadow channel publisher
+    # background tasks: keyspace notifier + shadow publisher + anchor-age gauge
     notifier_task = asyncio.create_task(_keyspace_notifier(mcp))
     shadow_task = asyncio.create_task(run_shadow_publisher())
+    anchor_age_task = asyncio.create_task(_anchor_age_refresher())
     try:
         # fastmcp exposes an async `.run_http_async(...)` helper; fall back to
         # its blocking .run in a thread if the async API is not available.
@@ -396,7 +417,8 @@ async def _run_async() -> None:
     finally:
         notifier_task.cancel()
         shadow_task.cancel()
-        for t in (notifier_task, shadow_task):
+        anchor_age_task.cancel()
+        for t in (notifier_task, shadow_task, anchor_age_task):
             try:
                 await t
             except (asyncio.CancelledError, Exception):

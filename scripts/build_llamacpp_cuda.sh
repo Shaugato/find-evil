@@ -5,6 +5,11 @@
 set -euo pipefail
 
 VENV=/tmp/gputest-venv
+if [ ! -x "$VENV/bin/pip" ]; then
+  rm -rf "$VENV"
+  python3 -m venv "$VENV"
+  "$VENV/bin/pip" install -q --upgrade pip
+fi
 
 # 1. NVIDIA WSL-Ubuntu CUDA repo + toolkit 12.6 (compiler only; driver comes
 #    from Windows host per WSL2 model)

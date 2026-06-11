@@ -18,6 +18,7 @@ from typing import Optional
 import blake3
 
 from findevil.config.settings import settings
+from findevil.observability.metrics import REKOR_ANCHOR_AGE
 
 # RFC-6962-style domain separation: leaf=0x00, node=0x01
 LEAF_DOM = b"\x00"
@@ -131,12 +132,31 @@ async def anchor_batch(
         (batch_seq, root.hex(), rekor_index, bundle_bytes, time.time_ns()),
     )
     conn.close()
+    REKOR_ANCHOR_AGE.set(0)
     return {
         "batch_seq": batch_seq,
         "merkle_root": root.hex(),
         "rekor_log_index": rekor_index,
         "leaves": len(leaves),
     }
+
+
+def update_anchor_age(sqlite_path: Path) -> Optional[float]:
+    """Refresh findevil_rekor_anchor_age_seconds from the anchor table.
+
+    Called by the hourly verify job so the gauge keeps growing between
+    anchor runs. Returns the age in seconds, or None when nothing anchored.
+    """
+    conn = sqlite3.connect(str(sqlite_path), isolation_level=None)
+    try:
+        row = conn.execute("SELECT MAX(ts_ns) FROM anchor").fetchone()
+    finally:
+        conn.close()
+    if not row or row[0] is None:
+        return None
+    age_s = max(0.0, (time.time_ns() - int(row[0])) / 1e9)
+    REKOR_ANCHOR_AGE.set(age_s)
+    return age_s
 
 
 async def _submit_to_rekor(root: bytes, batch_seq: int) -> tuple[int, bytes]:
