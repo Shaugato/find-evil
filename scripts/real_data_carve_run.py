@@ -185,6 +185,43 @@ def build_events(ips: list[tuple[str, int]], domains: list[tuple[str, int]]) -> 
     return events
 
 
+def conflict_events(ip: str) -> list[dict]:
+    """Deliberately conflicting evidence on ONE real carved IP.
+
+    A high-confidence 'malicious' signal and a high-confidence 'benign' signal
+    for the same real artifact drive the Yager conflict path
+    (action=conflict_ledger), which is what wakes the prosecutor/defense/judge
+    narrator. This is the *self-correction* path; it is intentionally
+    constructed on a real indicator and labelled as such in the accuracy report.
+    """
+    anchor = base_ns()
+    return [
+        event(
+            "yara", "rocba-conflict-malicious",
+            {
+                "rule": "ROCBA_CARVED_C2_BEACON",
+                "tags": ["apt", "trojan"],
+                "namespace": "rocba_carved",
+                "ip": ip,
+                "provenance": "constructed conflict on real carved IP",
+            },
+            offset_ms=0, anchor=anchor,
+        ),
+        event(
+            "edr", "rocba-conflict-benign",
+            {
+                "kind": "reputation",
+                "verdict": "benign",
+                "score": 0.03,
+                "techniques": [],
+                "indicators": {"ip": ip},
+                "provenance": "constructed conflict on real carved IP",
+            },
+            offset_ms=60, anchor=anchor,
+        ),
+    ]
+
+
 async def publish(payloads: list[dict]) -> None:
     nc = await nats.connect(NATS_URL, user=NATS_USER, password=NATS_PASSWORD)
     js = nc.jetstream(domain="findevil")
@@ -198,6 +235,21 @@ def tip() -> int:
         return int(http_json("/api/ledger/tip").get("seq", 0))
     except Exception:
         return 0
+
+
+def _row_brief(row: dict | None) -> dict | None:
+    if not row:
+        return None
+    e = row.get("entry") or {}
+    return {
+        "seq": row.get("seq"),
+        "finding_id": row.get("finding_id"),
+        "agent_id": e.get("agent_id"),
+        "artifact": e.get("primary_artifact_key"),
+        "severity": e.get("severity"),
+        "confidence": e.get("confidence"),
+        "claim": (((e.get("reasoning_trace") or [{}])[0]).get("claim")),
+    }
 
 
 async def main() -> None:
@@ -232,6 +284,48 @@ async def main() -> None:
             break
         await asyncio.sleep(2)
 
+    # ---- self-correction phase: Yager conflict + narrator debate on a real IP ----
+    self_correction: dict[str, Any] = {}
+    if ips:
+        conflict_ip = ips[0][0]
+        artifact = f"pher:ip:{conflict_ip}"
+        print(f"[self-correct] injecting conflicting evidence on real IP {conflict_ip}")
+        conf_before = tip()
+        await publish(conflict_events(conflict_ip))
+        c_deadline = time.time() + 90  # narrator runs on CPU LLM (~slow)
+        conflict_row = None
+        narrator_row = None
+        while time.time() < c_deadline:
+            rows = http_json("/api/ledger/recent?n=200")
+            for r in rows:
+                e = r.get("entry") or {}
+                if e.get("primary_artifact_key") != artifact:
+                    continue
+                claim = (((e.get("reasoning_trace") or [{}])[0]).get("claim") or "")
+                if e.get("agent_id") == "swarm.consensus" and "conflict" in claim.lower():
+                    conflict_row = conflict_row or r
+                if e.get("agent_id") == "narrator.judge":
+                    narrator_row = r
+            if conflict_row and narrator_row:
+                break
+            await asyncio.sleep(3)
+        self_correction = {
+            "real_ip": conflict_ip,
+            "artifact": artifact,
+            "tip_before_conflict": conf_before,
+            "conflict_consensus_row": _row_brief(conflict_row),
+            "narrator_verdict_row": _row_brief(narrator_row),
+            "note": (
+                "Constructed conflict on a REAL carved IP: a high-confidence YARA "
+                "'malicious' signal vs a high-confidence EDR 'benign' signal drives "
+                "the Yager conflict path (action=conflict_ledger), which wakes the "
+                "prosecutor/defense/judge narrator. The narrator verdict is the "
+                "self-correction. Deliberately constructed; see accuracy-report.md."
+            ),
+        }
+        print(f"[self-correct] conflict_row={'yes' if conflict_row else 'no'} "
+              f"narrator_verdict={'yes' if narrator_row else 'no'}")
+
     summary = {
         "dataset": "SANS Find Evil! — Standard Forensic Case — Rocba-Memory.raw",
         "tool": "bulk_extractor 2.1.1 (net + email scanners)",
@@ -242,6 +336,7 @@ async def main() -> None:
         "ledger_tip_before": before,
         "ledger_tip_after": tip(),
         "new_ledger_rows": len(new_rows),
+        "self_correction": self_correction,
         "new_rows": [
             {
                 "seq": r.get("seq"),

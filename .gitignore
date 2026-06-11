@@ -49,6 +49,13 @@ etc/keys/*.sk
 etc/keys/*.pk
 etc/keys/fpr
 etc/.env
+deploy/.env
+data/cases/
+*.raw
+*.e01
+*.vmem
+*.mem
+be_out/
 log/
 logs/
 run/

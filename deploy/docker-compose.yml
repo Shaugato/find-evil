@@ -1,0 +1,79 @@
+# FIND EVIL — judge-demo stack.
+#
+#   docker compose up -d        # start everything
+#   docker compose logs -f findevil
+#   open http://localhost:9400  (dashboard)  /  http://localhost:9310/mcp (MCP)
+#
+# Infra (Valkey/NATS/OTel) run as their own containers; all FIND EVIL Python
+# services run inside the single `findevil` container (ZMQ ipc:// needs a shared
+# filesystem). See deploy/Dockerfile for the rationale.
+
+services:
+  valkey:
+    image: valkey/valkey:8-alpine
+    command: >
+      valkey-server --notify-keyspace-events KEA --appendonly yes
+      --maxmemory 2gb --maxmemory-policy allkeys-lru
+    volumes:
+      - valkey-data:/data
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  nats:
+    image: nats:2.11-alpine
+    command: ["-js", "-m", "8222"]
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O-", "http://localhost:8222/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  otel:
+    image: otel/opentelemetry-collector-contrib:0.111.0
+    command: ["--config=/etc/otel-config.yaml"]
+    volumes:
+      - ./otel-config.docker.yaml:/etc/otel-config.yaml:ro
+    restart: unless-stopped
+
+  findevil:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+      args:
+        INSTALL_HEAVY_TOOLS: "0"
+    depends_on:
+      valkey:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      # point the app at the sibling containers (override the .env localhost)
+      FINDEVIL_TRANSPORT__VALKEY_HOST: valkey
+      FINDEVIL_TRANSPORT__VALKEY_PORT: "6379"
+      FINDEVIL_TRANSPORT__VALKEY_SOCK: /nonexistent/valkey.sock
+      FINDEVIL_TRANSPORT__NATS_URL: nats://nats:4222
+      FINDEVIL_INFERENCE__LLAMACPP_HOST: "127.0.0.1"
+      FINDEVIL_OBSERVABILITY__OTLP_ENDPOINT: otel:4317
+      FINDEVIL_MCP__HOST: 0.0.0.0
+      FINDEVIL_UI__HTTP_HOST: 0.0.0.0
+      # set ENABLE_LLM=1 to download the ~2 GB GGUF and run the narrator/pivots
+      ENABLE_LLM: "${ENABLE_LLM:-0}"
+    ports:
+      - "9400:9400"   # dashboard
+      - "9310:9310"   # MCP blackboard
+      - "8889:8889"   # prometheus (mcp)
+    volumes:
+      - findevil-data:/opt/findevil/data
+      - findevil-keys:/opt/findevil/etc/keys
+    restart: unless-stopped
+
+volumes:
+  valkey-data:
+  findevil-data:
+  findevil-keys:
