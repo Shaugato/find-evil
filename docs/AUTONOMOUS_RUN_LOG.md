@@ -128,6 +128,23 @@ at the top at end of run.
   images deliberately skipped (size/time; documented in dataset.md).
 - Status: pptx done; memory zip downloading
 
+## [2026-06-12 ~01:20Z] Part 10 + 11 — narrator ledger enrichment; JWS via joserfc
+
+- Narrator: closed the `TODO` at narrator/service.py — new
+  `LedgerReader.for_artifact()` (JSON1 `json_extract` on
+  `primary_artifact_key`) feeds up to 3 prior findings for the same
+  artifact into debate exhibits (`exhibit_kind=ledger_finding`);
+  best-effort so a ledger read failure can never block a debate.
+- CACAO: doc Part 11.3 names joserfc for JWS — added
+  `sign_playbook_jws`/`verify_playbook_jws` (compact JWS, EdDSA over
+  canonical playbook bytes; joserfc needs `algorithms=["EdDSA"]` since
+  EdDSA isn't in its default recommended set). Raw Ed25519 compat path
+  retained. Root-caused the authlib deprecation warning to fastmcp's
+  bundled auth module — not our code.
+- Verification evidence: suite **84 passed, 1 skipped**
+  (test_ledger_reader_artifact.py ×3, JWS round-trip/tamper ×2).
+- Status: done
+
 ## [2026-06-12 ~00:50Z] Part 12 — bulk_extractor MCP shim
 
 - What was done: `src/findevil/tools/shims/bulk_extractor.py` —

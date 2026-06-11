@@ -72,8 +72,48 @@ async def _exhibits_for_frame(frame: ConsensusFrame) -> list[dict[str, Any]]:
     ]
     for r in frame.reports[:8]:
         base.append({"exhibit_kind": "agent_report", **r})
-    # TODO(future): enrich from ledger.recent() when LedgerReader is wired.
+    base.extend(await _ledger_exhibits(frame.pher_key))
     return make_exhibits(base)
+
+
+async def _ledger_exhibits(pher_key: str, limit: int = 3) -> list[dict[str, Any]]:
+    """Prior ledger findings for the same artifact, as compact exhibits.
+
+    Best-effort: a ledger read failure must never block a debate.
+    """
+    from findevil.ledger.reader import LedgerReader
+
+    def _query() -> list[dict[str, Any]]:
+        reader = LedgerReader()
+        try:
+            rows = asyncio.run(reader.for_artifact(pher_key, n=limit))
+        finally:
+            reader.close()
+        return rows
+
+    try:
+        rows = await asyncio.to_thread(_query)
+    except Exception:
+        log.warning("ledger_exhibit_enrichment_failed", pher_key=pher_key)
+        return []
+
+    exhibits: list[dict[str, Any]] = []
+    for row in rows:
+        entry = row.get("entry", {})
+        trace = entry.get("reasoning_trace") or []
+        exhibits.append(
+            {
+                "exhibit_kind": "ledger_finding",
+                "finding_id": row.get("finding_id"),
+                "seq": row.get("seq"),
+                "agent_id": entry.get("agent_id"),
+                "severity": entry.get("severity"),
+                "confidence": entry.get("confidence"),
+                "mitre": entry.get("mitre_attack_technique"),
+                "claim": (trace[0] or {}).get("claim") if trace else None,
+            }
+        )
+    return exhibits
 
 
 async def _handle_frame(

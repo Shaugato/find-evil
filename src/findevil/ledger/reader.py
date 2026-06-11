@@ -53,6 +53,28 @@ class LedgerReader:
                 continue
         return c
 
+    async def for_artifact(self, artifact_key: str, n: int = 5) -> list[dict[str, Any]]:
+        """Latest entries whose payload's primary_artifact_key matches.
+
+        Uses json_extract over the canonical payload — the chain schema keeps
+        seq/hash columns lean on purpose, so artifact lookups go through JSON1.
+        """
+        rows = self.conn.execute(
+            "SELECT seq, finding_id, ts_ns, payload FROM ledger "
+            "WHERE json_extract(payload, '$.primary_artifact_key') = ? "
+            "ORDER BY seq DESC LIMIT ?",
+            (artifact_key, n),
+        ).fetchall()
+        return [
+            {
+                "seq": r["seq"],
+                "finding_id": r["finding_id"],
+                "ts_ns": r["ts_ns"],
+                "entry": json.loads(r["payload"]),
+            }
+            for r in rows
+        ]
+
     async def recent(self, n: int = 50) -> list[dict[str, Any]]:
         rows = self.conn.execute(
             "SELECT seq, finding_id, entry_hash, ts_ns, payload "

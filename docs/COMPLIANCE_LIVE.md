@@ -103,14 +103,14 @@ Last full re-verification: 2026-06-11 (autonomous sprint, see
 | LangGraph prosecutor/defense/judge | done | narrator/graph.py; findevil-narrator.service active |
 | Zheng-2023 position-swap | done | graph.py re-run logic |
 | DSPy offline optimization | done | scripts/dspy_optimize.py |
-| Ledger enrichment from LedgerReader | partial | TODO at narrator/service.py:75 — enrich from ledger.recent(); narration works from finding payload today |
+| Ledger enrichment from LedgerReader | done | LedgerReader.for_artifact() (json_extract on primary_artifact_key) feeds ≤3 prior findings into debate exhibits as `ledger_finding` kind; best-effort (never blocks a debate). tests/test_ledger_reader_artifact.py |
 
 ## Part 11 — CACAO executor
 
 | Req | Status | Evidence / Gap |
 |---|---|---|
 | CACAO 2.0 schema + factory + executor | done | cacao/*.py; 10/10 structural tests |
-| JWS signing (joserfc) | done | cacao/sign.py (authlib deprecation warning noted — uses authlib.jose; migrate to joserfc) |
+| JWS signing (joserfc) | done | cacao/sign.py: compact JWS (EdDSA) via joserfc over canonical playbook bytes + verify; raw Ed25519 compat path retained. (The authlib deprecation warning in logs comes from fastmcp's bundled auth module, not FIND EVIL code.) |
 | Safe-mode execution | done | by design; ledger entries recorded |
 
 ## Part 12 — SIFT tools as MCP tools
