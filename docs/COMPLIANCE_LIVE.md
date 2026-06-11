@@ -119,7 +119,7 @@ Last full re-verification: 2026-06-11 (autonomous sprint, see
 |---|---|---|
 | Typed shims, no arbitrary shell | done | tools/registry.py + 25 shim modules, 55 registered tools |
 | volatility/yara/zeek/tshark/tsk/plaso | done | live version probes ok=true (2026-06-11) |
-| bulk_extractor shim | missing → planned | binary installed (G3); shim to add |
+| bulk_extractor shim | done | tools/shims/bulk_extractor.py (`bulk_extractor.version` + `.scan` with bounded feature summary); live MCP probe `ok=true "bulk_extractor 2.1.1"`; 3 tests; server now exposes 57 tools |
 | Security sandbox per tool | done | findevil-tool@.service template + _subprocess.py allowlist |
 
 ## Part 13 — Red-team emulation

@@ -92,6 +92,20 @@ at the top at end of run.
   metrics ports :8890-:8894 each serving 80 `findevil_*` lines.
 - Status: done (operational note, no code change)
 
+## [2026-06-12 ~00:50Z] Part 12 — bulk_extractor MCP shim
+
+- What was done: `src/findevil/tools/shims/bulk_extractor.py` —
+  `bulk_extractor.version` and `bulk_extractor.scan` (fresh tool-cache
+  outdir per run since the binary refuses existing dirs; optional scanner
+  allowlist via `-x all -e <s>`; feature files summarised to ≤80 lines so
+  the LLM plane never sees raw multi-MB output). Registry auto-discovers
+  the module; no server change needed.
+- Verification evidence: suite **79 passed, 1 skipped**
+  (tests/test_bulk_extractor_shim.py, 3 tests); live MCP probe after
+  restart: server exposes **57 tools**, `bulk_extractor.version` →
+  `ok=true "bulk_extractor 2.1.1"`; `ledger.verify` → ok=true.
+- Status: done
+
 ## [2026-06-12 ~00:40Z] Part 14 — TABLE 11 Prometheus metric inventory
 
 - What was done: added all doc-named metrics to

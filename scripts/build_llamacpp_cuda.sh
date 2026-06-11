@@ -24,9 +24,12 @@ export PATH=/usr/local/cuda-12.6/bin:$PATH
 export CUDACXX=/usr/local/cuda-12.6/bin/nvcc
 nvcc --version | tail -1
 
-# 2. Rebuild llama-cpp-python 0.3.21 (prod-pinned) with CUDA sm_61
+# 2. Rebuild llama-cpp-python 0.3.21 (prod-pinned) with CUDA sm_61.
+# Bounded parallelism: an unbounded -j$(nproc) nvcc build OOM-crashed the
+# whole WSL VM on 2026-06-12 — keep this at 4.
 export CMAKE_ARGS="-DGGML_CUDA=on -DCMAKE_CUDA_ARCHITECTURES=61"
 export FORCE_CMAKE=1
+export CMAKE_BUILD_PARALLEL_LEVEL=4
 "$VENV/bin/pip" uninstall -y -q llama-cpp-python 2>/dev/null || true
 "$VENV/bin/pip" install -q --no-cache-dir --no-binary llama-cpp-python \
   "llama-cpp-python==0.3.21" 2>&1 | tail -3
