@@ -180,8 +180,8 @@ Last full re-verification: 2026-06-11 (autonomous sprint, see
 | FOR572 (zeek, suricata, rita, arkime, JA3) | done | shims + ja3 parsing in ingest |
 | FOR610 (pescan, capa, floss, oletools, ghidra) | done | shims present |
 | FOR500 (evtxecmd, mftecmd, regripper) | done | shims present; Prefetch/Amcache covered via regripper profiles — dedicated PECmd shim not present (Windows-native tool; documented) |
-| FOR578 TAXII 2.1 CTI ingest → pheromone priors | missing → planned | being added this sprint |
-| Diamond Model relationship graph | missing → planned | being added this sprint |
+| FOR578 TAXII 2.1 CTI ingest → pheromone priors | done | src/findevil/cti/ (stix_priors.py, taxii_ingest.py): STIX 2.1 indicator patterns → bounded pheromone deposits (sensor=cti.taxii, bel≤0.45, tau_max=0.35 — priors bias triage, never fire alone). MCP tools `taxii.ingest` (offline bundle or live TAXII 2.1 via taxii2-client 2.3.0) + `taxii.push`. Live-verified: ingest → `pher:ip:203.0.113.250` tau=0.3125 readable via bb://ioc/ip resource |
+| Diamond Model relationship graph | done | src/findevil/cti/diamond.py builds adversary/capability/infrastructure/victim graph from ledger findings → Valkey `cti:diamond:graph`, MCP resource `bb://cti/diamond` + tool `diamond.graph`. Live: 810 edges from current ledger. tests/test_cti_for578.py (3 tests) |
 
 ## Appendix E/F — CACAO sample, key bootstrap
 

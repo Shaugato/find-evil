@@ -191,6 +191,18 @@ def build_server() -> FastMCP:
             errors=json.loads(state.get("errors", "[]")),
         )
 
+    @mcp.resource("bb://cti/diamond")
+    async def cti_diamond() -> dict[str, Any]:
+        """Diamond Model relationship graph (FOR578) — last published build."""
+        from findevil.cti.diamond import DIAMOND_KEY
+
+        vc = await get_valkey()
+        c = await vc._connect()  # noqa: SLF001 - plain GET on a JSON document
+        raw = await c.get(DIAMOND_KEY)
+        if not raw:
+            return {"model": "diamond", "nodes": [], "edges": [], "counts": {}}
+        return json.loads(raw)
+
     @mcp.resource("bb://ledger/tip")
     async def ledger_tip() -> LedgerTip:
         reader = LedgerReader()

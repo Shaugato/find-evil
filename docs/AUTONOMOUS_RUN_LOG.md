@@ -128,6 +128,28 @@ at the top at end of run.
   images deliberately skipped (size/time; documented in dataset.md).
 - Status: pptx done; memory zip downloading
 
+## [2026-06-12 ~22:45Z] Appendix D / FOR578 — CTI plane: TAXII ingest + Diamond Model
+
+- What was done: new `src/findevil/cti/` package. `stix_priors.py` parses
+  STIX 2.1 indicator patterns (ipv4/ipv6/domain/url/file-hash incl. OR
+  composites) into IOCs and deposits them as **pheromone priors** through
+  the existing Lua deposit path (sensor `cti.taxii`, bel capped 0.45,
+  tau_max 0.35 — intel biases triage but can never cross mitigation
+  thresholds alone). `taxii_ingest.py` supports offline STIX bundle files
+  (default, air-gap friendly) and live TAXII 2.1 collections via
+  taxii2-client (added to pinned BOM). `diamond.py` builds the Diamond
+  Model graph (adversary/capability/infrastructure/victim) from ledger
+  findings into Valkey `cti:diamond:graph`. MCP: tools `taxii.ingest`,
+  `taxii.push`, `diamond.graph` + resource `bb://cti/diamond`.
+- Verification evidence: suite **87 passed, 1 skipped**; live smoke
+  (scripts/cti_smoke.sh): `taxii.ingest` on a test bundle →
+  `{ok:true, deposited:1}`; `bb://ioc/ip/203.0.113.250` shows
+  `tau=0.3125, bel=0.45, pl=0.85, sensor_diversity=1`; `diamond.graph`
+  on the live ledger → 810 edges, all four vertex kinds; server exposes
+  **60 tools**. Note: PrivateTmp=true means bundles must live under
+  /opt/findevil/data (documented in scripts/cti_smoke.sh).
+- Status: done
+
 ## [2026-06-12 ~01:20Z] Part 10 + 11 — narrator ledger enrichment; JWS via joserfc
 
 - Narrator: closed the `TODO` at narrator/service.py — new

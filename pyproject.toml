@@ -44,6 +44,7 @@ dependencies = [
     "pynacl>=1.5",
     "cryptography>=42",
     "stix2>=3.0.1",
+    "taxii2-client>=2.3.0",
     "sigstore>=3.0",
     "in-toto-attestation>=0.9.3",
     "lmdb>=1.4.1",
