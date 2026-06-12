@@ -116,13 +116,20 @@ async def _ledger_exhibits(pher_key: str, limit: int = 3) -> list[dict[str, Any]
     return exhibits
 
 
+# Zheng-2023 position-swap is doc-mandatory (Part 10.2): the judge re-runs with
+# argument order swapped to cancel position bias. Costs one extra judge call per
+# debate (acceptable off the hot path). Env override exists only for
+# resource-constrained demo rigs.
+_SWAP_JUDGE = os.environ.get("FINDEVIL_NARRATOR_SWAP_JUDGE", "1") != "0"
+
+
 async def _handle_frame(
     frame: ConsensusFrame, ng: NarratorGraph, debate_budget_s: float = 300.0
 ) -> None:
     exhibits = await _exhibits_for_frame(frame)
     try:
         with anyio.move_on_after(debate_budget_s) as scope:
-            result = await ng.debate(exhibits=exhibits, swap_judge=False)
+            result = await ng.debate(exhibits=exhibits, swap_judge=_SWAP_JUDGE)
         if scope.cancelled_caught:
             log.warning("narrator_budget_exceeded", pher_key=frame.pher_key)
             return
