@@ -22,11 +22,12 @@ interface Node {
   pulse: number;
 }
 
+// Aligned to the live dashboard palette so the hero reads as a product preview.
 const KIND_COLORS: Record<Kind, string> = {
-  ip: "70,198,255",
-  domain: "52,226,176",
-  proc: "255,176,32",
-  hash: "168,130,255",
+  ip: "0,229,255", // cyan
+  domain: "0,230,118", // phosphor green
+  proc: "255,171,0", // amber
+  hash: "41,121,255", // blue
 };
 
 export default function PheromoneField({

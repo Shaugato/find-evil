@@ -28,6 +28,12 @@ export default function Home() {
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <a
+              href="#download"
+              className="rounded-lg bg-good px-5 py-2.5 font-semibold text-ink shadow-greenglow transition hover:brightness-110"
+            >
+              ⬇ Download
+            </a>
+            <a
               href="#replay"
               className="rounded-lg bg-cyan/90 px-5 py-2.5 font-medium text-ink shadow-glow transition hover:bg-cyan"
             >
@@ -42,7 +48,7 @@ export default function Home() {
           </div>
           <div className="mt-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-2 text-sm text-muted">
             <span><span className="text-good mono">0.567ms</span> hot-path p50</span>
-            <span><span className="text-good mono">87</span> tests passing</span>
+            <span><span className="text-good mono">96</span> tests passing</span>
             <span><span className="text-good mono">BLAKE3+Ed25519</span> ledger</span>
             <span><span className="text-good mono">60</span> typed MCP tools</span>
           </div>
@@ -195,34 +201,96 @@ export default function Home() {
       </section>
 
       {/* ───────────────────────── get it ───────────────────────── */}
-      <section className="border-t border-edge bg-panel/30">
+      <section id="download" className="border-t border-edge bg-panel/30">
         <div className="mx-auto max-w-6xl px-6 py-24">
           <Reveal>
-            <h2 className="text-3xl font-bold sm:text-4xl">Run it yourself</h2>
+            <h2 className="text-3xl font-bold sm:text-4xl">
+              Download &amp; run it yourself
+            </h2>
             <p className="mt-3 max-w-3xl text-gray-400">
-              Three paths. The site you&apos;re on needs no install; the others
-              get the full stack on your machine.
+              FIND EVIL runs <span className="text-white">entirely on your
+              machine</span> — your telemetry, models, and signed ledger never
+              leave it. One prerequisite: Docker.
             </p>
           </Reveal>
-          <div className="mt-10 grid gap-5 md:grid-cols-3">
+
+          {/* Primary download card */}
+          <Reveal>
+            <div className="mt-10 overflow-hidden rounded-2xl border border-good/30 bg-gradient-to-br from-good/10 via-panel/60 to-panel/60 p-8 shadow-greenglow">
+              <div className="flex flex-col items-start gap-6 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-good/40 bg-good/10 px-3 py-1 text-xs text-good">
+                    ★ Easiest — one-click installer
+                  </div>
+                  <h3 className="text-2xl font-bold">Get FIND EVIL running in ~10 minutes</h3>
+                  <p className="mt-2 max-w-xl text-sm text-gray-300">
+                    The launcher checks Docker, fetches the repo, starts the full
+                    stack, and opens the dashboard. Works on Windows, macOS, and
+                    Linux.
+                  </p>
+                </div>
+                <div className="flex shrink-0 flex-col gap-3">
+                  <a
+                    href={`${REPO}/releases/latest`}
+                    className="rounded-lg bg-good px-6 py-3 text-center font-semibold text-ink shadow-greenglow transition hover:brightness-110"
+                  >
+                    ⬇ Download installer
+                  </a>
+                  <a
+                    href={`${REPO}/releases`}
+                    className="text-center text-xs text-muted hover:text-good"
+                  >
+                    all platforms &amp; assets →
+                  </a>
+                </div>
+              </div>
+
+              {/* one-liner */}
+              <div className="mt-6 rounded-lg border border-edge bg-ink/70 p-4">
+                <div className="mb-1 text-xs text-muted">
+                  …or one line on macOS / Linux:
+                </div>
+                <code className="mono block overflow-x-auto whitespace-nowrap text-xs text-good">
+                  curl -fsSL https://raw.githubusercontent.com/Shaugato/find-evil/main/installer/install.sh | bash
+                </code>
+              </div>
+
+              {/* 3-step + prereq */}
+              <div className="mt-6 grid gap-4 sm:grid-cols-3">
+                {[
+                  ["1 · Install Docker", "Docker Desktop (Win/Mac) or Engine (Linux). Podman / Rancher / OrbStack work too."],
+                  ["2 · Run the launcher", "Double-click it (or the one-liner). It clones the repo and runs docker compose up."],
+                  ["3 · Open the dashboard", "The 6-pane command shell opens at localhost:9400; MCP at :9310."],
+                ].map(([t, d]) => (
+                  <div key={t} className="rounded-lg border border-edge bg-panel/50 p-4">
+                    <div className="mono text-xs text-cyan">{t}</div>
+                    <div className="mt-1 text-xs text-gray-400">{d}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </Reveal>
+
+          {/* Secondary / tertiary paths */}
+          <div className="mt-6 grid gap-5 md:grid-cols-3">
             {[
               {
                 t: "Docker Compose",
-                d: "One command. valkey + nats + otel + the FIND EVIL services.",
+                d: "Prefer to drive it yourself? One command brings up valkey + nats + otel + the FIND EVIL services.",
                 cmd: "docker compose up -d",
                 href: `${REPO}/tree/main/deploy`,
                 cta: "deploy/ →",
               },
               {
-                t: "One-click launcher",
-                d: "Double-click for Windows / macOS / Linux. Wraps the Docker stack.",
-                cmd: "find-evil-windows.cmd",
-                href: `${REPO}/releases`,
-                cta: "Download →",
+                t: "View on GitHub",
+                d: "Clone, read the code, run the 96-test suite, reproduce the validation. MIT licensed.",
+                cmd: "git clone …/find-evil",
+                href: REPO,
+                cta: "Repository →",
               },
               {
                 t: "Native on SIFT",
-                d: "Full fidelity on the SANS SIFT Workstation under systemd.",
+                d: "Full fidelity on the SANS SIFT Workstation under systemd — the validated reference environment.",
                 cmd: "bash scripts/bootstrap.sh",
                 href: `${REPO}/blob/main/docs/hackathon/try-it-out.md`,
                 cta: "Instructions →",
