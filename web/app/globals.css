@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap");
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -13,11 +13,12 @@ html {
 
 body {
   background:
-    radial-gradient(1100px 700px at 72% -12%, rgba(255,23,68,0.08) 0%, transparent 55%),
-    radial-gradient(900px 600px at 10% 110%, rgba(0,229,255,0.06) 0%, transparent 50%),
-    #050507;
-  color: rgba(255, 255, 255, 0.92);
-  font-family: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+    radial-gradient(1100px 720px at 76% -12%, rgba(255,56,100,0.10) 0%, transparent 56%),
+    radial-gradient(900px 600px at 8% 8%, rgba(0,255,159,0.06) 0%, transparent 52%),
+    radial-gradient(1000px 640px at 50% 118%, rgba(137,221,255,0.06) 0%, transparent 55%),
+    #0a0e14;
+  color: #e0e6ef;
+  font-family: "Inter", "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -29,7 +30,7 @@ body {
 }
 
 .text-gradient {
-  background: linear-gradient(90deg, #00e5ff 0%, #00e676 50%, #ff1744 100%);
+  background: linear-gradient(90deg, #89ddff 0%, #00ff9f 50%, #ff3864 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;

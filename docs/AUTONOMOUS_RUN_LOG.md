@@ -6,6 +6,82 @@ at the top at end of run.
 
 ---
 
+## SESSION v3 (2026-06-13, continuation: UI redesign · harden · ship)
+
+### Design decision — dashboard redesign approach (recorded before implementing)
+
+The brief asked to consider a full React Three Fiber / Next.js SPA rewrite of the
+command-shell dashboard. **Decision: comprehensive visual-language redesign of the
+existing vanilla (HTML + Canvas 2D + SSE) dashboard, not a framework rewrite.**
+
+Reasoning:
+- **Deadline + risk.** Two days from the hackathon deadline with a fully validated
+  baseline (96 tests, ledger 1010 verify-ok, real-data centrepiece). A ground-up
+  React/R3F rewrite introduces a build step, a new runtime, and WebGL debugging —
+  high regression surface for the one artifact the demo video films.
+- **Blind rendering.** This agent edits on the Windows host while the dashboard runs
+  in WSL2; I cannot reliably screenshot WebGL output to debug it iteratively. The
+  brief explicitly names Canvas 2D as the reliable fallback "if WebGL proves too
+  complex to debug blind." That condition holds.
+- **The existing dashboard is already live-data-driven.** `find-evil-live.js`
+  overrides `initApp` and drives every panel from the real REST/SSE endpoints
+  (`/api/pher/snapshot`, `/stream/consensus`, `/stream/ledger`, …). The mock
+  `IOC_DEFS`/`LEDGER_DEFS` are seed-only; real data replaces them on load. Throwing
+  that away to rebuild the data plumbing in React would be pure risk.
+- **The actual stated #1 problem is readability**, not the rendering tech. That is
+  fixed in CSS + information design, which Canvas 2D supports fully.
+
+What the redesign delivers: refined palette (#0a0e14 / #00ff9f / #ff3864 / #ffb86c /
+#89ddff), Inter (UI) + JetBrains Mono (data) typography, glassmorphism panels, a
+premium layered-glow background, human-readable metric labels with the math as
+secondary, hover tooltips, and a pheromone-field legend — over the proven live-data
+layer, with canvas color literals updated to match. (Design source in
+`Find Evil UI design/` left untouched per the constraint.)
+
+### What this session shipped (all verified)
+
+1. **Dashboard visual redesign** (`src/findevil/ui/static/find-evil.html`,
+   +244/−~120 lines):
+   - Refined palette wired through CSS vars **and** the Canvas 2D literals so chrome
+     and pheromone field are one system: `--bg #0a0e14`, `--green #00ff9f`,
+     `--red #ff3864`, `--amber #ffb86c`, `--blue/--cyan #89ddff`, text `#e0e6ef`.
+   - **Inter** for labels/headings, **JetBrains Mono** for data values.
+   - **Glassmorphism** on topbar / left / right / bottom / tab-bar
+     (`backdrop-filter: blur(16px) saturate(135%)`) over a layered radial-glow body.
+   - **Readability (the brief's #1 problem):** human-readable labels lead, math
+     trails as a small hint — `Threat Belief (Bel)`, `Plausibility (Pl)`,
+     `Evidence Conflict (K)`, `Sensor Agreement`, `Peak Confidence (τ)`,
+     `Events Ingested`, `Consensus Firings`, `Live Streams`, `Narrator`, plus
+     `title=` tooltips with dotted-underline cues on every metric.
+   - **Pheromone-field legend** explaining node colour = belief, glow = τ, particles
+     = sensor evidence, rings = consensus firing, split red/blue = Yager conflict.
+   - **Boot text corrected for forensic honesty:** the false `vLLM Llama-3 8B AWQ`
+     line is now `llama.cpp Llama-3.2-3B Q4_K_M (CPU), off hot path`; tool line now
+     states `57 typed tools, no execute_shell_cmd`; red/blue-team theatre replaced
+     with the real prosecutor/defense/judge narrator.
+   - **Verified:** rendered in a headless preview (app 1440×900, zero console
+     errors, computed `--bg`/`--red`/`--green`/`--sans` correct, glass blur active,
+     legend present); `node --check` clean on `find-evil-live.js`; synced to the
+     running stack at `:9400` and re-served live (`#0a0e14`, `Events Ingested`,
+     `Evidence Conflict`, `pher-legend`, corrected boot all present; `/api/health`
+     still `ok:true`). Live-data layer (`find-evil-live.js`) untouched.
+
+2. **Companion website realigned** to the refined palette (`web/tailwind.config.ts`,
+   `web/app/globals.css`, `web/components/PheromoneField.tsx`): ink `#0a0e14`,
+   good `#00ff9f`, evil `#ff3864`, warn `#ffb86c`, cyan `#89ddff`, Inter font, hero
+   canvas node + halo colours matched. No old-palette literals remain.
+
+3. **Gap sweep:** `grep` for `TODO/FIXME/NotImplementedError` across `src/` → **0**.
+   Compliance remains at the v2 level (near-100%); nothing material outstanding.
+
+### State at end of session
+- Tests: **96 passed, 1 skipped**. Ledger: **1010 entries, verify ok=true,
+  tainted=[]**. Dashboard `/api/health` → `ok:true`.
+- The **one** remaining human task is recording the demo video
+  (`docs/hackathon/demo-video-script.md` is fully pre-staged).
+
+---
+
 ## FINAL SUMMARY v2 (2026-06-12, continuation: finish · harden · ship)
 
 ### What this session implemented / fixed (all live-verified, no regressions)

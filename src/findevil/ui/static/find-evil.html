@@ -5,45 +5,57 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FIND EVIL — Autonomous DFIR Command Shell</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #050507;
-    --bg2: #080810;
-    --bg3: #0c0c18;
-    --panel: #0a0a14;
-    --panel2: #0f0f1e;
-    --border: rgba(255,255,255,0.06);
-    --border2: rgba(255,255,255,0.1);
-    --red: #ff1744;
-    --red2: #ff4060;
-    --red-glow: rgba(255,23,68,0.25);
-    --green: #00e676;
-    --green2: #69f0ae;
-    --green-dim: rgba(0,230,118,0.15);
-    --blue: #2979ff;
-    --blue2: #82b1ff;
-    --amber: #ffab00;
-    --amber2: #ffd740;
-    --cyan: #00e5ff;
-    --purple: #d500f9;
-    --text: rgba(255,255,255,0.92);
-    --text2: rgba(255,255,255,0.55);
-    --text3: rgba(255,255,255,0.25);
-    --mono: 'JetBrains Mono', monospace;
-    --sans: 'Space Grotesk', sans-serif;
+    /* Refined command-shell palette — deep blue-black base, phosphor-green
+       primary, with semantic alert/warning/info channels tuned for contrast. */
+    --bg: #0a0e14;
+    --bg2: #0c1119;
+    --bg3: #0e1521;
+    --panel: rgba(15,21,31,0.72);      /* glass */
+    --panel-solid: #0e141d;
+    --panel2: rgba(22,30,43,0.6);
+    --glass-blur: blur(16px) saturate(135%);
+    --border: rgba(137,221,255,0.09);
+    --border2: rgba(137,221,255,0.18);
+    --red: #ff3864;                    /* alert / high-belief-evil */
+    --red2: #ff6b88;
+    --red-glow: rgba(255,56,100,0.28);
+    --green: #00ff9f;                  /* primary / healthy / phosphor */
+    --green2: #7dffc6;
+    --green-dim: rgba(0,255,159,0.15);
+    --blue: #89ddff;                   /* info / secondary */
+    --blue2: #b3e9ff;
+    --amber: #ffb86c;                  /* warning / conflict / Yager band */
+    --amber2: #ffd0a0;
+    --cyan: #89ddff;
+    --purple: #c792ea;
+    --text: #e0e6ef;                   /* primary text — softer than pure white */
+    --text2: #9aa4b2;                  /* secondary text */
+    --text3: rgba(154,164,178,0.5);
+    --mono: 'JetBrains Mono', ui-monospace, monospace;
+    --sans: 'Inter', 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
   html, body {
-    background: var(--bg);
+    background:
+      radial-gradient(1200px 760px at 78% -10%, rgba(255,56,100,0.10) 0%, transparent 56%),
+      radial-gradient(980px 620px at 8% 8%, rgba(0,255,159,0.06) 0%, transparent 52%),
+      radial-gradient(1100px 700px at 50% 120%, rgba(137,221,255,0.06) 0%, transparent 55%),
+      var(--bg);
     color: var(--text);
     font-family: var(--sans);
+    font-feature-settings: 'cv05','ss01','tnum';
+    letter-spacing: 0.01em;
     overflow: hidden;
     width: 100vw;
     height: 100vh;
     user-select: none;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
 
   /* ─── BOOT SCREEN ─── */
@@ -60,12 +72,12 @@
     font-weight: 700;
     letter-spacing: 0.2em;
     color: var(--red);
-    text-shadow: 0 0 60px var(--red), 0 0 120px rgba(255,23,68,0.4);
+    text-shadow: 0 0 60px var(--red), 0 0 120px rgba(255,56,100,0.4);
     animation: logoPulse 2s ease-in-out infinite;
   }
   @keyframes logoPulse {
-    0%,100% { opacity: 1; text-shadow: 0 0 60px var(--red), 0 0 120px rgba(255,23,68,0.4); }
-    50% { opacity: 0.85; text-shadow: 0 0 100px var(--red), 0 0 200px rgba(255,23,68,0.6), 0 0 300px rgba(255,23,68,0.2); }
+    0%,100% { opacity: 1; text-shadow: 0 0 60px var(--red), 0 0 120px rgba(255,56,100,0.4); }
+    50% { opacity: 0.85; text-shadow: 0 0 100px var(--red), 0 0 200px rgba(255,56,100,0.6), 0 0 300px rgba(255,56,100,0.2); }
   }
   #boot-sub {
     font-family: var(--mono);
@@ -115,6 +127,16 @@
     transition: opacity 0.8s ease;
   }
   #app.visible { opacity: 1; }
+
+  /* Glassmorphism on the chrome panels — translucent + frosted blur so the
+     layered background glow reads through, giving depth without clutter. */
+  #topbar, #left-panel, #right-panel, #bottom-panel, #view-tabs {
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+  }
+  #left-panel, #right-panel {
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+  }
 
   /* ─── TOPBAR ─── */
   #topbar {
@@ -207,11 +229,11 @@
   .panel-badge {
     font-family: var(--mono); font-size: 10px;
     padding: 2px 8px; border-radius: 10px;
-    background: rgba(0,230,118,0.12); color: var(--green);
-    border: 1px solid rgba(0,230,118,0.2);
+    background: rgba(0,255,159,0.12); color: var(--green);
+    border: 1px solid rgba(0,255,159,0.2);
   }
-  .panel-badge.red { background: rgba(255,23,68,0.12); color: var(--red2); border-color: rgba(255,23,68,0.2); }
-  .panel-badge.amber { background: rgba(255,171,0,0.12); color: var(--amber2); border-color: rgba(255,171,0,0.2); }
+  .panel-badge.red { background: rgba(255,56,100,0.12); color: var(--red2); border-color: rgba(255,56,100,0.2); }
+  .panel-badge.amber { background: rgba(255,184,108,0.12); color: var(--amber2); border-color: rgba(255,184,108,0.2); }
 
   #agent-list { flex: 1; overflow-y: auto; padding: 8px; scrollbar-width: thin; scrollbar-color: var(--border2) transparent; }
 
@@ -223,7 +245,7 @@
     margin-bottom: 3px;
   }
   .agent-row:hover { background: rgba(255,255,255,0.04); }
-  .agent-row.active { background: rgba(255,23,68,0.08); border: 1px solid rgba(255,23,68,0.15); }
+  .agent-row.active { background: rgba(255,56,100,0.08); border: 1px solid rgba(255,56,100,0.15); }
   .agent-dot {
     width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
     animation: agentPulse 2s ease-in-out infinite;
@@ -366,7 +388,7 @@
   .ioc-card.medium::before { background: var(--blue2); }
   .ioc-card.low::before { background: var(--green); }
   .ioc-card:hover { background: rgba(255,255,255,0.04); border-color: var(--border2); }
-  .ioc-card.selected { border-color: rgba(255,23,68,0.3); background: rgba(255,23,68,0.05); }
+  .ioc-card.selected { border-color: rgba(255,56,100,0.3); background: rgba(255,56,100,0.05); }
   .ioc-type { font-family: var(--mono); font-size: 9px; color: var(--text3); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 4px; }
   .ioc-value { font-family: var(--mono); font-size: 11px; color: var(--text); word-break: break-all; margin-bottom: 6px; }
   .ioc-tau-row { display: flex; align-items: center; gap: 8px; }
@@ -413,9 +435,9 @@
   @keyframes eventFade { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: translateX(0); } }
   .ev-time { color: var(--text3); flex-shrink: 0; font-size: 9px; }
   .ev-src { flex-shrink: 0; padding: 1px 5px; border-radius: 3px; font-size: 9px; }
-  .ev-src.zeek { background: rgba(41,121,255,0.2); color: var(--blue2); }
-  .ev-src.sysmon { background: rgba(255,171,0,0.15); color: var(--amber2); }
-  .ev-src.yara { background: rgba(255,23,68,0.15); color: var(--red2); }
+  .ev-src.zeek { background: rgba(137,221,255,0.2); color: var(--blue2); }
+  .ev-src.sysmon { background: rgba(255,184,108,0.15); color: var(--amber2); }
+  .ev-src.yara { background: rgba(255,56,100,0.15); color: var(--red2); }
   .ev-src.ebpf { background: rgba(213,0,249,0.15); color: #e040fb; }
   .ev-src.vol3 { background: rgba(0,229,255,0.12); color: var(--cyan); }
   .ev-msg { color: var(--text2); overflow: hidden; text-overflow: ellipsis; }
@@ -454,7 +476,7 @@
     z-index: 500;
     background: var(--panel);
     border: 1px solid var(--red);
-    box-shadow: 0 0 60px rgba(255,23,68,0.3), 0 0 120px rgba(255,23,68,0.1);
+    box-shadow: 0 0 60px rgba(255,56,100,0.3), 0 0 120px rgba(255,56,100,0.1);
     border-radius: 8px;
     padding: 24px 32px;
     text-align: center;
@@ -475,12 +497,12 @@
     margin-top: 16px;
     font-family: var(--mono); font-size: 11px;
     padding: 8px 24px; border-radius: 4px;
-    background: rgba(255,23,68,0.15); color: var(--red2);
-    border: 1px solid rgba(255,23,68,0.3);
+    background: rgba(255,56,100,0.15); color: var(--red2);
+    border: 1px solid rgba(255,56,100,0.3);
     cursor: pointer;
     transition: all 0.2s ease;
   }
-  .threat-overlay-close:hover { background: rgba(255,23,68,0.3); }
+  .threat-overlay-close:hover { background: rgba(255,56,100,0.3); }
 
   /* ─── MERKLE LEDGER ─── */
   .ledger-block {
@@ -525,7 +547,7 @@
   }
   .mitre-cell.hit {
     color: #fff; border-color: var(--red);
-    background: linear-gradient(90deg, rgba(255,23,68,0.35), rgba(255,23,68,0.12));
+    background: linear-gradient(90deg, rgba(255,56,100,0.35), rgba(255,56,100,0.12));
     box-shadow: 0 0 16px var(--red-glow);
   }
   .mitre-cell .cnt { font-size: 8px; color: var(--amber2); }
@@ -563,6 +585,43 @@
     80% { transform: translate(1px, -2px); }
     100% { transform: translate(0); filter: none; }
   }
+
+  /* ════════ READABILITY LAYER (v3 redesign) ════════
+     Labels read as clean sans-serif; data values stay monospace. Human-readable
+     wording leads, the math notation (τ, Bel, K) trails as a smaller hint. */
+  .panel-title, .top-stat-label, .metric-label, .status-key,
+  .tl-label, .mitre-tactic-name, .view-tab, .debate-role {
+    font-family: var(--sans);
+    font-weight: 600;
+  }
+  .panel-title { font-size: 11px; letter-spacing: 0.13em; color: var(--text2); }
+  .view-tab { letter-spacing: 0.1em; }
+  .metric-label, .status-key { font-size: 10px; letter-spacing: 0.05em; color: var(--text2); text-transform: none; }
+  .top-stat-label { letter-spacing: 0.09em; color: var(--text2); }
+  /* dotted underline cues that a tooltip explains the term */
+  .status-key[title], .metric-label[title], .top-stat-label[title] {
+    text-decoration: underline dotted rgba(154,164,178,0.35);
+    text-underline-offset: 3px; cursor: help;
+  }
+  /* the small math hint after a human label, e.g. "Evidence Conflict  K" */
+  .hint { font-family: var(--mono); font-size: 9px; color: var(--text3); font-weight: 400; margin-left: 5px; }
+
+  /* ════════ PHEROMONE FIELD LEGEND ════════ */
+  #pher-legend {
+    position: absolute; bottom: 16px; left: 16px; z-index: 14;
+    background: var(--panel);
+    backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--border2); border-radius: 12px;
+    padding: 12px 14px; display: flex; flex-direction: column; gap: 7px;
+    max-width: 260px; box-shadow: 0 10px 34px rgba(0,0,0,0.45);
+  }
+  #pher-legend .leg-title {
+    font-family: var(--sans); font-size: 10px; font-weight: 700; color: var(--text);
+    letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 1px;
+  }
+  #pher-legend .leg-row { display: flex; align-items: center; gap: 9px; font-family: var(--sans); font-size: 11px; color: var(--text2); }
+  #pher-legend .leg-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  #pher-legend .leg-note { font-family: var(--sans); font-size: 9.5px; color: var(--text3); line-height: 1.45; margin-top: 3px; }
 </style>
 </head>
 <body>
@@ -586,27 +645,27 @@
     </div>
     <div class="top-sep"></div>
     <div class="top-stat">
-      <div class="top-stat-label">DECISION LOOP</div>
+      <div class="top-stat-label" title="Wall-clock time of the most recent dashboard data-refresh loop.">REFRESH LOOP</div>
       <div class="top-stat-value green" id="stat-loop">1.2 ms</div>
     </div>
     <div class="top-sep"></div>
     <div class="top-stat">
-      <div class="top-stat-label">ACTIVE AGENTS</div>
+      <div class="top-stat-label" title="Distinct sensors / agents currently depositing evidence on the field.">ACTIVE SENSORS</div>
       <div class="top-stat-value cyan" id="stat-agents">47</div>
     </div>
     <div class="top-sep"></div>
     <div class="top-stat">
-      <div class="top-stat-label">IOC COUNT</div>
+      <div class="top-stat-label" title="Indicators of compromise (IP, domain, process, hash) currently tracked.">ARTIFACTS</div>
       <div class="top-stat-value amber" id="stat-ioc">124</div>
     </div>
     <div class="top-sep"></div>
     <div class="top-stat">
-      <div class="top-stat-label">THREATS FOUND</div>
+      <div class="top-stat-label" title="Artifacts whose fused belief crossed the critical threshold.">THREATS FOUND</div>
       <div class="top-stat-value red" id="stat-threats">3</div>
     </div>
     <div class="top-sep"></div>
     <div class="top-stat">
-      <div class="top-stat-label">τ MAX</div>
+      <div class="top-stat-label" title="Highest pheromone strength (τ) across all tracked artifacts — peak threat confidence.">PEAK CONFIDENCE<span class="hint">τ</span></div>
       <div class="top-stat-value red" id="stat-tau">0.923</div>
     </div>
     <div id="threat-level-bar">
@@ -641,6 +700,14 @@
     <div id="view-container">
       <div class="view active" id="view-pheromone">
         <canvas id="pheromone-canvas"></canvas>
+        <div id="pher-legend">
+          <div class="leg-title">Pheromone Field</div>
+          <div class="leg-row"><span class="leg-dot" style="background:var(--red);box-shadow:0 0 8px var(--red)"></span>Likely malicious · Bel ≥ 0.85</div>
+          <div class="leg-row"><span class="leg-dot" style="background:var(--amber);box-shadow:0 0 8px var(--amber)"></span>Suspicious · under triage</div>
+          <div class="leg-row"><span class="leg-dot" style="background:var(--blue);box-shadow:0 0 8px var(--blue)"></span>Low confidence · observed</div>
+          <div class="leg-row"><span class="leg-dot" style="background:var(--green);box-shadow:0 0 8px var(--green)"></span>Likely benign</div>
+          <div class="leg-note">Each node is an artifact (IP · domain · process · hash); its glow is threat confidence (τ). Particles are sensor evidence flowing to the MCP blackboard. An expanding ring is a consensus decision firing; a split red/blue glow is contradictory evidence (Yager conflict).</div>
+        </div>
       </div>
       <div class="view" id="view-graph">
         <canvas id="threat-graph-canvas"></canvas>
@@ -696,27 +763,27 @@
       </div>
       <div id="metrics-panel">
         <div class="metric-row">
-          <div class="metric-label">ZMQ PUB RATE</div>
+          <div class="metric-label" title="Total telemetry events processed by the ingest pipeline this session.">Events Ingested</div>
           <div class="metric-val cyan" id="m-zmq">48.2k/s</div>
           <div class="metric-sparkline"><canvas class="sparkline-canvas" id="sp-zmq"></canvas></div>
         </div>
         <div class="metric-row">
-          <div class="metric-label">REDIS ZINCRBY p50</div>
+          <div class="metric-label" title="Availability of the Valkey pheromone field (stigmergic evidence store).">Pheromone Store</div>
           <div class="metric-val green" id="m-redis">74 µs</div>
           <div class="metric-sparkline"><canvas class="sparkline-canvas" id="sp-redis"></canvas></div>
         </div>
         <div class="metric-row">
-          <div class="metric-label">D-S FUSION RATE</div>
+          <div class="metric-label" title="Dempster-Shafer consensus decisions committed to the ledger this session.">Consensus Firings</div>
           <div class="metric-val amber" id="m-ds">8.1k/s</div>
           <div class="metric-sparkline"><canvas class="sparkline-canvas" id="sp-ds"></canvas></div>
         </div>
         <div class="metric-row">
-          <div class="metric-label">MCP WRITE p50</div>
+          <div class="metric-label" title="Connected live Server-Sent-Event streams feeding this dashboard (of 5).">Live Streams</div>
           <div class="metric-val" style="color: var(--blue2)" id="m-mcp">1.8 ms</div>
           <div class="metric-sparkline"><canvas class="sparkline-canvas" id="sp-mcp"></canvas></div>
         </div>
         <div class="metric-row">
-          <div class="metric-label">vLLM TTFT</div>
+          <div class="metric-label" title="LLM narrator debate state — runs off the decision path, explains findings after the fact.">Narrator</div>
           <div class="metric-val" style="color: var(--purple)" id="m-vllm">12 ms</div>
           <div class="metric-sparkline"><canvas class="sparkline-canvas" id="sp-vllm"></canvas></div>
         </div>
@@ -728,31 +795,31 @@
       </div>
       <div id="status-bar">
         <div class="status-row">
-          <div class="status-key">CURRENT FOCUS ARTIFACT</div>
+          <div class="status-key" title="The artifact the swarm is currently most focused on.">Focus Artifact</div>
           <div class="status-val" style="color: var(--red2); font-family: var(--mono); font-size: 10px;" id="focus-art">192.168.1.47</div>
         </div>
         <div class="status-row">
-          <div class="status-key">Bel(evil)</div>
+          <div class="status-key" title="Dempster-Shafer lower bound that this artifact is malicious (committed belief).">Threat Belief<span class="hint">Bel</span></div>
           <div class="status-val" style="color: var(--red); font-family: var(--mono); font-size: 10px;" id="bel-val">0.891</div>
         </div>
         <div class="status-row">
-          <div class="status-key">Pl(evil)</div>
+          <div class="status-key" title="Upper bound — how malicious the evidence could still allow this to be.">Plausibility<span class="hint">Pl</span></div>
           <div class="status-val" style="color: var(--amber2); font-family: var(--mono); font-size: 10px;" id="pl-val">0.943</div>
         </div>
         <div class="status-row">
-          <div class="status-key">K (conflict)</div>
+          <div class="status-key" title="Disagreement between sensors. High conflict (Yager band) routes to the narrator debate instead of auto-mitigating.">Evidence Conflict<span class="hint">K</span></div>
           <div class="status-val" style="color: var(--blue2); font-family: var(--mono); font-size: 10px;" id="k-val">0.127</div>
         </div>
         <div class="status-row">
-          <div class="status-key">SENSOR DIVERSITY</div>
+          <div class="status-key" title="Which sensors corroborate this artifact — diversity strengthens fused belief.">Sensor Agreement</div>
           <div class="status-val" style="color: var(--green); font-family: var(--mono); font-size: 10px;" id="sensor-div">5 / 5</div>
         </div>
         <div class="status-row">
-          <div class="status-key">STIX 2.1 BUNDLE</div>
+          <div class="status-key" title="STIX 2.1 indicator bundle export status for downstream threat-intel sharing.">STIX 2.1 Export</div>
           <div class="status-val" style="color: var(--green); font-family: var(--mono); font-size: 10px;">SYNCED</div>
         </div>
         <div class="status-row">
-          <div class="status-key">MERKLE TIP</div>
+          <div class="status-key" title="BLAKE3 root hash of the latest signed ledger batch — the tamper-evident tip.">Ledger Tip Hash</div>
           <div class="status-val" style="color: var(--cyan); font-family: var(--mono); font-size: 9px;" id="merkle-tip">a3f8…b217</div>
         </div>
       </div>
@@ -869,20 +936,19 @@ const BLUE_MSGS = [
 
 // ─── BOOT SEQUENCE ───
 const BOOT_LINES = [
-  '[ OK ] Initializing stigmergic pheromone engine (asyncio+uvloop)',
-  '[ OK ] Redis/Valkey UDS socket bound — latency p50: 72µs',
-  '[ OK ] ZeroMQ PUB socket ipc:///tmp/dfir.sock — 48.2k msgs/s',
-  '[ OK ] fastmcp 2.x blackboard server — Streamable HTTP :8080',
-  '[ OK ] vLLM engine warm (Llama-3 8B AWQ, Q4_K_M) — TTFT: 12ms',
-  '[ OK ] MCP tools registered: kill_pid, iptables_drop, mem_acquire, alert_soc',
-  '[ OK ] Dempster-Shafer fusion engine initialized (θ_mitigate=0.85)',
-  '[ OK ] STIX 2.1 / OCSF / CACAO 2.0 / NIST SP 800-86 schemas loaded',
-  '[ OK ] Merkle chain initialized — tip: a3f8c291b21704af',
-  '[ OK ] SIFT Workstation telemetry: Zeek + Suricata + Sysmon + eBPF + vol3',
-  '[ OK ] Red team adversary emulator: ONLINE',
-  '[ OK ] Blue team DFIR investigator: ONLINE',
-  '[ OK ] 12 micro-agents spawned — swarm coverage: ALL STREAMS',
-  '[ BOOT ] FIND EVIL v2.1.0 — AUTONOMOUS DFIR READY',
+  '[ OK ] Stigmergic pheromone engine online (asyncio + uvloop)',
+  '[ OK ] Valkey pheromone field bound (UDS) — deposit / decay active',
+  '[ OK ] ZeroMQ ipc hot path up — deterministic, sub-millisecond',
+  '[ OK ] fastmcp 2.x blackboard — 57 typed tools, no execute_shell_cmd',
+  '[ OK ] llama.cpp server warm — Llama-3.2-3B Q4_K_M (CPU), off hot path',
+  '[ OK ] Dempster-Shafer fusion ready — Yager conflict handling on',
+  '[ OK ] STIX 2.1 / OCSF 2004 / CACAO 2.0 / NIST SP 800-86 loaded',
+  '[ OK ] Forensic ledger — BLAKE3 hash chain + Ed25519, Rekor-anchored',
+  '[ OK ] SIFT shims: Zeek · Suricata · Volatility3 · YARA · TSK · bulk_extractor',
+  '[ OK ] Narrator debate: prosecutor / defense / judge (Zheng-2023 swap)',
+  '[ OK ] Fractal pivot agents armed — depth ≤ 3, TTL-budgeted',
+  '[ OK ] Swarm online — sensors depositing evidence on the field',
+  '[ BOOT ] FIND EVIL — AUTONOMOUS DFIR · MATH DECIDES, THE LEDGER PROVES',
 ];
 
 async function runBoot() {
@@ -895,7 +961,7 @@ async function runBoot() {
     barEl.style.width = pct + '%';
     const div = document.createElement('div');
     const line = BOOT_LINES[i];
-    div.style.color = line.includes('BOOT') ? '#ff1744' : line.includes('OK') ? '#00e676' : '#fff';
+    div.style.color = line.includes('BOOT') ? '#ff3864' : line.includes('OK') ? '#00ff9f' : '#fff';
     div.textContent = line;
     logEl.insertBefore(div, logEl.firstChild);
     if (logEl.children.length > 8) logEl.removeChild(logEl.lastChild);
@@ -1105,7 +1171,7 @@ function initPheromoneCanvas() {
   window.fireConsensusRipple = function (color) {
     // Fire from the most-suspicious node if present, else from centre.
     const n = nodes.length > 1 ? nodes[1] : { x: W / 2, y: H / 2 };
-    spawnRipple(n.x, n.y, color || '#ff1744');
+    spawnRipple(n.x, n.y, color || '#ff3864');
   };
   
   function resize() {
@@ -1154,7 +1220,7 @@ function initPheromoneCanvas() {
       progress: Math.random(),
       speed: 0.003 + Math.random() * 0.006,
       size: 1.5 + Math.random() * 2,
-      color: src.severity === 'critical' ? '#ff1744' : src.severity === 'high' ? '#ffab00' : '#00e676',
+      color: src.severity === 'critical' ? '#ff3864' : src.severity === 'high' ? '#ffb86c' : '#00ff9f',
       alpha: 0.4 + Math.random() * 0.6,
       trail: [],
     });
@@ -1179,7 +1245,7 @@ function initPheromoneCanvas() {
       const center = nodes[0];
       const strength = node.tau;
       const grad = ctx.createLinearGradient(node.x, node.y, center.x, center.y);
-      const col = node.severity === 'critical' ? '255,23,68' : node.severity === 'high' ? '255,171,0' : '0,230,118';
+      const col = node.severity === 'critical' ? '255,56,100' : node.severity === 'high' ? '255,184,108' : '0,255,159';
       grad.addColorStop(0, `rgba(${col},${strength * 0.15})`);
       grad.addColorStop(0.5, `rgba(${col},${strength * 0.08})`);
       grad.addColorStop(1, `rgba(${col},0.02)`);
@@ -1210,7 +1276,7 @@ function initPheromoneCanvas() {
           progress: 0,
           speed: 0.003 + Math.random() * 0.006,
           size: 1.5 + Math.random() * 2,
-          color: src.severity === 'critical' ? '#ff1744' : src.severity === 'high' ? '#ffab00' : '#00e676',
+          color: src.severity === 'critical' ? '#ff3864' : src.severity === 'high' ? '#ffb86c' : '#00ff9f',
           alpha: 0.4 + Math.random() * 0.6,
         };
         return;
@@ -1245,7 +1311,7 @@ function initPheromoneCanvas() {
     ripples.forEach((rp) => {
       rp.r += (rp.max - rp.r) * 0.04 + 2;
       rp.alpha *= 0.96;
-      const c = (rp.color || '#ff1744').replace('#', '');
+      const c = (rp.color || '#ff3864').replace('#', '');
       const cr = parseInt(c.slice(0, 2), 16), cg = parseInt(c.slice(2, 4), 16), cb = parseInt(c.slice(4, 6), 16);
       ctx.beginPath();
       ctx.arc(rp.x, rp.y, rp.r, 0, Math.PI * 2);
@@ -1270,8 +1336,8 @@ function initPheromoneCanvas() {
         for (let ring = 0; ring < 3; ring++) {
           const ringR = r + ring * 20 + Math.sin(t * 2 + ring) * 5;
           const grad = ctx.createRadialGradient(node.x, node.y, ringR * 0.5, node.x, node.y, ringR);
-          grad.addColorStop(0, 'rgba(255,23,68,0)');
-          grad.addColorStop(1, `rgba(255,23,68,${0.15 - ring * 0.04})`);
+          grad.addColorStop(0, 'rgba(255,56,100,0)');
+          grad.addColorStop(1, `rgba(255,56,100,${0.15 - ring * 0.04})`);
           ctx.beginPath();
           ctx.arc(node.x, node.y, ringR, 0, Math.PI * 2);
           ctx.fillStyle = grad;
@@ -1280,7 +1346,7 @@ function initPheromoneCanvas() {
         
         // Main node
         const mainGrad = ctx.createRadialGradient(node.x - r/4, node.y - r/4, 0, node.x, node.y, r);
-        mainGrad.addColorStop(0, '#ff4060');
+        mainGrad.addColorStop(0, '#ff6b88');
         mainGrad.addColorStop(0.5, '#cc0033');
         mainGrad.addColorStop(1, '#880022');
         ctx.beginPath();
@@ -1314,7 +1380,7 @@ function initPheromoneCanvas() {
         if (node.y < pad || node.y > H - pad) node.vy *= -1;
         
         const r = 14 + node.tau * 16;
-        const col = node.severity === 'critical' ? '255,23,68' : node.severity === 'high' ? '255,171,0' : '0,230,118';
+        const col = node.severity === 'critical' ? '255,56,100' : node.severity === 'high' ? '255,184,108' : '0,255,159';
 
         // Yager-band conflict (K >= 0.3): a split-glow of two opposing colours
         // (red=malicious vs blue=benign) that oscillate, visually "fighting" —
@@ -1325,7 +1391,7 @@ function initPheromoneCanvas() {
           for (let half = 0; half < 2; half++) {
             const a0 = half * Math.PI - osc * swing;
             const a1 = a0 + Math.PI;
-            const cc = half === 0 ? '255,23,68' : '41,121,255';
+            const cc = half === 0 ? '255,56,100' : '137,221,255';
             ctx.beginPath();
             ctx.arc(node.x, node.y, r + 7, a0, a1);
             ctx.strokeStyle = `rgba(${cc},${0.45 + Math.abs(osc) * 0.35})`;
@@ -1461,7 +1527,7 @@ function initThreatGraphCanvas() {
     graphEdges.forEach(e => {
       const src = projected.find(n => n.id === e.src);
       const dst = projected.find(n => n.id === e.dst);
-      const col = src.severity === 'critical' ? '255,23,68' : src.severity === 'high' ? '255,171,0' : '41,121,255';
+      const col = src.severity === 'critical' ? '255,56,100' : src.severity === 'high' ? '255,184,108' : '137,221,255';
       const grad = ctx.createLinearGradient(src.x, src.y, dst.x, dst.y);
       grad.addColorStop(0, `rgba(${col},${e.strength * 0.5})`);
       grad.addColorStop(1, `rgba(${col},${e.strength * 0.1})`);
@@ -1492,7 +1558,7 @@ function initThreatGraphCanvas() {
     // Draw nodes
     projected.forEach(n => {
       const r = (16 + (n.tau || 0.5) * 16) * n.persp;
-      const col = n.severity === 'critical' ? '255,23,68' : n.severity === 'high' ? '255,171,0' : n.severity === 'medium' ? '41,121,255' : '0,230,118';
+      const col = n.severity === 'critical' ? '255,56,100' : n.severity === 'high' ? '255,184,108' : n.severity === 'medium' ? '137,221,255' : '0,255,159';
       
       // Glow
       const gGrad = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, r * 2);
@@ -1537,8 +1603,8 @@ function initThreatGraphCanvas() {
 // ─── SPARKLINES ───
 const sparklineConfigs = {
   zmq: { id: 'sp-zmq', color: '0,229,255', min: 40000, max: 55000 },
-  redis: { id: 'sp-redis', color: '0,230,118', min: 60, max: 120 },
-  ds: { id: 'sp-ds', color: '255,171,0', min: 6000, max: 10000 },
+  redis: { id: 'sp-redis', color: '0,255,159', min: 60, max: 120 },
+  ds: { id: 'sp-ds', color: '255,184,108', min: 6000, max: 10000 },
   mcp: { id: 'sp-mcp', color: '130,177,255', min: 1, max: 5 },
   vllm: { id: 'sp-vllm', color: '213,0,249', min: 8, max: 25 },
 };

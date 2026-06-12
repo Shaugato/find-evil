@@ -24,10 +24,10 @@ interface Node {
 
 // Aligned to the live dashboard palette so the hero reads as a product preview.
 const KIND_COLORS: Record<Kind, string> = {
-  ip: "0,229,255", // cyan
-  domain: "0,230,118", // phosphor green
-  proc: "255,171,0", // amber
-  hash: "41,121,255", // blue
+  ip: "137,221,255", // info cyan
+  domain: "0,255,159", // phosphor green
+  proc: "255,184,108", // warning amber
+  hash: "108,198,255", // blue
 };
 
 export default function PheromoneField({
@@ -180,8 +180,8 @@ export default function PheromoneField({
         // halo
         if (n.belief > 0.05) {
           const grd = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, rad * 6);
-          grd.addColorStop(0, `rgba(255,59,92,${n.belief * 0.35})`);
-          grd.addColorStop(1, "rgba(255,59,92,0)");
+          grd.addColorStop(0, `rgba(255,56,100,${n.belief * 0.35})`);
+          grd.addColorStop(1, "rgba(255,56,100,0)");
           ctx.fillStyle = grd;
           ctx.beginPath();
           ctx.arc(n.x, n.y, rad * 6, 0, Math.PI * 2);
