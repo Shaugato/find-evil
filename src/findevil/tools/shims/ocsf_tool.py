@@ -6,6 +6,7 @@ from typing import Any
 
 from findevil.ledger.interop import to_ocsf_detection_finding
 from findevil.ledger.reader import LedgerReader
+from findevil.ledger.schema import LedgerEntry
 from findevil.tools.registry import register
 
 from ._subprocess import first_target
@@ -22,6 +23,11 @@ async def finding(commands: list[dict]) -> dict[str, Any]:
         )
         if entry is None:
             return {"ok": False, "error": f"seq {seq} not found"}
-        return {"ok": True, "ocsf": to_ocsf_detection_finding(entry)}
+        # Reader rows are plain dicts; validate to the schema model so the
+        # live emission path matches what the interop layer expects.
+        model = LedgerEntry.model_validate(entry)
+        return {"ok": True, "ocsf": to_ocsf_detection_finding(model)}
+    except Exception as exc:
+        return {"ok": False, "error": f"{type(exc).__name__}: {exc}"}
     finally:
         r.close()

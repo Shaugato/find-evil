@@ -64,6 +64,26 @@ def test_append_consensus_frame_writes_parent_and_consensus_entries(ed25519_keys
     assert consensus["consensus"]["belief_evil"] == 0.84
     assert len(consensus["chain_of_custody"]) == 2
 
+    # Doc Part 7.5: the consensus entry must name its contributing agents with
+    # non-trivial Shapley attribution that sums to the fused belief.
+    shapley = consensus["consensus"]["shapley_attribution"]
+    assert set(shapley) == {"edr/sysmon-01", "yara/yara-01"}
+    assert all(v > 0.0 for v in shapley.values())
+    from findevil.swarm.ds_fusion import AgentReport, fuse
+
+    fused = fuse(
+        [
+            AgentReport(
+                agent_id=r["agent_id"],
+                confidence=r["confidence"],
+                reliability=r["reliability"],
+                declared_ignorance=r["declared_ignorance"],
+            )
+            for r in frame["reports"]
+        ]
+    )["belief_evil"]
+    assert abs(sum(shapley.values()) - fused) < 1e-4  # efficiency property
+
 
 def test_artifact_for_architecture_indicator_schemes():
     from findevil.ledger.events import artifact_for_pher_key

@@ -6,6 +6,7 @@ from typing import Any
 
 from findevil.ledger.interop import to_stix_bundle
 from findevil.ledger.reader import LedgerReader
+from findevil.ledger.schema import LedgerEntry
 from findevil.tools.registry import register
 
 from ._subprocess import first_target
@@ -24,6 +25,11 @@ async def bundle(commands: list[dict]) -> dict[str, Any]:
         )
         if entry is None:
             return {"ok": False, "error": f"seq {seq} not found"}
-        return {"ok": True, "bundle": to_stix_bundle(entry)}
+        # The reader returns plain JSON dicts; interop renders LedgerEntry
+        # objects — validate so the live path matches the schema-tested path.
+        model = LedgerEntry.model_validate(entry)
+        return {"ok": True, "bundle": to_stix_bundle(model)}
+    except Exception as exc:
+        return {"ok": False, "error": f"{type(exc).__name__}: {exc}"}
     finally:
         r.close()

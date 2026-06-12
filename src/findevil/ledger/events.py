@@ -99,6 +99,36 @@ def _techniques_from_events(events: Iterable[ParsedEvent] | None) -> list[str]:
     return out[:32]
 
 
+def _shapley_for_reports(reports: list[dict[str, Any]]) -> dict[str, float]:
+    """Per-agent Shapley attribution for the fused belief (doc Part 7.5).
+
+    Best-effort: attribution is forensic enrichment, never a reason to drop a
+    consensus entry. Values are rounded for canonical-JSON stability.
+    """
+    if len(reports) < 2:
+        return {}
+    try:
+        from findevil.swarm.ds_fusion import AgentReport
+        from findevil.swarm.shapley import shapley_attribution
+
+        agent_reports = [
+            AgentReport(
+                agent_id=str(r.get("agent_id") or r.get("sensor") or f"agent-{i}"),
+                confidence=float(r.get("confidence", 0.0)),
+                reliability=float(r.get("reliability", 0.9)),
+                declared_ignorance=float(r.get("declared_ignorance", 0.0)),
+                sensor=str(r.get("sensor", "")),
+            )
+            for i, r in enumerate(reports)
+        ]
+        return {
+            agent: round(value, 6)
+            for agent, value in shapley_attribution(agent_reports).items()
+        }
+    except Exception:
+        return {}
+
+
 def append_consensus_frame(
     frame: dict[str, Any],
     *,
@@ -120,6 +150,7 @@ def append_consensus_frame(
     conflict = float(frame.get("conflict_K", 0.0))
     reports = list(frame.get("reports") or [])[:16]
     techniques = _techniques_from_events(events)
+    shapley = _shapley_for_reports(reports)
     written: list[uuid.UUID] = []
 
     writer = LedgerWriter(
@@ -200,6 +231,7 @@ def append_consensus_frame(
                 plausibility_evil=pl,
                 uncertainty=uncertainty,
                 conflict_K=conflict,
+                shapley_attribution=shapley,
             ),
             chain_of_custody=parent_ids,
         )
