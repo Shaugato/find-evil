@@ -6,6 +6,61 @@ at the top at end of run.
 
 ---
 
+## FINAL SUMMARY v2 (2026-06-12, continuation: finish · harden · ship)
+
+### What this session implemented / fixed (all live-verified, no regressions)
+
+1. **Zheng-2023 position-swap → ON in production.** Narrator now debates with
+   `swap_judge=True` by default (env opt-out); both judge orderings run.
+2. **Shapley attribution → wired into the ledger.** Every consensus entry now
+   carries per-agent `shapley_attribution` (efficiency property test-verified;
+   doc Part 7.5 was previously code-only).
+3. **STIX 2.1 / OCSF 2004 live MCP emission → fixed.** `stix.bundle` /
+   `ocsf.finding` shims validated reader-dicts to `LedgerEntry` (were raising
+   `AttributeError` on `dict.timestamp`); both emit live now.
+4. **Live verification battery** (`scripts/verify_battery.py`, `verify_cacao.py`):
+   decay (both halves), Shapley, STIX/OCSF live, dedupe→dupe-stream, and
+   **CACAO playbook signed+executed** (seq 1009, real BLAKE3 fpr) — all PASS.
+5. **Standalone installers.** Launchers now clone the repo if not already inside
+   one; Linux Docker auto-install; new `install.sh` curl|bash one-liner; release
+   assets refreshed; Podman/Rancher/OrbStack documented.
+6. **Dashboard motion + MITRE matrix.** Consensus-fire ripple bursts, Yager-band
+   split-glow (K≥0.3), ledger animate-in, and a **new MITRE ATT&CK heat-matrix
+   tab** (was missing). Verified live in-browser; design source untouched.
+7. **Website aligned to the product palette** (#050507/#ff1744/#00e676/#00e5ff,
+   JetBrains Mono + Space Grotesk) with a **prominent download section** (primary
+   installer CTA, one-liner, prereqs, 3-step). Redeployed.
+
+### State (verified this session)
+
+- **Tests: 96 passed, 1 skipped** (was 91). `findevil verify` → `ok=true,
+  tainted_seqs=[]`. **Ledger 1010 entries**; Rekor anchor batch 3
+  `rekor_log_index=1492269391`.
+- **Website:** https://web-eight-sage-34.vercel.app (live, new palette + download).
+- **Repo:** github.com/Shaugato/find-evil (PUBLIC, MIT). **Release v0.1.0** latest
+  with `install.sh`, `find-evil-windows.cmd`, `find-evil-unix.sh`.
+- **Compliance:** every implementation-doc P0/P1 row in `docs/COMPLIANCE_LIVE.md`
+  is now **done** with runtime evidence. Documented permanent constraints (not
+  gaps): vLLM Profile B (4 GB Pascal can't run it), GPU TTFT target (hardware),
+  live Atomic-Red-Team `findevil demo` needs `pwsh`+ART on a victim VM (synthetic
+  + real-image paths used instead). None block submission.
+
+### Hackathon 8/8 — all present (see docs/hackathon/CHECKLIST.md)
+
+Repo · architecture-diagram · project-description · dataset · accuracy-report ·
+try-it-out · execution-logs · CHECKLIST + LICENSE. **The one item needing you:
+record the demo video** (fully scripted in demo-video-script.md).
+
+### For a future session
+
+The platform is submission-ready. Optional polish only: (a) a full
+React-Three-Fiber dashboard rebuild (Option A) if a 3D scene is wanted beyond the
+current canvas; (b) structured Volatility analysis on a *clean* memory image to
+complement the corruption-tolerant carving run; (c) live TAXII feed wired to a
+real CTI provider.
+
+---
+
 ## FINAL SUMMARY (2026-06-12) — read this first
 
 ### 1. Section 5 — full-compliance backlog

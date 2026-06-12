@@ -68,16 +68,17 @@ Last full re-verification: 2026-06-11 (autonomous sprint, see
 | Verifier CLI | done | `findevil verify` → ok=true, tainted_seqs=[] (re-run 2026-06-11) |
 | Merkle + Rekor anchoring | done | batch 3 rekor_log_index=1492269391 |
 | Key ceremony scripts | done | scripts/keygen.py, rotate_signing_key.py |
+| STIX 2.1 / OCSF 2004 **live MCP emission** | done (fixed 2026-06-12) | `stix.bundle` + `ocsf.finding` MCP tools now validate reader dict→LedgerEntry before interop (was AttributeError on dict.timestamp). Live battery: stix bundle emits indicator+observed-data+sighting; ocsf finding class_uid=2004. tests/test_interop_live_shims.py |
 
 ## Part 7 — Swarm engine + D-S fusion
 
 | Req | Status | Evidence / Gap |
 |---|---|---|
-| Pheromone deposit/decay (Dorigo) | done | swarm/decay.py + findevil-decay.service active |
+| Pheromone deposit/decay (Dorigo) | done (live-verified 2026-06-12) | swarm/decay.py + findevil-decay.service. Battery: low-belief tau decays toward 0; high-belief (≥0.15) reinforces (held flat) — both halves of the contract confirmed via scripts/verify_battery.py |
 | D-S fusion w/ Yager handling | done | swarm/ds_fusion.py; 15/15 tests |
 | Calibration (Platt/Isotonic) | done | swarm/calibrate.py + test_calibrate.py |
 | Threshold evaluator + policy | done | swarm/evaluator.py + test_evaluator.py |
-| Shapley attribution | done | swarm/shapley.py + test_shapley.py |
+| Shapley attribution | done (now wired into ledger) | swarm/shapley.py + test_shapley.py; **2026-06-12: append_consensus_frame now computes and stores per-agent Shapley in ConsensusInput.shapley_attribution** (efficiency property sum==fused-belief test-verified; live battery shows e.g. {edr:0.384, suricata:0.226}) |
 | BFT excluded | done | by design (doc 7.6) |
 
 ## Part 8 — Bytewax ingestion
@@ -101,7 +102,7 @@ Last full re-verification: 2026-06-11 (autonomous sprint, see
 | Req | Status | Evidence / Gap |
 |---|---|---|
 | LangGraph prosecutor/defense/judge | done | narrator/graph.py; findevil-narrator.service active |
-| Zheng-2023 position-swap | done | graph.py re-run logic |
+| Zheng-2023 position-swap | done (now ON in production) | graph.py re-run logic; **2026-06-12: narrator service now runs debate with swap_judge=True by default** (FINDEVIL_NARRATOR_SWAP_JUDGE opt-out); test asserts both judge orderings execute and higher-scoring verdict wins |
 | DSPy offline optimization | done | scripts/dspy_optimize.py |
 | Ledger enrichment from LedgerReader | done | LedgerReader.for_artifact() (json_extract on primary_artifact_key) feeds ≤3 prior findings into debate exhibits as `ledger_finding` kind; best-effort (never blocks a debate). tests/test_ledger_reader_artifact.py |
 
@@ -111,7 +112,7 @@ Last full re-verification: 2026-06-11 (autonomous sprint, see
 |---|---|---|
 | CACAO 2.0 schema + factory + executor | done | cacao/*.py; 10/10 structural tests |
 | JWS signing (joserfc) | done | cacao/sign.py: compact JWS (EdDSA) via joserfc over canonical playbook bytes + verify; raw Ed25519 compat path retained. (The authlib deprecation warning in logs comes from fastmcp's bundled auth module, not FIND EVIL code.) |
-| Safe-mode execution | done | by design; ledger entries recorded |
+| Safe-mode execution | done (live-verified 2026-06-12) | A 5-sensor malicious scenario fired a real mitigation → CACAO executor signed+ran the playbook and recorded `cacao_executed` (seq 1009, signature_fpr=97616a88…, status=succeeded, 2 actuator steps). scripts/verify_cacao.py |
 
 ## Part 12 — SIFT tools as MCP tools
 
@@ -143,6 +144,7 @@ Last full re-verification: 2026-06-11 (autonomous sprint, see
 | Req | Status | Evidence / Gap |
 |---|---|---|
 | Six-pane Textual TUI | done | ui/tui.py + 6 panes (consensus_feed, pher_heat, attack_timeline, ledger_tip, cacao_queue, fractal_tree — names deviate from doc's pane names, same concerns) |
+| HTMX/SSE dashboard motion + MITRE matrix | done (2026-06-12) | find-evil.html: consensus-fire ripple bursts, Yager-band split-glow (K≥0.3), ledger animate-in, **new MITRE ATT&CK heat-matrix tab** (8 tactics, cells light by live technique). Verified live in-browser; src/findevil/ui/static/ (design source in `Find Evil UI design/` untouched) |
 | FastAPI+HTMX+SSE browser panel | done | ui/http.py; findevil-dashboard.service on :9400; screenshot in validation-artifacts/ |
 | Color palette tokens | done | ui/static/find-evil.html |
 
