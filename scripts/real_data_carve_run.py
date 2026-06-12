@@ -391,11 +391,12 @@ async def main() -> None:
             "conflict_consensus_row": _row_brief(conflict_row),
             "narrator_verdict_row": _row_brief(narrator_row),
             "note": (
-                "Constructed conflict on a REAL carved IP: a high-confidence YARA "
-                "'malicious' signal vs a high-confidence EDR 'benign' signal drives "
-                "the Yager conflict path (action=conflict_ledger), which wakes the "
-                "prosecutor/defense/judge narrator. The narrator verdict is the "
-                "self-correction. Deliberately constructed; see accuracy-report.md."
+                "Constructed conflict on a REAL carved IP: a severity-1 Suricata "
+                "'malicious' alert vs a high-confidence EDR 'benign' reputation "
+                "drives the Yager conflict path (action=conflict_ledger), which "
+                "wakes the prosecutor/defense/judge narrator. The narrator verdict "
+                "is the self-correction. Deliberately constructed; see "
+                "accuracy-report.md."
             ),
         }
         print(f"[self-correct] conflict_row={'yes' if conflict_row else 'no'} "

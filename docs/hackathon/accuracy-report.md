@@ -49,7 +49,26 @@ every finding so a reviewer can audit the chain back to its origin.
 [dataset.md](dataset.md)). **Tool:** `bulk_extractor` carving (the image was
 corrupt for Volatility — see §5).
 
-<!-- RESULTS_PLACEHOLDER: filled from execution-logs/rocba_carve_run.json -->
+**Run result (real):** 24 carved indicators (12 IPs + 12 domains) ingested →
+**12 signed LOW-severity observation findings** (ledger seq 954→969) +
+the self-correction (seq 969 conflict, seq 985 verdict). `findevil verify` →
+`ok=true`. Every finding's `belief_evil` landed in **0.50–0.62** with
+`conflict_K=0.000` → `action=observe` — i.e. the platform recorded the carved
+endpoints for custody but **did not flag any as malicious or mitigate them.**
+
+- **True negatives (the important result):** the top carved IPs are Azure /
+  Office 365 / Google ranges (52.x, 13.107.x, 172.217.x) — legitimate
+  infrastructure. The platform correctly kept them at `observe`/LOW and never
+  escalated. This is the conservative behaviour we want: weak, single-context
+  evidence does not become a mitigation.
+- **Self-correction (real):** on carved IP `142.250.64.106` (a Google range),
+  constructed contradictory sensors produced `conflict_K=0.377` → the
+  deterministic evaluator chose `action=conflict_ledger` (seq 969), **suppressing
+  auto-mitigation**, and the narrator judge ruled (seq 985): *"The exhibits do
+  not provide sufficient information to determine the defendant's intent with
+  certainty."* — a correct "insufficient evidence" verdict. The full
+  prosecutor/defense/judge trace is in
+  [execution-logs/iteration_trace.md](execution-logs/iteration_trace.md).
 
 ### False positives
 

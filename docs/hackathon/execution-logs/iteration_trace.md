@@ -6,9 +6,9 @@ conflict → re-investigation → resolution** path on a **real IP carved from t
 official ROCBA memory image.**
 
 > **Provenance & honesty:** the conflicting evidence is *deliberately
-> constructed* on a real carved IP (a high-confidence YARA "malicious" signal vs
-> a high-confidence EDR "benign" signal), because the carved indicators alone did
-> not produce an organic sensor conflict. This is the brief-sanctioned approach
+> constructed* on a real carved IP (a severity-1 Suricata "malicious" alert vs a
+> high-confidence EDR "benign" reputation), because the carved indicators alone
+> did not produce an organic sensor conflict. This is the brief-sanctioned approach
 > and is disclosed here and in [accuracy-report.md](../accuracy-report.md §5.2).
 > The *mechanism* exercised — Dempster–Shafer conflict detection, suppression of
 > auto-mitigation, and the prosecutor/defense/judge debate — is real, unmodified
@@ -34,16 +34,25 @@ official ROCBA memory image.**
    `chain_of_custody` referencing the conflict finding. `findevil verify` covers
    it.
 
-## Worked example (regenerated from the real run)
+## Worked example — the actual run (2026-06-12)
 
-| Iteration | seq | agent | action / verdict | reasoning (claim) |
+Real carved IP under conflict: **`142.250.64.106`** (a Google range carved from
+the official image). Ledger grew 936 → 985 over the run.
+
+| Iteration | seq | agent | action / verdict | reasoning (claim, verbatim from ledger) |
 |---|---|---|---|---|
-| 0 — first read | `{{conflict_seq}}` | `swarm.consensus` | **conflict_ledger** (K≈`{{K}}`) | "Yager conflict on real carved IP `{{ip}}`: YARA malicious vs EDR benign — auto-mitigation suppressed, routed to narrator." |
-| 1 — prosecutor | (debate) | `narrator.prosecutor` | argues malicious | cites the YARA hit exhibit |
-| 2 — defense | (debate) | `narrator.defense` | argues benign | cites the EDR reputation exhibit |
-| 3 — judge | (debate) | `narrator.judge` | weighs both | initial lean |
-| 4 — position swap | (debate) | `narrator.judge` | re-runs swapped | bias check |
-| 5 — resolution | `{{verdict_seq}}` | `narrator.judge` | **verdict recorded** | "`{{verdict_claim}}`" |
+| 0 — first read | **969** | `swarm.consensus` | **conflict_ledger** (K=0.377) | *"Fused 2 agent reports for pher:ip:142.250.64.106; action=conflict_ledger, belief_evil=0.215, conflict_K=0.377"* |
+| 1 — prosecutor | (debate) | `narrator` prosecutor | argues malicious | cites the Suricata alert exhibit |
+| 2 — defense | (debate) | `narrator` defense | argues benign | cites the EDR reputation exhibit |
+| 3 — judge | (debate) | `narrator` judge | weighs both | initial ruling |
+| 4 — position swap | (debate) | `narrator` judge | re-runs with sides swapped | Zheng-2023 bias check |
+| 5 — resolution | **985** | `narrator.judge` | **verdict recorded** | *"Argument A and Argument B present conflicting evidence, with high confidence in the malicious agent report but low confidence in the benign agent report … The exhibits do not provide sufficient information to determine the defendant's intent with certainty."* |
+
+The judge's actual verdict — *"insufficient information to determine intent"* —
+is the correct self-correction: faced with genuinely contradictory evidence, the
+system neither blocked nor cleared the IP automatically; it recorded a reasoned,
+signed "needs-more-evidence" ruling with custody back to the conflict finding
+(seq 969). `findevil verify` covers both entries: `ok=true, tainted_seqs=[]`.
 
 **What changed:** the system's *first* deterministic reaction was *not* "block
 it" and *not* "ignore it" — it was "I have contradictory evidence, I will not act

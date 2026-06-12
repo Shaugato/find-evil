@@ -128,7 +128,7 @@
       "confidence": 0.5,
       "claim": "Argument A and Argument B present conflicting evidence, with high confidence in the malicious agent report but low confidence in the benign agent report, and significant conflict detected in the pheromone state but low conflict detected in the pheromone state. The exhibits do not provide sufficient information to determine the defendant's intent with certainty."
     },
-    "note": "Constructed conflict on a REAL carved IP: a high-confidence YARA 'malicious' signal vs a high-confidence EDR 'benign' signal drives the Yager conflict path (action=conflict_ledger), which wakes the prosecutor/defense/judge narrator. The narrator verdict is the self-correction. Deliberately constructed; see accuracy-report.md."
+    "note": "Constructed conflict on a REAL carved IP: a severity-1 Suricata 'malicious' alert vs a high-confidence EDR 'benign' reputation drives the Yager conflict path (action=conflict_ledger), which wakes the prosecutor/defense/judge narrator. The narrator verdict is the self-correction. Deliberately constructed; see accuracy-report.md."
   },
   "new_rows": [
     {

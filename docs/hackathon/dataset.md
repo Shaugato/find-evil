@@ -30,23 +30,35 @@ bulk_extractor output. Every indicator below came out of the **official image**.
 ## What was found (real bulk_extractor output)
 
 `bulk_extractor 2.1.1 -x all -e net -e email -o be_out/run1 Rocba-Memory.raw`
+(full 18.7 GB scan, 1005 s, 16 worker threads)
 
-<!-- RESULTS_PLACEHOLDER: counts + sample indicators injected from the live run -->
-
-| Feature file | Count (real) |
+| Feature file | Count (real, full scan) |
 |---|---|
-| `ip.txt` (carved IPv4) | _see execution-logs/rocba_carve_run.json_ |
-| `domain.txt` | _see execution-logs/rocba_carve_run.json_ |
-| `url.txt` | _see execution-logs/rocba_carve_run.json_ |
-| `email.txt` | _see execution-logs/rocba_carve_run.json_ |
+| `ip.txt` (carved IPv4) | **1,914** |
+| `domain.txt` | **471,689** |
+| `url.txt` | **475,152** |
+| `email.txt` | **17,451** |
+| `ether.txt` (MACs) | 1,254 |
 
-The pipeline ingested the top public IPs and case-relevant domains (Microsoft/OS
-/CDN telemetry filtered out as noise) as correlated `zeek` + `suricata` + `edr`
+**The case at a glance (from the carved data):** the dominant carved domains
+name the victim organisation — `stark-research-labs.com`,
+`starkresearchlabs-my.sharepoint.com`, `starkresearchlabs.sharepoint.com` — and
+its SaaS footprint (`login.windows.net`, `outlook.office365.com`,
+`a.slack-edge.com`). The top carved external IPs are predominantly Azure/Office
+365 and Google ranges (52.x, 13.107.x, 172.217.x), i.e. **legitimate
+infrastructure** — which is exactly why the platform recorded them as low-grade
+observations, not threats (see [accuracy-report.md](accuracy-report.md)).
+
+The pipeline ingested the top 12 public IPs and 12 case-relevant domains
+(Microsoft/CDN/OS telemetry filtered as noise) as correlated `edr` + `suricata`
 sensor events. These flowed through the live Dempster–Shafer fusion and produced
-new **signed ledger entries** — see
-[execution-logs/rocba_carve_run.json](execution-logs/rocba_carve_run.json) for
-the exact ledger seq references, and [accuracy-report.md](accuracy-report.md)
-for false-positive / hallucination analysis.
+**12 new signed ledger findings** (ledger seq **954→969**, then the
+self-correction to **985**), all `action=observe` at LOW severity with
+`belief_evil ≈ 0.50–0.62` — recorded for chain-of-custody, never escalated to
+mitigation. Exact seqs + the self-correction in
+[execution-logs/rocba_carve_run.json](execution-logs/rocba_carve_run.json);
+FP / hallucination analysis in [accuracy-report.md](accuracy-report.md). Final
+`findevil verify` → `ok=true, tainted_seqs=[]`.
 
 ## Secondary dataset — synthetic validation telemetry (supporting evidence only)
 
