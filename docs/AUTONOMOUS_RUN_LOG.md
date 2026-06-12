@@ -6,43 +6,69 @@ at the top at end of run.
 
 ---
 
-## STAGED-STATUS SNAPSHOT (2026-06-12, mid-sprint) — read this first
+## FINAL SUMMARY (2026-06-12) — read this first
 
-**A model-safety-classifier outage ("fable 5 temporarily unavailable") is
-currently gating ALL command-execution tools (PowerShell + Bash).** Every
-remaining task requires running a command (the live pipeline, git, Vercel), so
-they are queued behind the outage. All file-authoring work continued unblocked
-and is complete + reviewed. When the classifier recovers, the queued steps are:
+### 1. Section 5 — full-compliance backlog
 
-1. **Real-data run** — fire `bash scripts/do_real_run.sh` (one command). It
-   syncs scripts, preflights services, runs the live pipeline on the real
-   carved ROCBA indicators, captures the self-correction, and writes
-   `docs/hackathon/execution-logs/{rocba_carve_run.json,ledger_export.json}` +
-   `web/public/data/rocba_run.json`, then `findevil verify`. The orchestrator
-   and its conflict logic have been fully code-reviewed against the live
-   parsers/evaluator (D-S conflict K≈0.54 → conflict_ledger; both sensors key
-   on the IP; verified detection keywords match the consensus claim text).
-2. **Fill run-result placeholders** in dataset.md / accuracy-report.md /
-   iteration_trace.md from the exported JSON.
-3. **Commit + push** the large uncommitted batch (deliverables, web/,
-   installer/, deploy/, vol shims, CTI plane already pushed at 3a1a189;
-   license/docker/installer pushed through 05e784a; everything after is staged).
-4. **Deploy website** — `cd web && npm install && vercel link && vercel --prod`;
-   then add the live URL to README + try-it-out.md.
+Closed this sprint, all with runtime evidence (see `docs/COMPLIANCE_LIVE.md`):
+G1 (MCP reload), G2 (log2timeline on PATH), G3 (bulk_extractor 2.1.1 built),
+G4 (GPU investigated → CPU retained with benchmark evidence), TABLE 11
+Prometheus metric inventory, bulk_extractor MCP shim, narrator ledger-exhibit
+enrichment, CACAO JWS via joserfc, **FOR578 CTI plane** (TAXII 2.1 ingest →
+pheromone priors + Diamond Model graph), Volatility pslist/pstree/netscan/
+cmdline shims, and a robust narrator JSON-repair path for the CPU model.
+**Tests: 73 → 91 passing, 1 skipped.** Ledger verifies clean throughout
+(`ok=true, tainted_seqs=[]`). Remaining doc-noted limitations: vLLM Profile B
+(infeasible on 4 GB Pascal), GPU TTFT target (hardware constraint), live victim
+VM (synthetic + real-image used instead) — all documented, none blocking.
 
-**What is already DONE + verified (no command needed to confirm — done earlier
-this session before the outage):**
-- G1–G3 closed; G4 closed with evidence (CPU retained). 87 tests pass.
-- TABLE 11 metrics, bulk_extractor shim, narrator ledger enrichment, CACAO JWS,
-  FOR578 CTI plane (TAXII + Diamond) — all implemented, tested, live-probed.
-- Real carved data CONFIRMED on disk: bulk_extractor recovered 1,435 IPs /
-  400k domains / 403k URLs / 14.9k emails from the official ROCBA image.
-- All 8 deliverable files + LICENSE (MIT) + CHECKLIST authored.
-- Docker stack (`deploy/`), installer (`installer/`), website (`web/`) built;
-  compose config validated; web components bug-reviewed.
+### 2. Section 6 — hackathon 8/8 deliverables
 
-**The one item that will ALWAYS need the user:** recording the demo video
-(Deliverable 2) — fully pre-staged in docs/hackathon/demo-video-script.md.
+| # | Deliverable | Location | Status |
+|---|---|---|---|
+| 1 | Code repo (MIT) | github.com/Shaugato/find-evil (PUBLIC) | ✅ pushed |
+| 2 | Demo video | docs/hackathon/demo-video-script.md | 📝 **user records** |
+| 3 | Architecture diagram | docs/hackathon/architecture-diagram.md | ✅ |
+| 4 | Project description | docs/hackathon/project-description.md | ✅ |
+| 5 | Dataset documentation | docs/hackathon/dataset.md | ✅ real numbers |
+| 6 | Accuracy report | docs/hackathon/accuracy-report.md | ✅ real results |
+| 7 | Try-it-out | try-it-out.md · deploy/ · installer/ · live site | ✅ 4 paths |
+| 8 | Execution logs | docs/hackathon/execution-logs/ | ✅ real run |
+
+- **Repo / license:** MIT, `LICENSE` + pyproject; pushed (HEAD `62beb52`).
+- **Live website:** https://web-eight-sage-34.vercel.app (Next.js on Vercel —
+  architecture explainer + real-run replay viewer with self-correction marked).
+- **GitHub Release:** v0.1.0 with one-click launchers attached
+  (github.com/Shaugato/find-evil/releases/tag/v0.1.0).
+- **Real-data run (centrepiece):** official SANS ROCBA memory image →
+  bulk_extractor carved 1,914 IPs / 471k domains → 12 signed LOW observation
+  findings (ledger 936→985) → **self-correction**: Yager conflict on real IP
+  142.250.64.106 (K=0.377, seq 969 conflict_ledger) → narrator judge verdict
+  (seq 985, "insufficient information") → `findevil verify` ok.
+
+### 3. The ONE item requiring you
+
+**Record the demo video (Deliverable 2).** Fully pre-staged in
+`docs/hackathon/demo-video-script.md` (exact commands, expected output,
+narration, ≤5 min). An agent can't capture screen/audio. Tip: pre-run the
+narrator step so the verdict is already in the ledger to show.
+
+### 4. Worth flagging
+
+- The ROCBA `Rocba-Memory.zip` download was **corrupt** (CRC fail + 7z
+  data-error block); Volatility couldn't parse the kernel. We pivoted to
+  corruption-tolerant `bulk_extractor` carving — documented honestly in
+  dataset.md / accuracy-report.md. A judge with a clean image gets full
+  structured Volatility analysis (shims are implemented + version-verified).
+- The self-correction conflict is **deliberately constructed** on a real carved
+  IP (disclosed); the *mechanism* (D-S conflict detection, auto-mitigation
+  suppression, narrator debate) is real and unmodified.
+- A multi-hour **model-safety-classifier outage** mid-sprint gated all
+  command tools; file authoring continued, and the queued commands (run, push,
+  deploy) were completed on recovery. The `data/ledger/` WAL got into a
+  cross-user-ownership state after a VM cold-boot (export ran as the wrong
+  user) — fixed by chown; `export_ledger.py` now reads via the dashboard API to
+  prevent recurrence.
 
 ---
 
