@@ -10,6 +10,33 @@ The hot path is deterministic and does not depend on an LLM. LLM-backed narrator
 and fractal pivot agents run out of band after the mathematical decision has
 already been written to the ledger.
 
+> **License:** MIT (see [LICENSE](LICENSE)).
+
+## SANS "Find Evil!" Hackathon
+
+This repository is a Find Evil! submission built as a **Custom MCP Server
+(Approach #2)**: 60 typed, schema-validated MCP tools with reference-resolved
+exhibit IDs and server-side output parsing — there is no `execute_shell_cmd`, so
+the agent cannot run arbitrary commands. **Math decides, the ledger records, the
+LLM only explains.**
+
+The eight required deliverables live under [`docs/hackathon/`](docs/hackathon):
+
+| # | Deliverable | Location |
+|---|---|---|
+| 1 | Code repository (MIT) | this repo |
+| 2 | Demo video script | [demo-video-script.md](docs/hackathon/demo-video-script.md) |
+| 3 | Architecture diagram | [architecture-diagram.md](docs/hackathon/architecture-diagram.md) |
+| 4 | Project description | [project-description.md](docs/hackathon/project-description.md) |
+| 5 | Dataset documentation | [dataset.md](docs/hackathon/dataset.md) |
+| 6 | Accuracy report | [accuracy-report.md](docs/hackathon/accuracy-report.md) |
+| 7 | Try-it-out instructions | [try-it-out.md](docs/hackathon/try-it-out.md) · [Docker](deploy/README.md) · [installer](installer/README.md) |
+| 8 | Agent execution logs | [execution-logs/](docs/hackathon/execution-logs) |
+
+Fastest paths to evaluate: the **Docker stack** (`deploy/`, one command), the
+**one-click launcher** (`installer/`), or the companion **website** (live URL in
+the deliverables once deployed).
+
 ## What This Repository Contains
 
 - Python package under `src/findevil`

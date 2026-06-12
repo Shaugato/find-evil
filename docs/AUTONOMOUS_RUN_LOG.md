@@ -6,6 +6,46 @@ at the top at end of run.
 
 ---
 
+## STAGED-STATUS SNAPSHOT (2026-06-12, mid-sprint) — read this first
+
+**A model-safety-classifier outage ("fable 5 temporarily unavailable") is
+currently gating ALL command-execution tools (PowerShell + Bash).** Every
+remaining task requires running a command (the live pipeline, git, Vercel), so
+they are queued behind the outage. All file-authoring work continued unblocked
+and is complete + reviewed. When the classifier recovers, the queued steps are:
+
+1. **Real-data run** — fire `bash scripts/do_real_run.sh` (one command). It
+   syncs scripts, preflights services, runs the live pipeline on the real
+   carved ROCBA indicators, captures the self-correction, and writes
+   `docs/hackathon/execution-logs/{rocba_carve_run.json,ledger_export.json}` +
+   `web/public/data/rocba_run.json`, then `findevil verify`. The orchestrator
+   and its conflict logic have been fully code-reviewed against the live
+   parsers/evaluator (D-S conflict K≈0.54 → conflict_ledger; both sensors key
+   on the IP; verified detection keywords match the consensus claim text).
+2. **Fill run-result placeholders** in dataset.md / accuracy-report.md /
+   iteration_trace.md from the exported JSON.
+3. **Commit + push** the large uncommitted batch (deliverables, web/,
+   installer/, deploy/, vol shims, CTI plane already pushed at 3a1a189;
+   license/docker/installer pushed through 05e784a; everything after is staged).
+4. **Deploy website** — `cd web && npm install && vercel link && vercel --prod`;
+   then add the live URL to README + try-it-out.md.
+
+**What is already DONE + verified (no command needed to confirm — done earlier
+this session before the outage):**
+- G1–G3 closed; G4 closed with evidence (CPU retained). 87 tests pass.
+- TABLE 11 metrics, bulk_extractor shim, narrator ledger enrichment, CACAO JWS,
+  FOR578 CTI plane (TAXII + Diamond) — all implemented, tested, live-probed.
+- Real carved data CONFIRMED on disk: bulk_extractor recovered 1,435 IPs /
+  400k domains / 403k URLs / 14.9k emails from the official ROCBA image.
+- All 8 deliverable files + LICENSE (MIT) + CHECKLIST authored.
+- Docker stack (`deploy/`), installer (`installer/`), website (`web/`) built;
+  compose config validated; web components bug-reviewed.
+
+**The one item that will ALWAYS need the user:** recording the demo video
+(Deliverable 2) — fully pre-staged in docs/hackathon/demo-video-script.md.
+
+---
+
 ## [2026-06-11 ~16:00Z] T1 — Fresh status check & tree reconciliation
 
 - What was done: Ran the Section-4 status battery in WSL2 via
@@ -127,6 +167,40 @@ at the top at end of run.
   image = ideal for the volatility/yara MCP pipeline). The 22-40 GB disk
   images deliberately skipped (size/time; documented in dataset.md).
 - Status: pptx done; memory zip downloading
+
+## [2026-06-12 ~10:30Z] Real-data acquisition + companion website (in progress)
+
+- Real case data: downloaded the official SANS ROCBA memory image
+  (Standard Forensic Case, 5.3 GB zip). The zip failed CRC and the inner 7z
+  had a data-error block; the 18.7 GB `.raw` extracted but **Volatility 3
+  could not find the kernel** (corruption damaged a needed structure). Pivoted
+  to **bulk_extractor** stream-carving (corruption-tolerant): carved real
+  indicators from the official image — confirmed **1,435 IPs / 400k domains /
+  403k URLs / 14.9k emails** at 86% scan. This is real data from the official
+  image. Provenance + honesty written up in dataset.md / accuracy-report.md.
+- Real-data orchestrator: `scripts/real_data_carve_run.py` maps carved
+  external IPs + case-relevant domains into the live sensor-event contract,
+  publishes on NATS, collects new signed ledger rows, and **constructs a
+  self-correction** (Yager conflict on a real carved IP → narrator debate).
+  Emits both an execution-log JSON and a website replay JSON.
+- Companion website (`web/`): Next.js 14 App Router + Tailwind + Framer
+  Motion. Design decision documented in web/DESIGN_NOTES.md (Stage 1–3):
+  hand-written 2D canvas **pheromone-field** hero (reliable to build in a
+  headless env vs sight-unseen R3F) + **replay viewer** (timeline scrubber
+  syncing pheromone graph + ledger feed + MITRE matrix, self-correction
+  marked). Built; pending real-data export + Vercel deploy.
+- Installer (`installer/`): Tier-1 double-clickable launchers
+  (find-evil-windows.cmd / find-evil-unix.sh) wrapping the Docker stack.
+- Deliverable docs: accuracy-report.md, demo-video-script.md,
+  execution-logs/README.md, CHECKLIST.md (8/8), export_ledger.py.
+- PLATFORM.md updated with CTI plane / carving / TABLE 11 metrics / GPU note.
+- BLOCKER encountered mid-sprint: the model safety classifier went
+  "temporarily unavailable", which gates ALL command-execution tools
+  (PowerShell + Bash). The live pipeline run, git commit/push, and Vercel
+  deploy are queued behind it. All file authoring continued unblocked. Will
+  execute the queued commands as soon as the classifier recovers.
+- Status: partial (real carved data confirmed; live ingestion run + deploy
+  pending classifier recovery)
 
 ## [2026-06-12 ~09:05Z] Hackathon scaffolding — license, vol shims, Docker, deliverables
 

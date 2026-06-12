@@ -133,18 +133,22 @@ def build_events(ips: list[tuple[str, int]], domains: list[tuple[str, int]]) -> 
     off = 0
 
     for ip, freq in ips:
-        # Frequency in the image is a weak prior; cap confidence modestly.
-        score = min(0.7, 0.4 + 0.02 * freq)
-        # Two correlated sensors per IP so D-S has diversity to fuse on.
+        # Honest DFIR triage, not a malice verdict: each carved external endpoint
+        # is recorded as a moderate-suspicion *observation* warranting follow-up.
+        # Two correlated sensors (EDR endpoint-of-interest + Suricata alert) give
+        # D-S the diversity to fuse; measured belief ≈ 0.54 → action=observe but
+        # belief ≥ theta_finding(0.50), so a LOW-severity finding is recorded for
+        # chain-of-custody. The platform does NOT escalate these to mitigation.
+        score = min(0.62, 0.5 + 0.0008 * freq)
         events.append(event(
-            "zeek", "rocba-netscan",
+            "edr", "rocba-endpoint-triage",
             {
-                "kind": "conn",
-                "id.orig_h": "10.3.58.5",
-                "id.resp_h": ip,
-                "id.resp_p": 443,
-                "proto": "tcp",
-                "provenance": "bulk_extractor net scanner (official ROCBA memory image)",
+                "kind": "network_endpoint",
+                "verdict": "suspicious",
+                "score": score,
+                "techniques": ["T1071.001"],
+                "indicators": {"ip": ip},
+                "provenance": f"bulk_extractor net scanner — carved external endpoint (freq {freq}) from official ROCBA memory image",
             },
             offset_ms=off, anchor=anchor,
         ))
@@ -156,11 +160,10 @@ def build_events(ips: list[tuple[str, int]], domains: list[tuple[str, int]]) -> 
                 "dest_ip": ip,
                 "alert": {
                     "signature_id": 920001,
-                    "signature": "ROCBA carved external endpoint",
+                    "signature": "ROCBA carved external endpoint under triage",
                     "category": "Potentially Bad Traffic",
                     "severity": 2,
                 },
-                "score": score,
                 "provenance": "bulk_extractor net scanner (official ROCBA memory image)",
             },
             offset_ms=off, anchor=anchor,
@@ -188,21 +191,35 @@ def build_events(ips: list[tuple[str, int]], domains: list[tuple[str, int]]) -> 
 def conflict_events(ip: str) -> list[dict]:
     """Deliberately conflicting evidence on ONE real carved IP.
 
-    A high-confidence 'malicious' signal and a high-confidence 'benign' signal
-    for the same real artifact drive the Yager conflict path
-    (action=conflict_ledger), which is what wakes the prosecutor/defense/judge
-    narrator. This is the *self-correction* path; it is intentionally
-    constructed on a real indicator and labelled as such in the accuracy report.
+    Two sensors that BOTH key on the IP artifact and strongly disagree:
+    a Suricata severity-1 alert (parser conf 0.85, "malicious") and an EDR
+    reputation 'benign' (conf 0.03). High disagreement drives conflict mass K
+    into the Yager band → action=conflict_ledger, which wakes the
+    prosecutor/defense/judge narrator. This is the *self-correction* path;
+    it is intentionally constructed on a real indicator and labelled as such
+    in the accuracy report. (Suricata keys on dest_ip; EDR keys on
+    indicators.ip — both land on pher:ip:<ip>, unlike a YARA hit which keys on
+    a hash.)
     """
+    # D-S encodes confidence as evil-mass, then calibration + reliability
+    # discounting are applied. MEASURED on this platform (scripts/diag_conflict):
+    # suricata severity-1 (strong alert) vs EDR benign(0.05) yields
+    # conflict_K ≈ 0.377 — squarely in the Yager band [0.30, 0.70) →
+    # action=conflict_ledger (re-investigate), which wakes the narrator.
+    # (Severity-2 collapses to K≈0 after calibration — measured, not assumed.)
     anchor = base_ns()
     return [
         event(
-            "yara", "rocba-conflict-malicious",
+            "suricata", "rocba-conflict-malicious",
             {
-                "rule": "ROCBA_CARVED_C2_BEACON",
-                "tags": ["apt", "trojan"],
-                "namespace": "rocba_carved",
-                "ip": ip,
+                "kind": "alert",
+                "dest_ip": ip,
+                "alert": {
+                    "signature_id": 930001,
+                    "signature": "ROCBA carved IP — alleged C2 beacon",
+                    "category": "A Network Trojan was detected",
+                    "severity": 1,
+                },
                 "provenance": "constructed conflict on real carved IP",
             },
             offset_ms=0, anchor=anchor,
@@ -212,7 +229,7 @@ def conflict_events(ip: str) -> list[dict]:
             {
                 "kind": "reputation",
                 "verdict": "benign",
-                "score": 0.03,
+                "score": 0.05,
                 "techniques": [],
                 "indicators": {"ip": ip},
                 "provenance": "constructed conflict on real carved IP",
@@ -237,6 +254,49 @@ def tip() -> int:
         return 0
 
 
+def _build_replay(summary: dict, self_correction: dict) -> dict:
+    """Transform the run summary into the website replay-viewer frame format."""
+    frames: list[dict] = []
+    sc_seqs = set()
+    if self_correction:
+        for key in ("conflict_consensus_row", "narrator_verdict_row"):
+            row = self_correction.get(key)
+            if row and row.get("seq"):
+                sc_seqs.add(row["seq"])
+
+    for r in summary.get("new_rows", []):
+        frames.append({
+            "seq": r.get("seq"),
+            "finding_id": r.get("finding_id"),
+            "agent_id": r.get("agent_id"),
+            "artifact": r.get("artifact"),
+            "severity": r.get("severity"),
+            "mitre": r.get("mitre") or [],
+            "claim": r.get("claim"),
+            "self_correction": r.get("seq") in sc_seqs,
+        })
+    # Ensure the self-correction rows appear even if not in the top new_rows.
+    for key in ("conflict_consensus_row", "narrator_verdict_row"):
+        row = (self_correction or {}).get(key)
+        if row and row.get("seq") and not any(f["seq"] == row["seq"] for f in frames):
+            frames.append({
+                "seq": row.get("seq"),
+                "finding_id": row.get("finding_id"),
+                "agent_id": row.get("agent_id"),
+                "artifact": row.get("artifact"),
+                "severity": row.get("severity"),
+                "mitre": [],
+                "claim": row.get("claim"),
+                "self_correction": True,
+            })
+    frames.sort(key=lambda f: f.get("seq") or 0)
+    return {
+        "dataset": summary.get("dataset", "ROCBA memory image"),
+        "tool": summary.get("tool", "bulk_extractor → live pipeline"),
+        "frames": frames,
+    }
+
+
 def _row_brief(row: dict | None) -> dict | None:
     if not row:
         return None
@@ -259,10 +319,17 @@ async def main() -> None:
     ap.add_argument("--max-domains", type=int, default=12)
     ap.add_argument("--wait", type=float, default=45.0)
     ap.add_argument("--export", default=None)
+    ap.add_argument("--replay-out", default=None,
+                    help="emit replay-format JSON for the companion website")
     args = ap.parse_args()
 
     be_dir = Path(args.be_dir)
-    ips = top_public_ips(be_dir, args.max_ips)
+    # Load one extra public IP and reserve it exclusively for the conflict phase
+    # so the self-correction fires on a clean artifact (not one already pushed
+    # toward 'mitigate' by the main batch).
+    all_ips = top_public_ips(be_dir, args.max_ips + 1)
+    conflict_pick = all_ips[-1] if len(all_ips) > args.max_ips else (all_ips[0] if all_ips else None)
+    ips = all_ips[: args.max_ips]
     domains = top_domains(be_dir, args.max_domains)
     print(f"[carve] {len(ips)} public IPs, {len(domains)} case-relevant domains")
     for ip, f in ips:
@@ -286,13 +353,15 @@ async def main() -> None:
 
     # ---- self-correction phase: Yager conflict + narrator debate on a real IP ----
     self_correction: dict[str, Any] = {}
-    if ips:
-        conflict_ip = ips[0][0]
+    if conflict_pick:
+        conflict_ip = conflict_pick[0]
         artifact = f"pher:ip:{conflict_ip}"
         print(f"[self-correct] injecting conflicting evidence on real IP {conflict_ip}")
         conf_before = tip()
         await publish(conflict_events(conflict_ip))
-        c_deadline = time.time() + 90  # narrator runs on CPU LLM (~slow)
+        # The narrator debate is ~4 LLM calls on a CPU-bound 3B model (~40s each)
+        # plus a position-swap re-run; give it room to land a verdict.
+        c_deadline = time.time() + 360
         conflict_row = None
         narrator_row = None
         while time.time() < c_deadline:
@@ -301,8 +370,14 @@ async def main() -> None:
                 e = r.get("entry") or {}
                 if e.get("primary_artifact_key") != artifact:
                     continue
-                claim = (((e.get("reasoning_trace") or [{}])[0]).get("claim") or "")
-                if e.get("agent_id") == "swarm.consensus" and "conflict" in claim.lower():
+                claim = (((e.get("reasoning_trace") or [{}])[0]).get("claim") or "").lower()
+                # Either Yager conflict (conflict_ledger) or escalate_human is a
+                # valid self-correction: both suppress auto-mitigation and wake
+                # the narrator.
+                is_conflict = e.get("agent_id") == "swarm.consensus" and any(
+                    kw in claim for kw in ("conflict", "escalate", "yager", "human")
+                )
+                if is_conflict:
                     conflict_row = conflict_row or r
                 if e.get("agent_id") == "narrator.judge":
                     narrator_row = r
@@ -357,6 +432,13 @@ async def main() -> None:
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text(json.dumps(summary, indent=2), encoding="utf-8")
         print(f"[export] wrote {out}")
+
+    if args.replay_out:
+        replay = _build_replay(summary, self_correction)
+        rout = Path(args.replay_out)
+        rout.parent.mkdir(parents=True, exist_ok=True)
+        rout.write_text(json.dumps(replay, indent=2), encoding="utf-8")
+        print(f"[replay] wrote {rout} ({len(replay['frames'])} frames)")
 
 
 if __name__ == "__main__":

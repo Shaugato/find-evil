@@ -1,0 +1,758 @@
+{
+  "export_kind": "findevil_ledger_sanitised",
+  "entry_count": 16,
+  "entries": [
+    {
+      "seq": 970,
+      "finding_id": "019eb9fc-a4eb-7fb0-a982-8b6885fbf35c",
+      "entry_hash": "1085ac191757402b06409b01dacae942e439288f718ba68440f0c14c4796d76e",
+      "ts_ns": 1781236802795013888,
+      "entry": {
+        "schema_version": "1.0.0",
+        "agent_id": "edr/rocba-endpoint-triage",
+        "agent_version": "0.1.0",
+        "host_id": "sift-p620-01",
+        "primary_artifact_key": "pher:ip:172.217.10.74",
+        "confidence": 0.5992,
+        "severity": "medium",
+        "mitre_attack_technique": [
+          "T1071.001"
+        ],
+        "reasoning_trace": [
+          {
+            "claim": "edr/rocba-endpoint-triage contributed confidence=0.599 to Dempster-Shafer consensus for pher:ip:172.217.10.74",
+            "confidence": 0.5992,
+            "evidence_ref": null,
+            "method": "statistical_anomaly",
+            "params": {
+              "declared_ignorance": "0.05",
+              "sensor": "rocba-endpoint-triage"
+            },
+            "step_index": 0
+          }
+        ],
+        "evidence_refs": [
+          {
+            "blake3": null,
+            "extra": {},
+            "sha256": null,
+            "size_bytes": null,
+            "type": "ipv4-addr",
+            "uri": "ipv4-addr:172.217.10.74"
+          }
+        ],
+        "chain_of_custody": [],
+        "consensus": null
+      }
+    },
+    {
+      "seq": 971,
+      "finding_id": "019eb9fc-a4f3-70b3-ba8a-bef9f28d45ae",
+      "entry_hash": "b89735684b5ce187363f39a801b7a4cd7ebeea0893841f858a6d4a0b35c9c1a2",
+      "ts_ns": 1781236802803788032,
+      "entry": {
+        "schema_version": "1.0.0",
+        "agent_id": "suricata/rocba-ip-rep",
+        "agent_version": "0.1.0",
+        "host_id": "sift-p620-01",
+        "primary_artifact_key": "pher:ip:172.217.10.74",
+        "confidence": 0.55,
+        "severity": "medium",
+        "mitre_attack_technique": [
+          "T1071.001"
+        ],
+        "reasoning_trace": [
+          {
+            "claim": "suricata/rocba-ip-rep contributed confidence=0.550 to Dempster-Shafer consensus for pher:ip:172.217.10.74",
+            "confidence": 0.55,
+            "evidence_ref": null,
+            "method": "statistical_anomaly",
+            "params": {
+              "declared_ignorance": "0.15",
+              "sensor": "rocba-ip-rep"
+            },
+            "step_index": 0
+          }
+        ],
+        "evidence_refs": [
+          {
+            "blake3": null,
+            "extra": {},
+            "sha256": null,
+            "size_bytes": null,
+            "type": "ipv4-addr",
+            "uri": "ipv4-addr:172.217.10.74"
+          }
+        ],
+        "chain_of_custody": [],
+        "consensus": null
+      }
+    },
+    {
+      "seq": 972,
+      "finding_id": "019eb9fc-a4f4-7cb1-a5ec-0d4133942c53",
+      "entry_hash": "d453a5dec7bf0719387bb15bffa4d625921b9e614a905fd3f5dd64f258df567f",
+      "ts_ns": 1781236802804215040,
+      "entry": {
+        "schema_version": "1.0.0",
+        "agent_id": "swarm.consensus",
+        "agent_version": "0.1.0",
+        "host_id": "sift-p620-01",
+        "primary_artifact_key": "pher:ip:172.217.10.74",
+        "confidence": 0.5434412240936528,
+        "severity": "medium",
+        "mitre_attack_technique": [
+          "T1071.001"
+        ],
+        "reasoning_trace": [
+          {
+            "claim": "Fused 2 agent reports for pher:ip:172.217.10.74; action=observe, belief_evil=0.543, conflict_K=0.000",
+            "confidence": 0.5434412240936528,
+            "evidence_ref": null,
+            "method": "statistical_anomaly",
+            "params": {
+              "action": "observe",
+              "sensor_diversity": "2"
+            },
+            "step_index": 0
+          }
+        ],
+        "evidence_refs": [
+          {
+            "blake3": null,
+            "extra": {},
+            "sha256": null,
+            "size_bytes": null,
+            "type": "ipv4-addr",
+            "uri": "ipv4-addr:172.217.10.74"
+          }
+        ],
+        "chain_of_custody": [
+          "019eb9fc-a4eb-7fb0-a982-8b6885fbf35c",
+          "019eb9fc-a4f3-70b3-ba8a-bef9f28d45ae"
+        ],
+        "consensus": {
+          "belief_evil": 0.5434412240936528,
+          "conflict_K": 0.0,
+          "contributing_finding_ids": [
+            "019eb9fc-a4eb-7fb0-a982-8b6885fbf35c",
+            "019eb9fc-a4f3-70b3-ba8a-bef9f28d45ae"
+          ],
+          "method": "dempster_shafer",
+          "plausibility_evil": 0.6462901037779478,
+          "shapley_attribution": {},
+          "uncertainty": 0.10284887968429506
+        }
+      }
+    },
+    {
+      "seq": 973,
+      "finding_id": "019eb9fc-a502-7ee0-935a-07c760a99c3f",
+      "entry_hash": "52e2c1c877b3f5552b391a9281a25df7677707d1688a335d459074b544ac0520",
+      "ts_ns": 1781236802818403072,
+      "entry": {
+        "schema_version": "1.0.0",
+        "agent_id": "edr/rocba-endpoint-triage",
+        "agent_version": "0.1.0",
+        "host_id": "sift-p620-01",
+        "primary_artifact_key": "pher:ip:213.202.233.104",
+        "confidence": 0.5424,
+        "severity": "medium",
+        "mitre_attack_technique": [
+          "T1071.001"
+        ],
+        "reasoning_trace": [
+          {
+            "claim": "edr/rocba-endpoint-triage contributed confidence=0.542 to Dempster-Shafer consensus for pher:ip:213.202.233.104",
+            "confidence": 0.5424,
+            "evidence_ref": null,
+            "method": "statistical_anomaly",
+            "params": {
+              "declared_ignorance": "0.05",
+              "sensor": "rocba-endpoint-triage"
+            },
+            "step_index": 0
+          }
+        ],
+        "evidence_refs": [
+          {
+            "blake3": null,
+            "extra": {},
+            "sha256": null,
+            "size_bytes": null,
+            "type": "ipv4-addr",
+            "uri": "ipv4-addr:213.202.233.104"
+          }
+        ],
+        "chain_of_custody": [],
+        "consensus": null
+      }
+    },
+    {
+      "seq": 974,
+      "finding_id": "019eb9fc-a508-72e3-824b-465250db3bb7",
+      "entry_hash": "fb598b5f8bb6e486d99c62c0af05c4eff4a5f98d67e83ad9a0d78272307396c9",
+      "ts_ns": 1781236802824420096,
+      "entry": {
+        "schema_version": "1.0.0",
+        "agent_id": "suricata/rocba-ip-rep",
+        "agent_version": "0.1.0",
+        "host_id": "sift-p620-01",
+        "primary_artifact_key": "pher:ip:213.202.233.104",
+        "confidence": 0.55,
+        "severity": "medium",
+        "mitre_attack_technique": [
+          "T1071.001"
+        ],
+        "reasoning_trace": [
+          {
+            "claim": "suricata/rocba-ip-rep contributed confidence=0.550 to Dempster-Shafer consensus for pher:ip:213.202.233.104",
+            "confidence": 0.55,
+            "evidence_ref": null,
+            "method": "statistical_anomaly",
+            "params": {
+              "declared_ignorance": "0.15",
+              "sensor": "rocba-ip-rep"
+            },
+            "step_index": 0
+          }
+        ],
+        "evidence_refs": [
+          {
+            "blake3": null,
+            "extra": {},
+            "sha256": null,
+            "size_bytes": null,
+            "type": "ipv4-addr",
+            "uri": "ipv4-addr:213.202.233.104"
+          }
+        ],
+        "chain_of_custody": [],
+        "consensus": null
+      }
+    },
+    {
+      "seq": 975,
+      "finding_id": "019eb9fc-a508-72e3-824b-4668572c3f10",
+      "entry_hash": "0a382375a71cecda1be71a0a8a1aa10b338ded237206679e4aca5c5196c0fd8a",
+      "ts_ns": 1781236802824774912,
+      "entry": {
+        "schema_version": "1.0.0",
+        "agent_id": "swarm.consensus",
+        "agent_version": "0.1.0",
+        "host_id": "sift-p620-01",
+        "primary_artifact_key": "pher:ip:213.202.233.104",
+        "confidence": 0.505307725918447,
+        "severity": "medium",
+        "mitre_attack_technique": [
+          "T1071.001"
+        ],
+        "reasoning_trace": [
+          {
+            "claim": "Fused 2 agent reports for pher:ip:213.202.233.104; action=observe, belief_evil=0.505, conflict_K=0.000",
+            "confidence": 0.505307725918447,
+            "evidence_ref": null,
+            "method": "statistical_anomaly",
+            "params": {
+              "action": "observe",
+              "sensor_diversity": "2"
+            },
+            "step_index": 0
+          }
+        ],
+        "evidence_refs": [
+          {
+            "blake3": null,
+            "extra": {},
+            "sha256": null,
+            "size_bytes": null,
+            "type": "ipv4-addr",
+            "uri": "ipv4-addr:213.202.233.104"
+          }
+        ],
+        "chain_of_custody": [
+          "019eb9fc-a502-7ee0-935a-07c760a99c3f",
+          "019eb9fc-a508-72e3-824b-465250db3bb7"
+        ],
+        "consensus": {
+          "belief_evil": 0.505307725918447,
+          "conflict_K": 0.0,
+          "contributing_finding_ids": [
+            "019eb9fc-a502-7ee0-935a-07c760a99c3f",
+            "019eb9fc-a508-72e3-824b-465250db3bb7"
+          ],
+          "method": "dempster_shafer",
+          "plausibility_evil": 0.6085625058833712,
+          "shapley_attribution": {},
+          "uncertainty": 0.10325477996492433
+        }
+      }
+    },
+    {
+      "seq": 976,
+      "finding_id": "019eb9fc-a518-72f1-804c-cc70878d4868",
+      "entry_hash": "b1cfcf745ff0c405352e9531868b3f46c69dc254adfad832f185a2662b4da01d",
+      "ts_ns": 1781236802840675072,
+      "entry": {
+        "schema_version": "1.0.0",
+        "agent_id": "edr/rocba-endpoint-triage",
+        "agent_version": "0.1.0",
+        "host_id": "sift-p620-01",
+        "primary_artifact_key": "pher:ip:52.249.198.56",
+        "confidence": 0.62,
+        "severity": "medium",
+        "mitre_attack_technique": [
+          "T1071.001"
+        ],
+        "reasoning_trace": [
+          {
+            "claim": "edr/rocba-endpoint-triage contributed confidence=0.620 to Dempster-Shafer consensus for pher:ip:52.249.198.56",
+            "confidence": 0.62,
+            "evidence_ref": null,
+            "method": "statistical_anomaly",
+            "params": {
+              "declared_ignorance": "0.05",
+              "sensor": "rocba-endpoint-triage"
+            },
+            "step_index": 0
+          }
+        ],
+        "evidence_refs": [
+          {
+            "blake3": null,
+            "extra": {},
+            "sha256": null,
+            "size_bytes": null,
+            "type": "ipv4-addr",
+            "uri": "ipv4-addr:52.249.198.56"
+          }
+        ],
+        "chain_of_custody": [],
+        "consensus": null
+      }
+    },
+    {
+      "seq": 977,
+      "finding_id": "019eb9fc-a51e-76d3-9670-d1d2a7854043",
+      "entry_hash": "19daa5c78daa76cfd3e08f849073160e5d390cf7eb009cd95620b99989c81d50",
+      "ts_ns": 1781236802846391808,
+      "entry": {
+        "schema_version": "1.0.0",
+        "agent_id": "suricata/rocba-ip-rep",
+        "agent_version": "0.1.0",
+        "host_id": "sift-p620-01",
+        "primary_artifact_key": "pher:ip:52.249.198.56",
+        "confidence": 0.55,
+        "severity": "medium",
+        "mitre_attack_technique": [
+          "T1071.001"
+        ],
+        "reasoning_trace": [
+          {
+            "claim": "suricata/rocba-ip-rep contributed confidence=0.550 to Dempster-Shafer consensus for pher:ip:52.249.198.56",
+            "confidence": 0.55,
+            "evidence_ref": null,
+            "method": "statistical_anomaly",
+            "params": {
+              "declared_ignorance": "0.15",
+              "sensor": "rocba-ip-rep"
+            },
+            "step_index": 0
+          }
+        ],
+        "evidence_refs": [
+          {
+            "blake3": null,
+            "extra": {},
+            "sha256": null,
+            "size_bytes": null,
+            "type": "ipv4-addr",
+            "uri": "ipv4-addr:52.249.198.56"
+          }
+        ],
+        "chain_of_custody": [],
+        "consensus": null
+      }
+    },
+    {
+      "seq": 978,
+      "finding_id": "019eb9fc-a51e-76d3-9670-d1e837d59566",
+      "entry_hash": "9029b8e4a6db6d9199bbce8d8ac436dc7d56e78c60f71da73f1be35de5887ba2",
+      "ts_ns": 1781236802846772992,
+      "entry": {
+        "schema_version": "1.0.0",
+        "agent_id": "swarm.consensus",
+        "agent_version": "0.1.0",
+        "host_id": "sift-p620-01",
+        "primary_artifact_key": "pher:ip:52.249.198.56",
+        "confidence": 0.5573307144568826,
+        "severity": "medium",
+        "mitre_attack_technique": [
+          "T1071.001"
+        ],
+        "reasoning_trace": [
+          {
+            "claim": "Fused 2 agent reports for pher:ip:52.249.198.56; action=observe, belief_evil=0.557, conflict_K=0.000",
+            "confidence": 0.5573307144568826,
+            "evidence_ref": null,
+            "method": "statistical_anomaly",
+            "params": {
+              "action": "observe",
+              "sensor_diversity": "2"
+            },
+            "step_index": 0
+          }
+        ],
+        "evidence_refs": [
+          {
+            "blake3": null,
+            "extra": {},
+            "sha256": null,
+            "size_bytes": null,
+            "type": "ipv4-addr",
+            "uri": "ipv4-addr:52.249.198.56"
+          }
+        ],
+        "chain_of_custody": [
+          "019eb9fc-a518-72f1-804c-cc70878d4868",
+          "019eb9fc-a51e-76d3-9670-d1d2a7854043"
+        ],
+        "consensus": {
+          "belief_evil": 0.5573307144568826,
+          "conflict_K": 0.0,
+          "contributing_finding_ids": [
+            "019eb9fc-a518-72f1-804c-cc70878d4868",
+            "019eb9fc-a51e-76d3-9670-d1d2a7854043"
+          ],
+          "method": "dempster_shafer",
+          "plausibility_evil": 0.6600317517373592,
+          "shapley_attribution": {},
+          "uncertainty": 0.1027010372804765
+        }
+      }
+    },
+    {
+      "seq": 979,
+      "finding_id": "019eb9fc-a52c-7060-a385-1d576dd4d720",
+      "entry_hash": "fb95b97a217f1c48598e1215ae5f782a3166e5ee2a37b99dd47b421eb34c8ade",
+      "ts_ns": 1781236802860428032,
+      "entry": {
+        "schema_version": "1.0.0",
+        "agent_id": "edr/rocba-endpoint-triage",
+        "agent_version": "0.1.0",
+        "host_id": "sift-p620-01",
+        "primary_artifact_key": "pher:ip:81.30.144.115",
+        "confidence": 0.5416,
+        "severity": "medium",
+        "mitre_attack_technique": [
+          "T1071.001"
+        ],
+        "reasoning_trace": [
+          {
+            "claim": "edr/rocba-endpoint-triage contributed confidence=0.542 to Dempster-Shafer consensus for pher:ip:81.30.144.115",
+            "confidence": 0.5416,
+            "evidence_ref": null,
+            "method": "statistical_anomaly",
+            "params": {
+              "declared_ignorance": "0.05",
+              "sensor": "rocba-endpoint-triage"
+            },
+            "step_index": 0
+          }
+        ],
+        "evidence_refs": [
+          {
+            "blake3": null,
+            "extra": {},
+            "sha256": null,
+            "size_bytes": null,
+            "type": "ipv4-addr",
+            "uri": "ipv4-addr:81.30.144.115"
+          }
+        ],
+        "chain_of_custody": [],
+        "consensus": null
+      }
+    },
+    {
+      "seq": 980,
+      "finding_id": "019eb9fc-a531-7f83-8312-5cfe659fe584",
+      "entry_hash": "974f8232fcdeedfe47259d8ef448aa28a321f42a6e391e9508c7168cf667e5b8",
+      "ts_ns": 1781236802865926912,
+      "entry": {
+        "schema_version": "1.0.0",
+        "agent_id": "suricata/rocba-ip-rep",
+        "agent_version": "0.1.0",
+        "host_id": "sift-p620-01",
+        "primary_artifact_key": "pher:ip:81.30.144.115",
+        "confidence": 0.55,
+        "severity": "medium",
+        "mitre_attack_technique": [
+          "T1071.001"
+        ],
+        "reasoning_trace": [
+          {
+            "claim": "suricata/rocba-ip-rep contributed confidence=0.550 to Dempster-Shafer consensus for pher:ip:81.30.144.115",
+            "confidence": 0.55,
+            "evidence_ref": null,
+            "method": "statistical_anomaly",
+            "params": {
+              "declared_ignorance": "0.15",
+              "sensor": "rocba-ip-rep"
+            },
+            "step_index": 0
+          }
+        ],
+        "evidence_refs": [
+          {
+            "blake3": null,
+            "extra": {},
+            "sha256": null,
+            "size_bytes": null,
+            "type": "ipv4-addr",
+            "uri": "ipv4-addr:81.30.144.115"
+          }
+        ],
+        "chain_of_custody": [],
+        "consensus": null
+      }
+    },
+    {
+      "seq": 981,
+      "finding_id": "019eb9fc-a532-7902-8046-a3f1d5e714df",
+      "entry_hash": "e1457f518fd58d67823ec75d3a41f33c3f15c2147067eceb04c4a8627051af20",
+      "ts_ns": 1781236802866337024,
+      "entry": {
+        "schema_version": "1.0.0",
+        "agent_id": "swarm.consensus",
+        "agent_version": "0.1.0",
+        "host_id": "sift-p620-01",
+        "primary_artifact_key": "pher:ip:81.30.144.115",
+        "confidence": 0.5047684847516912,
+        "severity": "medium",
+        "mitre_attack_technique": [
+          "T1071.001"
+        ],
+        "reasoning_trace": [
+          {
+            "claim": "Fused 2 agent reports for pher:ip:81.30.144.115; action=observe, belief_evil=0.505, conflict_K=0.000",
+            "confidence": 0.5047684847516912,
+            "evidence_ref": null,
+            "method": "statistical_anomaly",
+            "params": {
+              "action": "observe",
+              "sensor_diversity": "2"
+            },
+            "step_index": 0
+          }
+        ],
+        "evidence_refs": [
+          {
+            "blake3": null,
+            "extra": {},
+            "sha256": null,
+            "size_bytes": null,
+            "type": "ipv4-addr",
+            "uri": "ipv4-addr:81.30.144.115"
+          }
+        ],
+        "chain_of_custody": [
+          "019eb9fc-a52c-7060-a385-1d576dd4d720",
+          "019eb9fc-a531-7f83-8312-5cfe659fe584"
+        ],
+        "consensus": {
+          "belief_evil": 0.5047684847516912,
+          "conflict_K": 0.0,
+          "contributing_finding_ids": [
+            "019eb9fc-a52c-7060-a385-1d576dd4d720",
+            "019eb9fc-a531-7f83-8312-5cfe659fe584"
+          ],
+          "method": "dempster_shafer",
+          "plausibility_evil": 0.6080290045031913,
+          "shapley_attribution": {},
+          "uncertainty": 0.1032605197515001
+        }
+      }
+    },
+    {
+      "seq": 982,
+      "finding_id": "019eb9fc-b523-7a53-8bde-29162f925ff1",
+      "entry_hash": "1f62c904da9926d5c4f43da9ff4668f8c52b5043df67c4268b38aae557847dc1",
+      "ts_ns": 1781236806947182848,
+      "entry": {
+        "schema_version": "1.0.0",
+        "agent_id": "suricata/rocba-conflict-malicious",
+        "agent_version": "0.1.0",
+        "host_id": "sift-p620-01",
+        "primary_artifact_key": "pher:ip:142.250.64.106",
+        "confidence": 0.85,
+        "severity": "high",
+        "mitre_attack_technique": [],
+        "reasoning_trace": [
+          {
+            "claim": "suricata/rocba-conflict-malicious contributed confidence=0.850 to Dempster-Shafer consensus for pher:ip:142.250.64.106",
+            "confidence": 0.85,
+            "evidence_ref": null,
+            "method": "statistical_anomaly",
+            "params": {
+              "declared_ignorance": "0.15",
+              "sensor": "rocba-conflict-malicious"
+            },
+            "step_index": 0
+          }
+        ],
+        "evidence_refs": [
+          {
+            "blake3": null,
+            "extra": {},
+            "sha256": null,
+            "size_bytes": null,
+            "type": "ipv4-addr",
+            "uri": "ipv4-addr:142.250.64.106"
+          }
+        ],
+        "chain_of_custody": [],
+        "consensus": null
+      }
+    },
+    {
+      "seq": 983,
+      "finding_id": "019eb9fc-b548-7910-a2dd-b55458a5ddd7",
+      "entry_hash": "623e6e11862b35ba91d8ad6d29d2b10d341180a476ff2f947f472b8348eca156",
+      "ts_ns": 1781236806984009984,
+      "entry": {
+        "schema_version": "1.0.0",
+        "agent_id": "edr/rocba-conflict-benign",
+        "agent_version": "0.1.0",
+        "host_id": "sift-p620-01",
+        "primary_artifact_key": "pher:ip:142.250.64.106",
+        "confidence": 0.050000000000000044,
+        "severity": "informational",
+        "mitre_attack_technique": [],
+        "reasoning_trace": [
+          {
+            "claim": "edr/rocba-conflict-benign contributed confidence=0.050 to Dempster-Shafer consensus for pher:ip:142.250.64.106",
+            "confidence": 0.050000000000000044,
+            "evidence_ref": null,
+            "method": "statistical_anomaly",
+            "params": {
+              "declared_ignorance": "0.15",
+              "sensor": "rocba-conflict-benign"
+            },
+            "step_index": 0
+          }
+        ],
+        "evidence_refs": [
+          {
+            "blake3": null,
+            "extra": {},
+            "sha256": null,
+            "size_bytes": null,
+            "type": "ipv4-addr",
+            "uri": "ipv4-addr:142.250.64.106"
+          }
+        ],
+        "chain_of_custody": [],
+        "consensus": null
+      }
+    },
+    {
+      "seq": 984,
+      "finding_id": "019eb9fc-b549-7632-8db3-5a4f00487a07",
+      "entry_hash": "b67908dd6c2ef2c346770cb4ed9eedbc5cf3ade10b46c1ddeea4c89204237dca",
+      "ts_ns": 1781236806985161984,
+      "entry": {
+        "schema_version": "1.0.0",
+        "agent_id": "swarm.consensus",
+        "agent_version": "0.1.0",
+        "host_id": "sift-p620-01",
+        "primary_artifact_key": "pher:ip:142.250.64.106",
+        "confidence": 0.21549199999999996,
+        "severity": "low",
+        "mitre_attack_technique": [],
+        "reasoning_trace": [
+          {
+            "claim": "Fused 2 agent reports for pher:ip:142.250.64.106; action=conflict_ledger, belief_evil=0.215, conflict_K=0.377",
+            "confidence": 0.21549199999999996,
+            "evidence_ref": null,
+            "method": "statistical_anomaly",
+            "params": {
+              "action": "conflict_ledger",
+              "sensor_diversity": "2"
+            },
+            "step_index": 0
+          }
+        ],
+        "evidence_refs": [
+          {
+            "blake3": null,
+            "extra": {},
+            "sha256": null,
+            "size_bytes": null,
+            "type": "ipv4-addr",
+            "uri": "ipv4-addr:142.250.64.106"
+          }
+        ],
+        "chain_of_custody": [
+          "019eb9fc-b523-7a53-8bde-29162f925ff1",
+          "019eb9fc-b548-7910-a2dd-b55458a5ddd7"
+        ],
+        "consensus": {
+          "belief_evil": 0.21549199999999996,
+          "conflict_K": 0.3768560000000001,
+          "contributing_finding_ids": [
+            "019eb9fc-b523-7a53-8bde-29162f925ff1",
+            "019eb9fc-b548-7910-a2dd-b55458a5ddd7"
+          ],
+          "method": "dempster_shafer_yager",
+          "plausibility_evil": 0.6947479999999999,
+          "shapley_attribution": {},
+          "uncertainty": 0.479256
+        }
+      }
+    },
+    {
+      "seq": 985,
+      "finding_id": "019eba01-0ff6-7380-a7d5-6985ac9235c7",
+      "entry_hash": "e721bab9604391b948b550f5d296214c4b121b1fc4cda1e6489c4e4d94cf2a1a",
+      "ts_ns": 1781237092342611200,
+      "entry": {
+        "schema_version": "1.0.0",
+        "agent_id": "narrator.judge",
+        "agent_version": "0.1.0",
+        "host_id": "sift-p620-01",
+        "primary_artifact_key": "pher:ip:142.250.64.106",
+        "confidence": 0.5,
+        "severity": "informational",
+        "mitre_attack_technique": [],
+        "reasoning_trace": [
+          {
+            "claim": "Argument A and Argument B present conflicting evidence, with high confidence in the malicious agent report but low confidence in the benign agent report, and significant conflict detected in the pheromone state but low conflict detected in the pheromone state. The exhibits do not provide sufficient information to determine the defendant's intent with certainty.",
+            "confidence": 0.5,
+            "evidence_ref": null,
+            "method": "slm_inference",
+            "params": {
+              "guilty": "False",
+              "winning_argument": "insufficient"
+            },
+            "step_index": 0
+          }
+        ],
+        "evidence_refs": [
+          {
+            "blake3": null,
+            "extra": {},
+            "sha256": null,
+            "size_bytes": null,
+            "type": "ipv4-addr",
+            "uri": "ipv4-addr:142.250.64.106"
+          }
+        ],
+        "chain_of_custody": [
+          "019eb9fc-b549-7632-8db3-5a4f00487a07"
+        ],
+        "consensus": null
+      }
+    }
+  ]
+}

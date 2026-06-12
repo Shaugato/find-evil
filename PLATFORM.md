@@ -149,14 +149,55 @@ Budgets:
 Pivot results are written back to the ledger with their own finding IDs and
 custody references.
 
+## CTI Plane (FOR578)
+
+Threat intelligence is treated as one more decaying, low-diversity sensor. The
+`findevil.cti` package parses STIX 2.1 indicator patterns (from an offline
+bundle file or a live TAXII 2.1 collection) and deposits each IOC as a bounded
+**pheromone prior** under the same `pher:<kind>:<value>` keys the hot path fuses
+over. Priors are deliberately modest (`sensor=cti.taxii`, belief capped at 0.45,
+`tau_max=0.35`) so intel biases triage ordering without ever crossing a
+mitigation threshold on its own.
+
+A **Diamond Model** relationship graph (adversary / capability / infrastructure
+/ victim) is built from ledger findings and published to the blackboard at
+`bb://cti/diamond`. MCP tools: `taxii.ingest`, `taxii.push`, `diamond.graph`.
+
+## Forensic Carving
+
+`bulk_extractor` is exposed as `bulk_extractor.scan` — stream-carving of
+IPs/domains/URLs/emails from raw images. Because it does not parse a filesystem
+or kernel, it tolerates damaged images that defeat structured tools, and its
+output is summarised to a bounded feature set before reaching the LLM plane.
+
+## Observability — TABLE 11 metric inventory
+
+Every blueprint-named Prometheus metric is emitted under its exact published
+name so the documented alarm thresholds apply verbatim:
+`findevil_ds_fusion_seconds`, `findevil_ds_conflict_K`,
+`findevil_ledger_append_seconds`, `findevil_rekor_anchor_age_seconds`,
+`findevil_vllm_ttft_seconds`, `backpressure_drops_total`,
+`findevil_fractal_live_agents`, `findevil_consensus_fire_total`,
+`findevil_schema_validation_fail_total`, `findevil_mcp_write_tps`, plus the
+pheromone/consensus/ledger gauges. Served per-service on ports 8890–8894.
+
+## Local Inference Hardware Note
+
+The reference workstation's GPU (Quadro P620, Pascal sm_61) was investigated for
+offload: a from-source CUDA 12.6 build of llama-cpp-python runs, but is 2–3×
+slower than CPU for short completions (no tensor cores; modern ggml kernels are
+not Pascal-optimised). The platform runs CPU inference. Because the LLM is off
+the hot path, this does not affect the detection/containment SLA.
+
 ## Standards Interop
 
 FIND EVIL supports:
 
 - STIX 2.1 bundle emission
 - OCSF Detection Finding, `class_uid=2004`
-- CACAO 2.0 playbook structure
+- CACAO 2.0 playbook structure (Ed25519 + compact JWS via joserfc)
 - MITRE ATT&CK technique mapping
+- TAXII 2.1 CTI ingest/push and a Diamond Model graph
 - Rekor public transparency log anchoring
 - OpenTelemetry metrics and traces
 

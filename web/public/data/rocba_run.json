@@ -1,0 +1,170 @@
+{
+  "dataset": "SANS Find Evil! \u2014 Standard Forensic Case \u2014 Rocba-Memory.raw",
+  "tool": "bulk_extractor 2.1.1 (net + email scanners)",
+  "frames": [
+    {
+      "seq": 969,
+      "finding_id": "019eb9f6-ae1b-77d0-9372-c4c8c52bd2f9",
+      "agent_id": "swarm.consensus",
+      "artifact": "pher:ip:142.250.64.106",
+      "severity": "low",
+      "mitre": [],
+      "claim": "Fused 2 agent reports for pher:ip:142.250.64.106; action=conflict_ledger, belief_evil=0.215, conflict_K=0.377",
+      "self_correction": true
+    },
+    {
+      "seq": 970,
+      "finding_id": null,
+      "agent_id": "edr/rocba-endpoint-triage",
+      "artifact": "pher:ip:172.217.10.74",
+      "severity": "medium",
+      "mitre": [
+        "T1071.001"
+      ],
+      "claim": "edr/rocba-endpoint-triage contributed confidence=0.599 to Dempster-Shafer consensus for pher:ip:172.217.10.74",
+      "self_correction": false
+    },
+    {
+      "seq": 971,
+      "finding_id": null,
+      "agent_id": "suricata/rocba-ip-rep",
+      "artifact": "pher:ip:172.217.10.74",
+      "severity": "medium",
+      "mitre": [
+        "T1071.001"
+      ],
+      "claim": "suricata/rocba-ip-rep contributed confidence=0.550 to Dempster-Shafer consensus for pher:ip:172.217.10.74",
+      "self_correction": false
+    },
+    {
+      "seq": 972,
+      "finding_id": null,
+      "agent_id": "swarm.consensus",
+      "artifact": "pher:ip:172.217.10.74",
+      "severity": "medium",
+      "mitre": [
+        "T1071.001"
+      ],
+      "claim": "Fused 2 agent reports for pher:ip:172.217.10.74; action=observe, belief_evil=0.543, conflict_K=0.000",
+      "self_correction": false
+    },
+    {
+      "seq": 973,
+      "finding_id": null,
+      "agent_id": "edr/rocba-endpoint-triage",
+      "artifact": "pher:ip:213.202.233.104",
+      "severity": "medium",
+      "mitre": [
+        "T1071.001"
+      ],
+      "claim": "edr/rocba-endpoint-triage contributed confidence=0.542 to Dempster-Shafer consensus for pher:ip:213.202.233.104",
+      "self_correction": false
+    },
+    {
+      "seq": 974,
+      "finding_id": null,
+      "agent_id": "suricata/rocba-ip-rep",
+      "artifact": "pher:ip:213.202.233.104",
+      "severity": "medium",
+      "mitre": [
+        "T1071.001"
+      ],
+      "claim": "suricata/rocba-ip-rep contributed confidence=0.550 to Dempster-Shafer consensus for pher:ip:213.202.233.104",
+      "self_correction": false
+    },
+    {
+      "seq": 975,
+      "finding_id": null,
+      "agent_id": "swarm.consensus",
+      "artifact": "pher:ip:213.202.233.104",
+      "severity": "medium",
+      "mitre": [
+        "T1071.001"
+      ],
+      "claim": "Fused 2 agent reports for pher:ip:213.202.233.104; action=observe, belief_evil=0.505, conflict_K=0.000",
+      "self_correction": false
+    },
+    {
+      "seq": 976,
+      "finding_id": null,
+      "agent_id": "edr/rocba-endpoint-triage",
+      "artifact": "pher:ip:52.249.198.56",
+      "severity": "medium",
+      "mitre": [
+        "T1071.001"
+      ],
+      "claim": "edr/rocba-endpoint-triage contributed confidence=0.620 to Dempster-Shafer consensus for pher:ip:52.249.198.56",
+      "self_correction": false
+    },
+    {
+      "seq": 977,
+      "finding_id": null,
+      "agent_id": "suricata/rocba-ip-rep",
+      "artifact": "pher:ip:52.249.198.56",
+      "severity": "medium",
+      "mitre": [
+        "T1071.001"
+      ],
+      "claim": "suricata/rocba-ip-rep contributed confidence=0.550 to Dempster-Shafer consensus for pher:ip:52.249.198.56",
+      "self_correction": false
+    },
+    {
+      "seq": 978,
+      "finding_id": null,
+      "agent_id": "swarm.consensus",
+      "artifact": "pher:ip:52.249.198.56",
+      "severity": "medium",
+      "mitre": [
+        "T1071.001"
+      ],
+      "claim": "Fused 2 agent reports for pher:ip:52.249.198.56; action=observe, belief_evil=0.557, conflict_K=0.000",
+      "self_correction": false
+    },
+    {
+      "seq": 979,
+      "finding_id": null,
+      "agent_id": "edr/rocba-endpoint-triage",
+      "artifact": "pher:ip:81.30.144.115",
+      "severity": "medium",
+      "mitre": [
+        "T1071.001"
+      ],
+      "claim": "edr/rocba-endpoint-triage contributed confidence=0.542 to Dempster-Shafer consensus for pher:ip:81.30.144.115",
+      "self_correction": false
+    },
+    {
+      "seq": 980,
+      "finding_id": null,
+      "agent_id": "suricata/rocba-ip-rep",
+      "artifact": "pher:ip:81.30.144.115",
+      "severity": "medium",
+      "mitre": [
+        "T1071.001"
+      ],
+      "claim": "suricata/rocba-ip-rep contributed confidence=0.550 to Dempster-Shafer consensus for pher:ip:81.30.144.115",
+      "self_correction": false
+    },
+    {
+      "seq": 981,
+      "finding_id": null,
+      "agent_id": "swarm.consensus",
+      "artifact": "pher:ip:81.30.144.115",
+      "severity": "medium",
+      "mitre": [
+        "T1071.001"
+      ],
+      "claim": "Fused 2 agent reports for pher:ip:81.30.144.115; action=observe, belief_evil=0.505, conflict_K=0.000",
+      "self_correction": false
+    },
+    {
+      "seq": 985,
+      "finding_id": "019eba01-0ff6-7380-a7d5-6985ac9235c7",
+      "agent_id": "narrator.judge",
+      "artifact": "pher:ip:142.250.64.106",
+      "severity": "informational",
+      "mitre": [],
+      "claim": "Argument A and Argument B present conflicting evidence, with high confidence in the malicious agent report but low confidence in the benign agent report, and significant conflict detected in the pheromone state but low conflict detected in the pheromone state. The exhibits do not provide sufficient information to determine the defendant's intent with certainty.",
+      "self_correction": true
+    }
+  ]
+}

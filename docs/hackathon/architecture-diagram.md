@@ -21,41 +21,41 @@ flowchart TB
         direction TB
 
         subgraph SENSORS["Evidence sources"]
-            MEM["Memory image\n(Volatility 3)"]
-            DISK["Disk image\n(Sleuth Kit)"]
+            MEM["Memory image<br/>(Volatility 3)"]
+            DISK["Disk image<br/>(Sleuth Kit)"]
             NET["PCAP / Zeek / tshark"]
             YARA["YARA scans"]
-            CTI["TAXII 2.1 CTI feed\n(FOR578)"]
+            CTI["TAXII 2.1 CTI feed<br/>(FOR578)"]
         end
 
         subgraph MCP["MCP Blackboard — fastmcp 2.x (Approach #2)"]
             direction TB
-            TOOLS["60 typed tool shims\nvolatility.* tsk.* yara.* zeek.*\nbulk_extractor.* taxii.* diamond.*\n(reference-resolved exhibit IDs;\nNO arbitrary shell)"]
-            RES["bb:// resources\nledger/tip · ioc/* · cti/diamond"]
+            TOOLS["60 typed tool shims<br/>volatility.* tsk.* yara.* zeek.*<br/>bulk_extractor.* taxii.* diamond.*<br/>(reference-resolved exhibit IDs;<br/>NO arbitrary shell)"]
+            RES["bb:// resources<br/>ledger/tip · ioc/* · cti/diamond"]
         end
 
         subgraph HOT["HOT PATH — deterministic, NO LLM"]
             direction TB
-            ING["Bytewax ingest\ndual-clock, watermarks"]
-            DS["Dempster–Shafer fusion\nBelief / Plausibility / conflict_K"]
-            PHER["Pheromone field (Valkey)\nstigmergic suspicion state"]
-            THR["Threshold evaluator\nobserve / mitigate / conflict / escalate"]
+            ING["Bytewax ingest<br/>dual-clock, watermarks"]
+            DS["Dempster–Shafer fusion<br/>Belief / Plausibility / conflict_K"]
+            PHER["Pheromone field (Valkey)<br/>stigmergic suspicion state"]
+            THR["Threshold evaluator<br/>observe / mitigate / conflict / escalate"]
         end
 
         subgraph LEDGER["Forensic ledger — the deliverable"]
-            LED["SQLite WAL · UUIDv7\nBLAKE3 hash chain · Ed25519\nMerkle batches → Sigstore Rekor"]
+            LED["SQLite WAL · UUIDv7<br/>BLAKE3 hash chain · Ed25519<br/>Merkle batches → Sigstore Rekor"]
         end
 
         subgraph REASON["REASONING PLANE — LLM, OFF the hot path"]
             direction TB
-            FRACTAL["Fractal pivot agents\ndepth≤3 width≤16\noutlines-constrained JSON"]
-            NARR["Prosecutor / Defense / Judge\ndebate narrator\nZheng-2023 position-swap"]
+            FRACTAL["Fractal pivot agents<br/>depth≤3 width≤16<br/>outlines-constrained JSON"]
+            NARR["Prosecutor / Defense / Judge<br/>debate narrator<br/>Zheng-2023 position-swap"]
         end
 
         subgraph RESP["Response & interop"]
-            CACAO["CACAO 2.0 playbooks\nsafe-mode executor · JWS signed"]
-            EXPORT["STIX 2.1 · OCSF 2004\nDiamond Model graph"]
-            DASH["FastAPI + HTMX/SSE\nsix-pane live dashboard"]
+            CACAO["CACAO 2.0 playbooks<br/>safe-mode executor · JWS signed"]
+            EXPORT["STIX 2.1 · OCSF 2004<br/>Diamond Model graph"]
+            DASH["FastAPI + HTMX/SSE<br/>six-pane live dashboard"]
         end
     end
 
@@ -87,19 +87,19 @@ from architectural guardrails.** This is FIND EVIL's strongest differentiator.
 flowchart LR
     subgraph ARCH["ARCHITECTURAL guardrails (cannot be prompted away)"]
         direction TB
-        A1["Typed MCP tools only —\nno execute_shell_cmd exists.\nThe agent CAN'T run arbitrary commands."]
-        A2["Reference-resolved exhibit IDs —\ntools act on registered evidence\nhandles, not free-form paths."]
-        A3["LLM excluded from decision path —\nD-S math decides mitigation\nBEFORE any model is consulted."]
-        A4["outlines / xgrammar FSM —\nagent output is schema-constrained\nJSON; malformed text can't parse."]
-        A5["BLAKE3 + Ed25519 ledger —\nany tampering breaks the chain;\nverify is independent of the LLM."]
-        A6["Citation validation —\nfabricated exhibit refs are rejected\nbefore reaching downstream."]
+        A1["Typed MCP tools only —<br/>no execute_shell_cmd exists.<br/>The agent CAN'T run arbitrary commands."]
+        A2["Reference-resolved exhibit IDs —<br/>tools act on registered evidence<br/>handles, not free-form paths."]
+        A3["LLM excluded from decision path —<br/>D-S math decides mitigation<br/>BEFORE any model is consulted."]
+        A4["outlines / xgrammar FSM —<br/>agent output is schema-constrained<br/>JSON; malformed text can't parse."]
+        A5["BLAKE3 + Ed25519 ledger —<br/>any tampering breaks the chain;<br/>verify is independent of the LLM."]
+        A6["Citation validation —<br/>fabricated exhibit refs are rejected<br/>before reaching downstream."]
     end
 
     subgraph PROMPT["PROMPT-BASED guardrails (defense in depth, not relied upon)"]
         direction TB
-        P1["Narrator role instructions\n(prosecutor / defense / judge)"]
-        P2["Zheng-2023 position-swap\nto reduce ordering bias"]
-        P3["System-prompt scope limits\nfor pivot agents"]
+        P1["Narrator role instructions<br/>(prosecutor / defense / judge)"]
+        P2["Zheng-2023 position-swap<br/>to reduce ordering bias"]
+        P3["System-prompt scope limits<br/>for pivot agents"]
     end
 
     ARCH -->|"primary integrity guarantee"| TRUST["Evidence a SOC can trust"]

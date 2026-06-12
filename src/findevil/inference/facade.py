@@ -68,6 +68,98 @@ def _first_json_object(text: str) -> str:
     return s[start:]
 
 
+def _close_open_brackets(s: str) -> str:
+    """Close an open string and any unbalanced [] / {} at the end of `s`."""
+    stack: list[str] = []
+    in_str = False
+    esc = False
+    for ch in s:
+        if in_str:
+            if esc:
+                esc = False
+            elif ch == "\\":
+                esc = True
+            elif ch == '"':
+                in_str = False
+            continue
+        if ch == '"':
+            in_str = True
+        elif ch in "{[":
+            stack.append("}" if ch == "{" else "]")
+        elif ch in "}]" and stack:
+            stack.pop()
+    out = s
+    if in_str:
+        out += '"'
+    while stack:
+        out += stack.pop()
+    return out
+
+
+def _repair_truncated_json(text: str) -> str:
+    """Best-effort repair of JSON truncated mid-object by a small model.
+
+    Closes the open string/brackets; if the result still won't parse (e.g. a
+    dangling key with no value), progressively drops the last incomplete field
+    and re-closes. Used only as a last resort when a CPU-bound 3B model hits
+    max_tokens before completing its object — keeps the narrator usable on weak
+    hardware.
+    """
+    s = _first_json_object(text)
+    start = s.find("{")
+    if start < 0:
+        return s
+    s = s[start:].rstrip().rstrip(",: \n\t")
+
+    candidate = _close_open_brackets(s)
+    try:
+        json.loads(candidate)
+        return candidate
+    except json.JSONDecodeError:
+        pass
+
+    # Trim trailing fields back to successive top-level commas and retry.
+    body = s
+    for _ in range(12):
+        cut = _last_top_level_comma(body)
+        if cut < 0:
+            break
+        body = body[:cut].rstrip().rstrip(",: \n\t")
+        candidate = _close_open_brackets(body)
+        try:
+            json.loads(candidate)
+            return candidate
+        except json.JSONDecodeError:
+            continue
+    return _close_open_brackets("{")  # "{}" — empty but valid
+
+
+def _last_top_level_comma(s: str) -> int:
+    """Index of the last comma at brace/bracket depth 1 (i.e. between fields)."""
+    depth = 0
+    in_str = False
+    esc = False
+    last = -1
+    for i, ch in enumerate(s):
+        if in_str:
+            if esc:
+                esc = False
+            elif ch == "\\":
+                esc = True
+            elif ch == '"':
+                in_str = False
+            continue
+        if ch == '"':
+            in_str = True
+        elif ch in "{[":
+            depth += 1
+        elif ch in "}]":
+            depth -= 1
+        elif ch == "," and depth == 1:
+            last = i
+    return last
+
+
 def _allowed_ids(exhibits: list[dict]) -> list[str]:
     return [
         str(e.get("exhibit_id"))
@@ -224,7 +316,12 @@ class InferenceFacade:
         try:
             return json.loads(content)
         except json.JSONDecodeError:
+            pass
+        try:
             return json.loads(_first_json_object(content))
+        except json.JSONDecodeError:
+            # Last resort: a small CPU model truncated the object mid-string.
+            return json.loads(_repair_truncated_json(content))
 
     # ----- public APIs ------------------------------------------------------
 
@@ -264,7 +361,8 @@ class InferenceFacade:
     ) -> DebateArgument:
         system = (
             f"You are the {role}. Produce JSON per schema. Cite only listed exhibit_ids. "
-            "No speculation beyond evidence."
+            "No speculation beyond evidence. Keep the `text` field under 50 words "
+            "so the JSON object is always complete."
         )
         user = (
             f"Exhibits: {msgspec.json.encode(exhibits).decode()}\n"
@@ -278,7 +376,7 @@ class InferenceFacade:
                 else ""
             )
             data = await self._openai_chat(
-                user + retry_hint, DebateArgument, max_tokens=220, system=system
+                user + retry_hint, DebateArgument, max_tokens=384, system=system
             )
             try:
                 if isinstance(data, dict):
@@ -317,8 +415,11 @@ class InferenceFacade:
             data = await self._openai_chat(
                 prompt + retry_hint,
                 Verdict,
-                max_tokens=180,
-                system="You are an impartial FIND EVIL Judge.",
+                max_tokens=300,
+                system=(
+                    "You are an impartial FIND EVIL Judge. Keep `rationale` under "
+                    "50 words so the JSON object is always complete."
+                ),
             )
             try:
                 if isinstance(data, dict):
