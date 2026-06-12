@@ -15,12 +15,7 @@ echo.
 
 REM --- locate the repo's deploy/ folder relative to this script ---------------
 set "ROOT=%~dp0.."
-pushd "%ROOT%\deploy" 2>nul
-if errorlevel 1 (
-  echo [ERROR] Could not find the deploy\ folder next to the repo.
-  echo         Run this launcher from inside a cloned find-evil repository.
-  pause & exit /b 1
-)
+set "REPO_URL=https://github.com/Shaugato/find-evil.git"
 
 REM --- check Docker -----------------------------------------------------------
 where docker >nul 2>&1
@@ -29,6 +24,29 @@ if errorlevel 1 (
   echo         Install Docker Desktop: https://www.docker.com/products/docker-desktop/
   echo         Then re-run this launcher.
   pause & exit /b 1
+)
+
+REM --- locate the deploy\ stack: sibling repo, else clone --------------------
+if exist "%ROOT%\deploy\docker-compose.yml" (
+  pushd "%ROOT%\deploy"
+  echo [ok] Using existing repo at %ROOT%
+) else (
+  where git >nul 2>&1
+  if errorlevel 1 (
+    echo [ERROR] git is not installed. Install Git for Windows, then re-run.
+    echo         https://git-scm.com/download/win
+    pause & exit /b 1
+  )
+  set "TARGET=%USERPROFILE%\find-evil"
+  if exist "!TARGET!\deploy\docker-compose.yml" (
+    echo [..] Updating existing checkout at !TARGET!
+    git -C "!TARGET!" pull --ff-only
+  ) else (
+    echo [..] Cloning FIND EVIL into !TARGET! ...
+    git clone --depth 1 "%REPO_URL%" "!TARGET!"
+    if errorlevel 1 ( echo [ERROR] git clone failed. & pause & exit /b 1 )
+  )
+  pushd "!TARGET!\deploy"
 )
 
 docker info >nul 2>&1

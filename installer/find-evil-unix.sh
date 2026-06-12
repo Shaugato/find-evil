@@ -10,10 +10,8 @@ GREEN='\033[0;32m'; RED='\033[0;31m'; NC='\033[0m'
 say() { echo -e "${GREEN}[find-evil]${NC} $*"; }
 die() { echo -e "${RED}[find-evil] ERROR:${NC} $*" >&2; exit 1; }
 
+REPO_URL="https://github.com/Shaugato/find-evil.git"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-DEPLOY_DIR="$SCRIPT_DIR/../deploy"
-[ -d "$DEPLOY_DIR" ] || die "deploy/ folder not found. Run from inside a cloned find-evil repo."
-cd "$DEPLOY_DIR"
 
 echo
 echo "  ============================================"
@@ -21,7 +19,40 @@ echo "    FIND EVIL - autonomous DFIR SOC (local)"
 echo "  ============================================"
 echo
 
-command -v docker >/dev/null 2>&1 || die "Docker not installed. See https://docs.docker.com/get-docker/"
+# --- Docker (engine + compose v2) -------------------------------------------
+if ! command -v docker >/dev/null 2>&1; then
+  say "Docker is not installed."
+  case "$(uname -s)" in
+    Linux)
+      read -r -p "Install Docker Engine now via get.docker.com? [y/N]: " yn
+      if [[ "${yn:-}" =~ ^[Yy]$ ]]; then
+        curl -fsSL https://get.docker.com | sh || die "Docker install failed."
+      else
+        die "Docker required. See https://docs.docker.com/get-docker/"
+      fi ;;
+    Darwin) die "Install Docker Desktop for Mac: https://www.docker.com/products/docker-desktop/ then re-run." ;;
+    *)      die "Docker required. See https://docs.docker.com/get-docker/" ;;
+  esac
+fi
+docker compose version >/dev/null 2>&1 || die "Docker Compose v2 required (update Docker)."
+
+# --- Locate the deploy/ stack: use a sibling repo, else clone ----------------
+if [ -d "$SCRIPT_DIR/../deploy" ]; then
+  DEPLOY_DIR="$(cd "$SCRIPT_DIR/../deploy" && pwd)"
+  say "Using existing repo at $(dirname "$DEPLOY_DIR")"
+else
+  command -v git >/dev/null 2>&1 || die "git required to fetch FIND EVIL. Install git and re-run."
+  TARGET="${FIND_EVIL_HOME:-$HOME/find-evil}"
+  if [ -d "$TARGET/deploy" ]; then
+    say "Updating existing checkout at $TARGET"
+    git -C "$TARGET" pull --ff-only || say "pull skipped (local changes); using current checkout"
+  else
+    say "Cloning FIND EVIL into $TARGET ..."
+    git clone --depth 1 "$REPO_URL" "$TARGET" || die "git clone failed."
+  fi
+  DEPLOY_DIR="$TARGET/deploy"
+fi
+cd "$DEPLOY_DIR"
 
 if ! docker info >/dev/null 2>&1; then
   say "Docker is installed but the engine isn't running."

@@ -1,23 +1,47 @@
 # FIND EVIL — one-click launcher
 
-Double-clickable launchers that wrap the [`deploy/`](../deploy) Docker Compose
-stack. They check for Docker, build/start the stack, optionally download the
-LLM, and open the dashboard.
+Standalone launchers that get FIND EVIL running locally with one step. They
+work **whether or not you've already cloned the repo** — if run on their own,
+they fetch the repo for you, then check Docker, start the
+[`deploy/`](../deploy) Compose stack, optionally download the LLM, and open the
+dashboard.
+
+## Fastest — one line (macOS / Linux)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Shaugato/find-evil/main/installer/install.sh | bash
+```
+
+Installs Docker if missing (Linux), clones the repo to `~/find-evil`, and starts
+the stack. This is the standard 2026 self-hosted pattern (Dify, Ollama, LocalAI
+all use a curl|bash bootstrap).
+
+## Double-click launchers
 
 | OS | File | How |
 |---|---|---|
-| Windows | `find-evil-windows.cmd` | Double-click it |
-| macOS / Linux | `find-evil-unix.sh` | `chmod +x find-evil-unix.sh` then double-click or `./find-evil-unix.sh` |
+| Windows | `find-evil-windows.cmd` | Download from the [release](https://github.com/Shaugato/find-evil/releases) and double-click |
+| macOS / Linux | `find-evil-unix.sh` | `chmod +x find-evil-unix.sh` then `./find-evil-unix.sh` |
 
 ## What the launcher does
 
-1. Verifies Docker is installed and the engine is running (offers to start
-   Docker Desktop on Windows/macOS).
-2. Copies `deploy/.env.example` → `deploy/.env` if absent.
-3. Asks whether to enable the AI planes (narrator + pivot agents). Saying yes
-   downloads a ~2 GB GGUF model on first run, with your consent.
-4. Runs `docker compose up -d --build`.
-5. Waits for the dashboard, opens **http://localhost:9400**, and tails logs.
+1. Verifies **Docker** is installed (offers `get.docker.com` install on Linux;
+   links Docker Desktop on Windows/macOS) and that the engine is running.
+2. **Locates the stack**: uses a sibling `deploy/` if the launcher is inside a
+   clone; otherwise clones `github.com/Shaugato/find-evil` to `~/find-evil`
+   (or `%USERPROFILE%\find-evil`).
+3. Copies `deploy/.env.example` → `deploy/.env` if absent.
+4. Asks whether to enable the AI planes (narrator + pivot agents). Yes downloads
+   a ~2 GB GGUF model on first run, with your consent.
+5. Runs `docker compose up -d --build`.
+6. Waits for the dashboard, opens **http://localhost:9400**, and tails logs.
+
+## Container runtime alternatives
+
+Docker Desktop is the default, but the stack is plain Compose v2, so these work
+too: **Podman** (`podman compose`), **Rancher Desktop**, and **OrbStack** (Mac).
+Point your runtime's `docker`/`docker compose` shim at the stack and the
+launchers behave identically.
 
 ## Prerequisite
 
