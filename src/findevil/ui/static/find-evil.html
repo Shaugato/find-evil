@@ -498,12 +498,37 @@
   .ledger-block:hover { border-color: var(--border2); background: rgba(255,255,255,0.03); }
   .ledger-block.critical { border-left: 3px solid var(--red); }
   .ledger-block.info-block { border-left: 3px solid var(--green); }
+  .ledger-block.is-new { animation: ledgerIn 0.45s cubic-bezier(0.22,1,0.36,1); }
+  @keyframes ledgerIn {
+    from { opacity: 0; transform: translateY(-10px); box-shadow: 0 0 24px var(--green-dim); }
+    to { opacity: 1; transform: translateY(0); box-shadow: none; }
+  }
   .ledger-seq { font-family: var(--mono); font-size: 20px; font-weight: 700; color: var(--text3); flex-shrink: 0; min-width: 40px; }
   .ledger-content { flex: 1; }
   .ledger-hash { font-family: var(--mono); font-size: 9px; color: var(--text3); margin-bottom: 6px; word-break: break-all; }
   .ledger-event { font-family: var(--mono); font-size: 11px; color: var(--text); margin-bottom: 4px; }
   .ledger-meta { font-family: var(--mono); font-size: 9px; color: var(--text3); }
   .ledger-sig { font-family: var(--mono); font-size: 8px; color: rgba(0,229,255,0.5); margin-top: 6px; }
+
+  /* ─── MITRE ATT&CK MATRIX ─── */
+  #mitre-view { width: 100%; height: 100%; overflow: auto; padding: 20px 24px; }
+  .mitre-head { font-family: var(--mono); font-size: 11px; color: var(--text3); letter-spacing: 0.1em; margin-bottom: 16px; }
+  .mitre-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+  .mitre-tactic { background: var(--panel2); border: 1px solid var(--border); border-radius: 8px; padding: 10px; }
+  .mitre-tactic-name { font-family: var(--mono); font-size: 9px; color: var(--text2); letter-spacing: 0.08em; margin-bottom: 8px; text-transform: uppercase; }
+  .mitre-cell {
+    font-family: var(--mono); font-size: 10px; color: var(--text3);
+    padding: 5px 7px; border-radius: 4px; margin-bottom: 4px;
+    border: 1px solid var(--border); background: rgba(255,255,255,0.015);
+    transition: all 0.4s cubic-bezier(0.22,1,0.36,1);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .mitre-cell.hit {
+    color: #fff; border-color: var(--red);
+    background: linear-gradient(90deg, rgba(255,23,68,0.35), rgba(255,23,68,0.12));
+    box-shadow: 0 0 16px var(--red-glow);
+  }
+  .mitre-cell .cnt { font-size: 8px; color: var(--amber2); }
 
   /* ─── SCROLLBAR ─── */
   ::-webkit-scrollbar { width: 4px; height: 4px; }
@@ -610,6 +635,7 @@
       <div class="view-tab active" data-view="pheromone">PHEROMONE FIELD</div>
       <div class="view-tab" data-view="graph">THREAT GRAPH</div>
       <div class="view-tab" data-view="ledger">MERKLE LEDGER</div>
+      <div class="view-tab" data-view="mitre">MITRE ATT&amp;CK</div>
       <div class="view-tab" data-view="debate">ADVERSARIAL DEBATE</div>
     </div>
     <div id="view-container">
@@ -621,6 +647,9 @@
       </div>
       <div class="view" id="view-ledger">
         <div id="ledger-view"></div>
+      </div>
+      <div class="view" id="view-mitre">
+        <div id="mitre-view"></div>
       </div>
       <div class="view" id="view-debate">
         <div id="debate-view">
@@ -888,6 +917,7 @@ function initApp() {
   renderAgents();
   renderIOCs();
   renderLedger();
+  renderMitre();
   renderDebate();
   initPheromoneCanvas();
   initThreatGraphCanvas();
@@ -967,12 +997,19 @@ function renderIOCs() {
 }
 
 // ─── LEDGER ───
+let LEDGER_TOP_SEEN = -1;
 function renderLedger() {
   const view = document.getElementById('ledger-view');
   view.innerHTML = '<div style="font-family: var(--mono); font-size: 11px; color: var(--text3); margin-bottom: 16px; letter-spacing: 0.1em;">CRYPTOGRAPHICALLY SIGNED · ED25519 · MERKLE CHAIN · NIST SP 800-86</div>';
+  // Only the entries newer than the last-seen top seq animate in, so the 5s
+  // full refresh doesn't re-animate the whole list.
+  let topSeq = LEDGER_TOP_SEEN;
   LEDGER_DEFS.forEach(b => {
+    const seqNum = parseInt(String(b.seq).replace(/[^0-9]/g, ''), 10) || 0;
+    const isNew = seqNum > LEDGER_TOP_SEEN;
+    if (seqNum > topSeq) topSeq = seqNum;
     const div = document.createElement('div');
-    div.className = `ledger-block ${b.type}`;
+    div.className = `ledger-block ${b.type}${isNew ? ' is-new' : ''}`;
     div.innerHTML = `
       <div class="ledger-seq">${b.seq}</div>
       <div class="ledger-content">
@@ -984,6 +1021,51 @@ function renderLedger() {
     `;
     view.appendChild(div);
   });
+  LEDGER_TOP_SEEN = topSeq;
+}
+
+// ─── MITRE ATT&CK MATRIX ───
+// A compact tactic→technique grid. Cells light up (heat) as techniques are
+// mapped to live findings; the count badge shows how many findings hit each.
+const MITRE_TACTICS = [
+  { name: 'Execution', techs: ['T1059.001', 'T1059.003', 'T1059.005', 'T1047', 'T1569.002', 'T1204'] },
+  { name: 'Persistence', techs: ['T1547.001', 'T1053.005', 'T1053.002', 'T1543'] },
+  { name: 'Defense Evasion', techs: ['T1055', 'T1562.001', 'T1036', 'T1218.011', 'T1218.005', 'T1218.010'] },
+  { name: 'Credential Access', techs: ['T1003.001', 'T1003'] },
+  { name: 'Discovery', techs: ['T1087', 'T1018', 'T1057'] },
+  { name: 'Lateral Movement', techs: ['T1021.002', 'T1078'] },
+  { name: 'Command & Control', techs: ['T1071.001', 'T1071.004', 'T1105', 'T1572'] },
+  { name: 'Exfiltration / Impact', techs: ['T1486', 'T1567', 'T1041'] },
+];
+const MITRE_NAMES = {
+  'T1059.001': 'PowerShell', 'T1059.003': 'Windows Cmd', 'T1059.005': 'VBScript',
+  'T1047': 'WMI', 'T1569.002': 'Service Exec', 'T1204': 'User Execution',
+  'T1547.001': 'Run Keys', 'T1053.005': 'Scheduled Task', 'T1053.002': 'At', 'T1543': 'Service',
+  'T1055': 'Process Injection', 'T1562.001': 'Disable Tools', 'T1036': 'Masquerading',
+  'T1218.011': 'Rundll32', 'T1218.005': 'Mshta', 'T1218.010': 'Regsvr32',
+  'T1003.001': 'LSASS Memory', 'T1003': 'OS Cred Dump',
+  'T1087': 'Account Disc', 'T1018': 'Remote Sys Disc', 'T1057': 'Process Disc',
+  'T1021.002': 'SMB/Admin$', 'T1078': 'Valid Accounts',
+  'T1071.001': 'Web C2', 'T1071.004': 'DNS C2', 'T1105': 'Ingress Tool', 'T1572': 'Tunneling',
+  'T1486': 'Data Encrypted', 'T1567': 'Web Exfil', 'T1041': 'C2 Exfil',
+};
+function renderMitre() {
+  const view = document.getElementById('mitre-view');
+  if (!view) return;
+  const counts = {};
+  for (const t of (window.LIVE_TECHNIQUES || [])) counts[t] = (counts[t] || 0) + 1;
+  const hitCount = Object.keys(counts).length;
+  let html = `<div class="mitre-head">MITRE ATT&CK — ${hitCount} technique(s) mapped to live findings · enterprise matrix</div><div class="mitre-grid">`;
+  for (const tactic of MITRE_TACTICS) {
+    html += `<div class="mitre-tactic"><div class="mitre-tactic-name">${tactic.name}</div>`;
+    for (const tech of tactic.techs) {
+      const hit = counts[tech] > 0;
+      html += `<div class="mitre-cell${hit ? ' hit' : ''}"><span>${tech} ${MITRE_NAMES[tech] || ''}</span>${hit ? `<span class="cnt">×${counts[tech]}</span>` : ''}</div>`;
+    }
+    html += `</div>`;
+  }
+  html += `</div>`;
+  view.innerHTML = html;
 }
 
 // ─── DEBATE ───
@@ -1010,7 +1092,21 @@ function initPheromoneCanvas() {
   const ctx = canvas.getContext('2d');
   let particles = [];
   let nodes = [];
+  let ripples = [];   // consensus-fire burst rings
   let W, H;
+
+  // Consensus-fire ripple: a colored ring that propagates outward from (x,y).
+  // Exposed globally so the live SSE layer fires one when a mitigation crosses
+  // the consensus threshold — communicates "a decision just happened" at a glance.
+  function spawnRipple(x, y, color) {
+    ripples.push({ x, y, r: 6, max: Math.max(W, H) * 0.5, color, alpha: 0.9 });
+    if (ripples.length > 12) ripples.shift();
+  }
+  window.fireConsensusRipple = function (color) {
+    // Fire from the most-suspicious node if present, else from centre.
+    const n = nodes.length > 1 ? nodes[1] : { x: W / 2, y: H / 2 };
+    spawnRipple(n.x, n.y, color || '#ff1744');
+  };
   
   function resize() {
     W = canvas.width = canvas.offsetWidth;
@@ -1027,6 +1123,7 @@ function initPheromoneCanvas() {
         y: H/2 + Math.sin(angle) * r * (0.7 + Math.random() * 0.3),
         tau: ioc.tau,
         severity: ioc.severity,
+        k: ioc.k || 0,
         label: ioc.value.substring(0, 16),
         type: ioc.type,
         pulse: Math.random() * Math.PI * 2,
@@ -1143,6 +1240,25 @@ function initPheromoneCanvas() {
       }
     });
     
+    // Consensus-fire ripples — expanding rings that fade as they grow.
+    ripples = ripples.filter((rp) => rp.alpha > 0.02);
+    ripples.forEach((rp) => {
+      rp.r += (rp.max - rp.r) * 0.04 + 2;
+      rp.alpha *= 0.96;
+      const c = (rp.color || '#ff1744').replace('#', '');
+      const cr = parseInt(c.slice(0, 2), 16), cg = parseInt(c.slice(2, 4), 16), cb = parseInt(c.slice(4, 6), 16);
+      ctx.beginPath();
+      ctx.arc(rp.x, rp.y, rp.r, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(${cr},${cg},${cb},${rp.alpha})`;
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(rp.x, rp.y, rp.r * 0.6, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(${cr},${cg},${cb},${rp.alpha * 0.4})`;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    });
+
     // Nodes
     nodes.forEach((node, i) => {
       if (i === 0) {
@@ -1199,7 +1315,25 @@ function initPheromoneCanvas() {
         
         const r = 14 + node.tau * 16;
         const col = node.severity === 'critical' ? '255,23,68' : node.severity === 'high' ? '255,171,0' : '0,230,118';
-        
+
+        // Yager-band conflict (K >= 0.3): a split-glow of two opposing colours
+        // (red=malicious vs blue=benign) that oscillate, visually "fighting" —
+        // the system's contradictory-evidence state, readable at a glance.
+        if (node.k >= 0.3) {
+          const osc = Math.sin(node.pulse * 3);
+          const swing = node.k * 0.5;
+          for (let half = 0; half < 2; half++) {
+            const a0 = half * Math.PI - osc * swing;
+            const a1 = a0 + Math.PI;
+            const cc = half === 0 ? '255,23,68' : '41,121,255';
+            ctx.beginPath();
+            ctx.arc(node.x, node.y, r + 7, a0, a1);
+            ctx.strokeStyle = `rgba(${cc},${0.45 + Math.abs(osc) * 0.35})`;
+            ctx.lineWidth = 3;
+            ctx.stroke();
+          }
+        }
+
         // Pulse ring
         const pulseR = r + Math.abs(Math.sin(node.pulse)) * 15;
         ctx.beginPath();

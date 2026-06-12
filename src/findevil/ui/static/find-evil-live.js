@@ -20,6 +20,7 @@
     renderAgents,
     renderIOCs,
     renderLedger,
+    renderMitre: typeof renderMitre === 'function' ? renderMitre : function () {},
     renderDebate,
     initPheromoneCanvas,
     initThreatGraphCanvas,
@@ -225,9 +226,11 @@
 
     updateAgentsFromIocs(IOC_DEFS, LIVE.liveReports);
     deriveDebateFromLedger(Array.isArray(ledger) ? ledger : []);
+    window.LIVE_TECHNIQUES = LIVE.liveTechniques;
     design.renderAgents();
     design.renderIOCs();
     design.renderLedger();
+    design.renderMitre();
     design.renderDebate();
     updateStats();
     updateMetrics();
@@ -271,7 +274,9 @@
       }
     }
     if (techniques.length) {
-      LIVE.liveTechniques = Array.from(new Set([...techniques, ...LIVE.liveTechniques])).slice(0, 12);
+      LIVE.liveTechniques = Array.from(new Set([...techniques, ...LIVE.liveTechniques])).slice(0, 24);
+      window.LIVE_TECHNIQUES = LIVE.liveTechniques;
+      design.renderMitre();
     }
 
     design.addEvent({
@@ -286,6 +291,16 @@
     updateStats();
     updateMetrics();
     updateThreatLevel();
+
+    // Fire a pheromone-field ripple when a decision crosses consensus:
+    // red burst for a mitigation, amber for a Yager conflict routed to debate.
+    if (typeof window.fireConsensusRipple === 'function') {
+      if (frame.action === 'mitigate' || num(frame.belief_evil) >= 0.8) {
+        window.fireConsensusRipple('#ff1744');
+      } else if (frame.action === 'conflict_ledger' || num(frame.conflict_K) >= 0.3) {
+        window.fireConsensusRipple('#ffab00');
+      }
+    }
     if (num(frame.belief_evil) >= 0.85 || frame.action === 'mitigate') showThreatOverlayFor(frame);
   }
 
