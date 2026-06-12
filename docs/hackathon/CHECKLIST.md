@@ -18,7 +18,7 @@
 
 - **Compliance traceability:** [docs/COMPLIANCE_LIVE.md](../COMPLIANCE_LIVE.md) — every P0/P1 requirement, status + evidence.
 - **Run log:** [docs/AUTONOMOUS_RUN_LOG.md](../AUTONOMOUS_RUN_LOG.md) — per-task verification evidence.
-- **Companion website:** `web/` (Next.js, deployed to Vercel) — architecture explainer + real-run replay viewer.
+- **Companion website (LIVE):** **https://web-eight-sage-34.vercel.app** (`web/`, Next.js on Vercel) — architecture explainer + real-run replay viewer with the self-correction marked.
 - **Validation baseline:** [VALIDATION_REPORT.md](../../VALIDATION_REPORT.md) — 87 tests, hot-path SLA, standards proven live.
 
 ## The one item requiring you (the user)

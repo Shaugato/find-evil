@@ -33,9 +33,10 @@ The eight required deliverables live under [`docs/hackathon/`](docs/hackathon):
 | 7 | Try-it-out instructions | [try-it-out.md](docs/hackathon/try-it-out.md) · [Docker](deploy/README.md) · [installer](installer/README.md) |
 | 8 | Agent execution logs | [execution-logs/](docs/hackathon/execution-logs) |
 
-Fastest paths to evaluate: the **Docker stack** (`deploy/`, one command), the
-**one-click launcher** (`installer/`), or the companion **website** (live URL in
-the deliverables once deployed).
+Fastest paths to evaluate: the **live companion site →
+https://web-eight-sage-34.vercel.app** (zero install — architecture explainer +
+real-run replay viewer), the **Docker stack** (`deploy/`, one command), or the
+**one-click launcher** (`installer/`).
 
 ## What This Repository Contains
 

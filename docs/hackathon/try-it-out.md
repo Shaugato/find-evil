@@ -2,15 +2,15 @@
 
 Three ways to evaluate FIND EVIL, fastest first.
 
-> **Live companion site (no install):**
-> _URL added after deployment — see [Option A]._ Explore the architecture and
-> replay the real ROCBA run in your browser with zero setup.
+> **Live companion site (no install):** **https://web-eight-sage-34.vercel.app**
+> Explore the architecture and replay the real ROCBA run in your browser with
+> zero setup.
 
 ---
 
 ## Option A — Companion website (zero install, ~1 min)
 
-Open the live site (link in the repo README). It hosts:
+Open **https://web-eight-sage-34.vercel.app**. It hosts:
 
 - an interactive architecture explainer (architectural vs prompt guardrails),
 - a **replay viewer** of the real ROCBA run driven by exported ledger JSON —
