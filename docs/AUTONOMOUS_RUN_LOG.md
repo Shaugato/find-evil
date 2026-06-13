@@ -594,6 +594,27 @@ narrator step so the verdict is already in the ledger to show.
   → MITRE (fix "0 mapped" + live heatmap + clickable) → agents → debate → light
   touch. Commit per item.
 
+### Shipped (all 6 items, 2026-06-13)
+- **Foundation** (`fa9392f`): `window.SEL` store + `#inspector` flyout; coordinated
+  `.sel` highlight across panels; pheromone atoms route through SEL.
+- **Item 1** blackboard rows clickable → inspector + related ledger highlight +
+  atom dive (`__FE_GRAPH.selectArtifact`).
+- **Item 3** ledger entries → forensic detail (finding_id/BLAKE3/prev/sig/merkle,
+  reasoning, evidence_refs + custody clickable, prev/next chain nav).
+- **Item 4** MITRE: **fixed the always-"0 mapped" bug** — `techniqueCounts()` reads
+  real ledger `mitre_attack_technique` (was only the empty `LIVE_TECHNIQUES`);
+  heatmap by frequency, pulse on fresh detection, clickable tiles. Verified
+  "3 techniques mapped".
+- **Item 2** agent rows → sensor/role detail with contributed artifacts.
+- **Item 5** (`fed6f13`): **root-caused the empty Red column** — debate is the
+  prosecutor/defense/judge reasoning; re-mapped the live ledger so RED =
+  prosecution (high-belief consensus/mitigation), BLUE = defense & judge
+  (narrator/Yager/CACAO/benign). Both fill 8/8; entries clickable; relabelled.
+- **Item 6** event-stream lines + Focus Artifact clickable → cross-select.
+- Verify @ :9400: all interactions work, 0 console errors; `findevil verify`
+  ok=true; **96 passed, 1 skipped**; 3-D field + threat graph + SSE untouched.
+- Status: done
+
 ### Fix 3 — interactive threat graph (done)
 - The kill-chain already had pan + wheel-zoom + hover tooltip + click-select.
   Added the missing **node dragging** (grab a node → reposition it, edges follow;
