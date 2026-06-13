@@ -13,11 +13,11 @@ html {
 
 body {
   background:
-    radial-gradient(1100px 720px at 76% -12%, rgba(255,56,100,0.10) 0%, transparent 56%),
-    radial-gradient(900px 600px at 8% 8%, rgba(0,255,159,0.06) 0%, transparent 52%),
-    radial-gradient(1000px 640px at 50% 118%, rgba(137,221,255,0.06) 0%, transparent 55%),
-    #0a0e14;
-  color: #e0e6ef;
+    radial-gradient(1100px 720px at 76% -12%, rgba(255,56,100,0.09) 0%, transparent 56%),
+    radial-gradient(900px 600px at 8% 8%, rgba(0,255,159,0.05) 0%, transparent 52%),
+    radial-gradient(1200px 760px at 50% 40%, rgba(0,212,255,0.07) 0%, transparent 60%),
+    #060a10;
+  color: #e8ecf0;
   font-family: "Inter", "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
@@ -30,7 +30,7 @@ body {
 }
 
 .text-gradient {
-  background: linear-gradient(90deg, #89ddff 0%, #00ff9f 50%, #ff3864 100%);
+  background: linear-gradient(90deg, #00d4ff 0%, #00ff9f 50%, #ff3864 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;

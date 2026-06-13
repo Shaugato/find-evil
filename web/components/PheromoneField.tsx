@@ -22,9 +22,10 @@ interface Node {
   pulse: number;
 }
 
-// Aligned to the live dashboard palette so the hero reads as a product preview.
+// Aligned to the live dashboard's holographic palette so the hero reads as a
+// preview of the 3-D molecular field.
 const KIND_COLORS: Record<Kind, string> = {
-  ip: "137,221,255", // info cyan
+  ip: "0,212,255", // holographic cyan
   domain: "0,255,159", // phosphor green
   proc: "255,184,108", // warning amber
   hash: "108,198,255", // blue
