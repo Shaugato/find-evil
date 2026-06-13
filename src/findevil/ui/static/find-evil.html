@@ -623,8 +623,97 @@
   #pher-legend .leg-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
   #pher-legend .leg-note { font-family: var(--sans); font-size: 9.5px; color: var(--text3); line-height: 1.45; margin-top: 3px; }
 </style>
+<style id="holo-css">
+  /* ════════ HOLOGRAPHIC COMMAND INTERFACE — full-viewport 3-D + glass overlays ════════ */
+  :root {
+    --holo-bg: #060a10;
+    --holo-cyan: #00d4ff;
+    --holo-teal: #00ff9f;
+    --holo-amber: #ffb86c;
+    --holo-red: #ff3864;
+    --holo-text: #e8ecf0;
+    --holo-text2: #7a8899;
+    --holo-glass: rgba(8,12,20,0.60);
+    --holo-border: rgba(0,212,255,0.16);
+  }
+  /* the 3-D molecular field is a fixed full-viewport layer behind the UI */
+  #holo-stage {
+    position: fixed; inset: 0; z-index: 0; pointer-events: auto;
+    background: radial-gradient(1200px 820px at 50% 40%, rgba(0,212,255,0.06), transparent 60%), var(--holo-bg);
+  }
+  #holo-stage canvas { display: block; width: 100%; height: 100%; }
+  body { background: var(--holo-bg); }
+
+  /* app floats above the stage; transparent regions pass pointer events through to OrbitControls */
+  #app { position: relative; z-index: 1; background: transparent !important; gap: 0; pointer-events: none; }
+  #app > * { pointer-events: auto; }
+  #topbar, #left-panel, #right-panel, #bottom-panel {
+    background: var(--holo-glass) !important;
+    backdrop-filter: blur(13px) saturate(125%); -webkit-backdrop-filter: blur(13px) saturate(125%);
+    border: 1px solid var(--holo-border);
+    box-shadow: 0 0 18px rgba(0,212,255,0.05), inset 0 0 30px rgba(0,212,255,0.03);
+    position: relative;
+  }
+  #topbar { border-width: 0 0 1px 0; }
+  #left-panel { border-width: 0 1px 0 0; }
+  #right-panel { border-width: 0 0 0 1px; }
+  #bottom-panel { border-width: 1px 0 0 0; }
+  /* HUD corner brackets */
+  #left-panel::before, #right-panel::after, #bottom-panel::before {
+    content: ''; position: absolute; width: 13px; height: 13px; opacity: 0.55; pointer-events: none;
+    border-color: var(--holo-cyan); border-style: solid;
+  }
+  #left-panel::before { top: 6px; left: 6px; border-width: 1px 0 0 1px; }
+  #right-panel::after { top: 6px; right: 6px; border-width: 1px 1px 0 0; }
+  #bottom-panel::before { bottom: 6px; left: 6px; border-width: 0 0 1px 1px; }
+
+  /* center column = transparent window onto the 3-D scene; drag falls through to the stage */
+  #center-panel { background: transparent !important; pointer-events: none; }
+  #view-tabs { pointer-events: auto; background: var(--holo-glass) !important; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-bottom: 1px solid var(--holo-border); }
+  #view-container { pointer-events: none; }
+  #view-pheromone { pointer-events: none; }
+  #view-graph, #view-ledger, #view-mitre, #view-debate {
+    pointer-events: auto; background: rgba(6,10,16,0.78); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  }
+  #pheromone-canvas { display: none !important; }
+
+  /* legend → floating holo card, bottom-left over the scene */
+  #pher-legend {
+    position: fixed; left: 296px; bottom: 212px; z-index: 4; pointer-events: auto;
+    background: var(--holo-glass) !important; border: 1px solid var(--holo-border) !important;
+    box-shadow: 0 10px 34px rgba(0,0,0,0.5), 0 0 16px rgba(0,212,255,0.06);
+  }
+
+  /* HTML node labels projected over the 3-D scene */
+  #holo-labels { position: absolute; inset: 0; pointer-events: none; z-index: 2; overflow: hidden; }
+  .holo-label {
+    position: absolute; left: 0; top: 0; will-change: transform; text-align: center; white-space: nowrap;
+    font-family: var(--mono); text-shadow: 0 0 7px rgba(0,0,0,0.95), 0 1px 2px #000;
+  }
+  .holo-label .ll-t { display: block; font-size: 10px; color: var(--holo-cyan); letter-spacing: 0.06em; font-weight: 600; }
+  .holo-label .ll-v { display: block; font-size: 9px; color: var(--holo-text); }
+  .holo-label .ll-tau { display: block; font-size: 9px; color: var(--holo-amber); }
+
+  /* hover tooltip */
+  #holo-tip {
+    position: absolute; z-index: 6; pointer-events: none; min-width: 184px;
+    background: rgba(4,7,12,0.93); border: 1px solid var(--holo-border); border-radius: 6px;
+    padding: 8px 11px; font-family: var(--sans); font-size: 11px; color: var(--holo-text);
+    box-shadow: 0 10px 32px rgba(0,0,0,0.65), 0 0 16px rgba(0,212,255,0.10);
+  }
+  #holo-tip b { color: var(--holo-cyan); font-family: var(--mono); }
+  #holo-tip .tip-row { display: flex; justify-content: space-between; gap: 16px; margin-top: 3px; color: var(--holo-text2); }
+  #holo-tip .tip-row i { color: var(--holo-text); font-style: normal; font-family: var(--mono); }
+</style>
+<script type="importmap">
+{ "imports": { "three": "/static/vendor/three.module.js" } }
+</script>
+<script type="module" src="/static/fe-holo.js"></script>
 </head>
 <body>
+
+<!-- HOLOGRAPHIC 3-D STAGE (full-viewport molecular pheromone field) -->
+<div id="holo-stage"></div>
 
 <!-- BOOT SCREEN -->
 <div id="boot">
@@ -701,12 +790,12 @@
       <div class="view active" id="view-pheromone">
         <canvas id="pheromone-canvas"></canvas>
         <div id="pher-legend">
-          <div class="leg-title">Threat Atom</div>
-          <div class="leg-row"><span class="leg-dot" style="background:var(--red);box-shadow:0 0 8px var(--red)"></span>Inner shell · likely malicious · Bel ≥ 0.85</div>
-          <div class="leg-row"><span class="leg-dot" style="background:var(--amber);box-shadow:0 0 8px var(--amber)"></span>Suspicious · under triage</div>
-          <div class="leg-row"><span class="leg-dot" style="background:var(--blue);box-shadow:0 0 8px var(--blue)"></span>Low confidence · observed</div>
-          <div class="leg-row"><span class="leg-dot" style="background:var(--green);box-shadow:0 0 8px var(--green)"></span>Outer shell · likely benign</div>
-          <div class="leg-note">Each electron is an artifact (IP · domain · process · hash) orbiting the MCP-blackboard nucleus. Shell radius is the threat tier — inner shells are malicious, outer shells benign — so the field self-separates by belief. Sparks are sensor evidence streaming to the blackboard; an expanding ring is a consensus decision firing; a split red/blue halo is contradictory evidence (Yager conflict).</div>
+          <div class="leg-title">Pheromone Field — Threat Molecule</div>
+          <div class="leg-row"><span class="leg-dot" style="background:#ff3864;box-shadow:0 0 8px #ff3864"></span>Likely malicious · Bel ≥ 0.85</div>
+          <div class="leg-row"><span class="leg-dot" style="background:#ff6b35;box-shadow:0 0 8px #ff6b35"></span>Elevated threat</div>
+          <div class="leg-row"><span class="leg-dot" style="background:#ffb86c;box-shadow:0 0 8px #ffb86c"></span>Suspicious · under triage</div>
+          <div class="leg-row"><span class="leg-dot" style="background:#00d4ff;box-shadow:0 0 8px #00d4ff"></span>Benign · low confidence</div>
+          <div class="leg-note">Each atom is an artifact (IP · domain · process · hash) bonded to the MCP-blackboard nucleus. Size = pheromone τ; colour = belief it's evil. Bonds are sensor correlations; particles are evidence streaming toward the threat. A shockwave ring = consensus firing; a two-tone atom = Yager conflict; a contracting ring = CACAO containment. Drag to orbit · hover an atom for detail.</div>
         </div>
       </div>
       <div class="view" id="view-graph">
@@ -1160,6 +1249,14 @@ function renderDebate() {
 // real 3-D without WebGL. Same IOC_DEFS data + window.fireConsensusRipple hook,
 // so the live SSE layer (find-evil-live.js) is untouched.
 function initPheromoneCanvas() {
+  // Superseded by the holographic 3-D engine (fe-holo.js, three.js module).
+  // This delegator exposes the live IOC array and boots the WebGL field; the
+  // 2-D code below is retained (dead, never executed) for reference.
+  window.__FE_IOCS = (typeof IOC_DEFS !== 'undefined') ? IOC_DEFS : [];
+  window.__FE_GRAPH_WANTED = true;
+  if (window.__FE_GRAPH && window.__FE_GRAPH.boot) window.__FE_GRAPH.boot();
+  return;
+  // eslint-disable-next-line no-unreachable
   const canvas = document.getElementById('pheromone-canvas');
   const ctx = canvas.getContext('2d');
   let W, H, cx, cy, scale;
