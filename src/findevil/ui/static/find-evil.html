@@ -704,6 +704,36 @@
   #holo-tip b { color: var(--holo-cyan); font-family: var(--mono); }
   #holo-tip .tip-row { display: flex; justify-content: space-between; gap: 16px; margin-top: 3px; color: var(--holo-text2); }
   #holo-tip .tip-row i { color: var(--holo-text); font-style: normal; font-family: var(--mono); }
+
+  /* click-to-expand atom detail HUD */
+  #holo-detail {
+    position: fixed; top: 100px; left: 50%; z-index: 7; pointer-events: auto; width: 286px;
+    transform: translateX(-50%) translateY(-8px) scale(0.96); opacity: 0; visibility: hidden;
+    background: rgba(6,10,16,0.84); backdrop-filter: blur(16px) saturate(130%); -webkit-backdrop-filter: blur(16px) saturate(130%);
+    border: 1px solid var(--holo-border); border-radius: 10px; padding: 16px 16px 14px; font-family: var(--sans);
+    box-shadow: 0 18px 50px rgba(0,0,0,0.6), 0 0 26px rgba(0,212,255,0.12);
+    transition: opacity .4s ease, transform .45s cubic-bezier(.2,.9,.3,1.25);
+  }
+  #holo-detail.open { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0) scale(1); }
+  #holo-detail .hd-close { position: absolute; top: 8px; right: 9px; width: 22px; height: 22px; cursor: pointer; background: rgba(255,255,255,0.06); color: var(--holo-text2); border: 1px solid var(--holo-border); border-radius: 5px; font-size: 12px; }
+  #holo-detail .hd-close:hover { color: #fff; border-color: var(--holo-cyan); }
+  #holo-detail .hd-type { font-family: var(--mono); font-size: 10px; letter-spacing: .12em; color: var(--holo-cyan); }
+  #holo-detail .hd-val { font-family: var(--mono); font-size: 14px; color: #fff; margin: 2px 0 12px; word-break: break-all; }
+  #holo-detail .hd-gauge { width: 84px; height: 84px; border-radius: 50%; margin: 0 auto 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 18px rgba(0,212,255,0.18); }
+  #holo-detail .hd-gauge span { width: 64px; height: 64px; border-radius: 50%; background: rgba(6,10,16,0.92); display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: var(--mono); font-size: 20px; color: #fff; }
+  #holo-detail .hd-gauge small { font-size: 10px; color: var(--holo-text2); }
+  #holo-detail .hd-gauge i { font-style: normal; font-size: 8px; letter-spacing: .1em; color: var(--holo-text2); text-transform: uppercase; }
+  #holo-detail .hd-rows { display: grid; grid-template-columns: 1fr 1fr; gap: 7px 12px; margin-bottom: 12px; }
+  #holo-detail .hd-rows label { display: block; font-size: 9px; color: var(--holo-text2); text-transform: uppercase; letter-spacing: .05em; }
+  #holo-detail .hd-rows b { font-family: var(--mono); font-size: 13px; color: var(--holo-cyan); font-weight: 500; }
+  #holo-detail .hd-sec { font-size: 9px; letter-spacing: .1em; color: var(--holo-text2); margin-bottom: 6px; }
+  #holo-detail .hd-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 12px; }
+  #holo-detail .hd-chips span { font-family: var(--mono); font-size: 10px; color: var(--holo-text); background: rgba(0,212,255,0.10); border: 1px solid var(--holo-border); border-radius: 4px; padding: 2px 7px; }
+  #holo-detail .hd-chips .dim { color: var(--holo-text2); background: none; border-color: transparent; }
+  #holo-detail .hd-action { text-align: center; font-family: var(--mono); font-size: 11px; letter-spacing: .06em; border: 1px solid; border-radius: 6px; padding: 6px; margin-bottom: 9px; }
+  #holo-detail .hd-hash { font-family: var(--mono); font-size: 9px; color: var(--holo-text2); text-align: center; word-break: break-all; }
+  /* recede the chrome while focused on an atom */
+  body.holo-focus #topbar, body.holo-focus #left-panel, body.holo-focus #right-panel, body.holo-focus #bottom-panel { opacity: 0.5; transition: opacity .4s ease; }
 </style>
 <script type="importmap">
 { "imports": { "three": "/static/vendor/three.module.js" } }

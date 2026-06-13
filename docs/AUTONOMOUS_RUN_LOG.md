@@ -506,3 +506,28 @@ narrator step so the verdict is already in the ledger to show.
   errors; pheromone field still booted. (Particle flow + autoplay are
   rAF-driven → animate in a visible browser.)
 - Status: done
+
+### Fix 2 — click-to-expand atom detail ("pull the molecule apart") (done)
+- **Research:** drill-down-on-3D-node patterns (R3F + drei `<Html>` for crisp
+  in-scene labels, react-spring transitions, security-tool node detail panels).
+- **Approach (`fe-holo.js`):** clicking an atom enters an `expanded` state eased
+  by `expandT`: the atom scales toward the camera (`×(1+expandT·2.6)`), the rest
+  recede (opacity `×(1−expandT·0.72)`), OrbitControls auto-rotate pauses and the
+  target lerps to the atom (cinematic focus), and the chrome panels dim
+  (`body.holo-focus`). A 3-D sub-scene attaches: a belief-gauge ring, sensor
+  badges orbiting on a tilted ring, and an evidence helix. A crisp HTML detail
+  HUD (`#holo-detail`, drei-`<Html>`-style) shows real fields — Belief,
+  Plausibility, Conflict K, τ — a conic belief gauge, sensor chips, an action
+  badge (🛡/⚠/⚖/👁 derived from bel/K), and the ledger tip hash. Escape /
+  click-out / ✕ collapse with an eased reverse. New API: `__FE_GRAPH.focusTop()`
+  / `.collapse()`.
+- **Bug found + fixed:** `beliefOf()` used `max(bel, tau·0.9)`, conflating belief
+  (a probability ≤1) with τ (unbounded pheromone weight) — the HUD showed
+  "Belief 8.172". Now colour + display use true `belief_evil∈[0,1]`; τ drives
+  size only (per spec); plausibility stored separately.
+- **Verify (headless @ :9400):** `focusTop()` → HUD open, Belief 0.872,
+  Plausibility 0.872, K 0.000, τ 9.080 (shown separately), gauge 87%, action
+  🛡 MITIGATED, panels dimmed; Escape → HUD closed, focus cleared, expanded
+  null; zero console errors. (Atom scale / orbit / helix / camera dolly are
+  rAF-driven → animate in a visible browser.)
+- Status: done

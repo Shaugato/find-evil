@@ -35,8 +35,13 @@ import { OrbitControls } from '/static/vendor/OrbitControls.js';
     return C.low;
   }
   function beliefOf(d) {
-    const b = Number(d.bel); const t = Number(d.tau);
-    return Math.max(Number.isFinite(b) ? b : 0, Number.isFinite(t) ? t * 0.9 : 0);
+    // belief_evil is a probability in [0,1] — colour + display by it (per spec).
+    // tau (pheromone weight) is unbounded and drives SIZE, not belief; use it
+    // only as a weak normalised fallback when bel is absent.
+    const b = Number(d.bel);
+    if (Number.isFinite(b) && b > 0) return Math.min(1, b);
+    const t = Number(d.tau);
+    return Number.isFinite(t) ? Math.min(1, t / 10) : 0;
   }
 
   // ── shared textures ─────────────────────────────────────────────────────
@@ -80,6 +85,9 @@ import { OrbitControls } from '/static/vendor/OrbitControls.js';
   let ripples = [];          // {sprite, age, life, max}
   let cacao = [];            // {node, ring, age, life, settled}
   let hovered = null, selected = null;
+  // click-to-expand atom detail view
+  let expanded = null, expandT = 0, detailGroup = null, hud = null;
+  const _focus = new THREE.Vector3(), _origin = new THREE.Vector3();
 
   // tuning
   const R_SPHERE = 46;       // target layout radius
@@ -147,6 +155,7 @@ import { OrbitControls } from '/static/vendor/OrbitControls.js';
     renderer.domElement.addEventListener('pointermove', onPointerMove);
     renderer.domElement.addEventListener('pointerdown', onPointerDown);
     window.addEventListener('resize', onResize);
+    window.addEventListener('keydown', (e) => { if (e.key === 'Escape') collapseDetail(); });
 
     clock = new THREE.Clock();
     buildNucleus();
@@ -202,6 +211,7 @@ import { OrbitControls } from '/static/vendor/OrbitControls.js';
       n.value = String(d.value || '').slice(0, 22);
       n.sensor = d.sensor || '';
       n.tau = tau; n.bel = bel; n.k = Number(d.k) || 0;
+      n.pl = Math.min(1, Math.max(bel, Number(d.pl) || bel));   // plausibility ≥ belief
       n.severity = d.severity || 'low';
       n.targetColor = beliefColor(bel);
       n.baseSize = 6 + Math.min(1, tau) * 16;        // 6..22 world units
@@ -360,22 +370,88 @@ import { OrbitControls } from '/static/vendor/OrbitControls.js';
     }
   }
   function onPointerDown() {
-    if (hovered) {
+    if (hovered && !hovered.isNucleus) {
       selected = hovered.id;
       // immediate blackboard feedback (live layer re-asserts within ~800ms)
       try {
-        if (!hovered.isNucleus) {
-          setTxt('focus-art', hovered.value);
-          setTxt('bel-val', (hovered.bel || 0).toFixed(3));
-          setTxt('pl-val', Math.max(hovered.bel || 0, hovered.tau || 0).toFixed(3));
-          setTxt('k-val', (hovered.k || 0).toFixed(3));
-          setTxt('sensor-div', hovered.sensor || 'swarm');
-        }
+        setTxt('focus-art', hovered.value);
+        setTxt('bel-val', (hovered.bel || 0).toFixed(3));
+        setTxt('pl-val', Math.max(hovered.bel || 0, hovered.tau || 0).toFixed(3));
+        setTxt('k-val', (hovered.k || 0).toFixed(3));
+        setTxt('sensor-div', hovered.sensor || 'swarm');
       } catch (_) {}
-    } else { selected = null; }
+      expandNode(hovered);          // ← drill into the atom
+    } else {
+      selected = hovered ? hovered.id : null;
+      collapseDetail();             // click nucleus or empty space → collapse
+    }
   }
   function setTxt(id, v) { const el = document.getElementById(id); if (el) el.textContent = v; }
   function esc(s) { return String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c])); }
+
+  // ── click-to-expand atom detail ("pull the molecule apart") ──────────────
+  function expandNode(n) {
+    if (!n || n.isNucleus) return;
+    expanded = n.id;
+    buildDetailGroup(n);
+    showDetailHud(n);
+    document.body.classList.add('holo-focus');
+  }
+  function collapseDetail() {
+    expanded = null;
+    if (hud) hud.classList.remove('open');
+    document.body.classList.remove('holo-focus');
+    // detailGroup is disposed in animate() once expandT eases to 0
+  }
+  function buildDetailGroup(n) {
+    destroyDetailGroup();
+    const g = new THREE.Group();
+    const col = beliefColor(n.bel);
+    const mk = (tex, c, op) => new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, color: c.clone(), blending: THREE.AdditiveBlending, transparent: true, depthWrite: false, opacity: op }));
+    const gauge = mk(ringTex, col, 0); gauge.renderOrder = 5; g.add(gauge);
+    const sensors = String(n.sensor || '').split(',').map((s) => s.trim()).filter(Boolean).slice(0, 8);
+    const sg = sensors.map((s) => { const sp = mk(coreTex, C.low, 0); sp.renderOrder = 6; g.add(sp); return sp; });
+    const helix = []; const HN = 18;
+    for (let i = 0; i < HN; i++) { const sp = mk(coreTex, col, 0); sp.renderOrder = 6; g.add(sp); helix.push(sp); }
+    scene.add(g);
+    detailGroup = { group: g, gauge, sensors: sg, helix, node: n };
+  }
+  function destroyDetailGroup() {
+    if (!detailGroup) return;
+    scene.remove(detailGroup.group);
+    detailGroup.group.traverse((o) => { if (o.material) o.material.dispose(); });
+    detailGroup = null;
+  }
+  function showDetailHud(n) {
+    if (!hud) {
+      hud = document.createElement('div'); hud.id = 'holo-detail'; host.appendChild(hud);
+      hud.addEventListener('click', (e) => { if (e.target.classList.contains('hd-close')) collapseDetail(); });
+    }
+    const bel = n.bel || 0, pl = (n.pl != null ? n.pl : bel), k = n.k || 0;
+    const action = k >= 0.3 ? { t: 'CONFLICT → DEBATE', c: '#ffb86c', i: '⚖' }
+      : bel >= 0.85 ? { t: 'MITIGATED', c: '#ff3864', i: '🛡' }
+      : bel >= 0.55 ? { t: 'ESCALATED', c: '#ff6b35', i: '⚠' }
+      : { t: 'OBSERVED', c: '#00d4ff', i: '👁' };
+    const sensors = String(n.sensor || '').split(',').map((s) => s.trim()).filter(Boolean);
+    const tip = (document.getElementById('merkle-tip') || {}).textContent || '—';
+    const deg = Math.round(bel * 360);
+    hud.innerHTML =
+      '<button class="hd-close">✕</button>' +
+      '<div class="hd-type">' + esc(n.type) + '</div>' +
+      '<div class="hd-val">' + esc(n.value) + '</div>' +
+      '<div class="hd-gauge" style="background:conic-gradient(var(--holo-cyan) ' + deg + 'deg, rgba(255,255,255,0.08) ' + deg + 'deg)"><span>' + (bel * 100).toFixed(0) + '<small>%</small><i>belief</i></span></div>' +
+      '<div class="hd-rows">' +
+        '<div><label>Belief (evil)</label><b>' + bel.toFixed(3) + '</b></div>' +
+        '<div><label>Plausibility</label><b>' + pl.toFixed(3) + '</b></div>' +
+        '<div><label>Conflict K</label><b>' + k.toFixed(3) + '</b></div>' +
+        '<div><label>Pheromone τ</label><b>' + (n.tau || 0).toFixed(3) + '</b></div>' +
+      '</div>' +
+      '<div class="hd-sec">CONTRIBUTING SENSORS</div>' +
+      '<div class="hd-chips">' + (sensors.length ? sensors.map((s) => '<span>' + esc(s) + '</span>').join('') : '<span class="dim">awaiting evidence</span>') + '</div>' +
+      '<div class="hd-action" style="color:' + action.c + ';border-color:' + action.c + '">' + action.i + '  ' + action.t + '</div>' +
+      '<div class="hd-hash">ledger tip · blake3:' + esc(String(tip)) + '</div>';
+    hud.classList.add('open');
+  }
 
   // ── layout physics (3-D force-directed) ──────────────────────────────────
   function step(dt) {
@@ -431,9 +507,18 @@ import { OrbitControls } from '/static/vendor/OrbitControls.js';
                                   : (1 + Math.sin(_t * 1.2 + n.pos.x) * 0.06 * Math.min(1, n.tau + 0.2));
       const size = (n.isNucleus ? 30 : n.baseSize) * n.appear * breathe;
       n.glow.position.copy(n.pos); n.core.position.copy(n.pos);
-      const gscale = size * (n.hoverBoost = (hovered === n ? 1.25 : selected === n.id ? 1.18 : 1));
+      let boost = hovered === n ? 1.25 : selected === n.id ? 1.18 : 1;
+      let dim = 1;
+      if (expandT > 0.01) {
+        if (n.id === expanded) boost *= (1 + expandT * 2.6);   // pull this atom forward
+        else dim = 1 - expandT * 0.72;                          // recede the rest
+      }
+      n.hoverBoost = boost;
+      const gscale = size * boost;
       n.glow.scale.set(gscale, gscale, 1);
-      n.core.scale.set(size * 0.42, size * 0.42, 1);
+      n.core.scale.set(size * 0.42 * boost, size * 0.42 * boost, 1);
+      n.glow.material.opacity = dim;
+      n.core.material.opacity = dim;
       // colour (with Yager two-tone oscillation when K is high)
       if (!n.isNucleus && n.targetColor) {
         if (n.k >= 0.3) {
@@ -482,6 +567,40 @@ import { OrbitControls } from '/static/vendor/OrbitControls.js';
       const contract = k < 0.4 ? (60 - (60 - cc.node.baseSize * 2.4) * (k / 0.4)) : cc.node.baseSize * 2.4;
       cc.ring.scale.set(contract, contract, 1);
       cc.ring.material.opacity = k < 0.4 ? 0.85 : 0.85 * (1 - (k - 0.4) / 0.6) * (0.6 + 0.4 * Math.sin(_t * 6));
+    }
+
+    // ── click-to-expand: drive transition, focus camera, animate sub-scene ──
+    if (expanded && !nodes.get(expanded)) collapseDetail();   // expanded node vanished
+    expandT += ((expanded ? 1 : 0) - expandT) * Math.min(1, dt * 4);
+    controls.autoRotate = !expanded;
+    const fnode = expanded ? nodes.get(expanded) : null;
+    _focus.lerp(fnode ? fnode.pos : _origin, Math.min(1, dt * 3.2));
+    controls.target.copy(_focus);
+    if (!expanded && expandT < 0.01 && detailGroup) destroyDetailGroup();
+    if (detailGroup && fnode) {
+      const base = fnode.baseSize * (1 + expandT * 2.6);
+      detailGroup.group.position.copy(fnode.pos);
+      // belief gauge ring just outside the expanded core
+      detailGroup.gauge.scale.setScalar(base * 3.0);
+      detailGroup.gauge.material.opacity = 0.45 * expandT;
+      // sensor badges orbit on a tilted ring
+      detailGroup.sensors.forEach((sp, i) => {
+        const tot = detailGroup.sensors.length;
+        const a = _t * 0.8 + (i / tot) * Math.PI * 2;
+        const R = base * 2.1;
+        sp.position.set(Math.cos(a) * R, Math.sin(a * 2) * R * 0.28, Math.sin(a) * R);
+        sp.scale.setScalar(base * 0.5 * expandT + 2);
+        sp.material.opacity = 0.95 * expandT;
+      });
+      // evidence helix wrapping the core (oldest → newest)
+      detailGroup.helix.forEach((sp, kk) => {
+        const u = kk / detailGroup.helix.length;
+        const a = _t * 0.6 + u * Math.PI * 5;
+        const R = base * 1.3;
+        sp.position.set(Math.cos(a) * R, (u - 0.5) * base * 3.4, Math.sin(a) * R);
+        sp.scale.setScalar(base * 0.16 * expandT + 1);
+        sp.material.opacity = (0.2 + u * 0.55) * expandT;
+      });
     }
 
     controls.update();
@@ -585,7 +704,12 @@ import { OrbitControls } from '/static/vendor/OrbitControls.js';
     if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', init); }
     else init();
   }
-  window.__FE_GRAPH = { boot, sync: () => { if (booted) sync(); }, onResize, get booted() { return booted; } };
+  window.__FE_GRAPH = {
+    boot, sync: () => { if (booted) sync(); }, onResize,
+    focusTop: () => { let best = null; nodes.forEach((n) => { if (!n.isNucleus && !n.dead && (!best || n.tau > best.tau)) best = n; }); if (best) { hovered = best; expandNode(best); } return best ? best.id : null; },
+    collapse: collapseDetail,
+    get booted() { return booted; }, get expanded() { return expanded; },
+  };
   window.fireConsensusRipple = function (color) { if (booted) fireRipple(color); };
 
   // live layer dispatches 'resize' every snapshot tick → refresh data too
