@@ -615,6 +615,28 @@ narrator step so the verdict is already in the ledger to show.
   ok=true; **96 passed, 1 skipped**; 3-D field + threat graph + SSE untouched.
 - Status: done
 
+### v6.1 — detail-presentation SYSTEM + MITRE multi-vector (decided before building)
+- **Research → system (match container to content, one holographic language):**
+  - *Small/contextual* (agent row, MITRE tile) → **anchored popover** near the
+    trigger (Floating-UI-style positioning), ×, scale+fade from the trigger.
+  - *Artifact* (blackboard / atom) → **right inspector flyout** (kept; the home
+    of the 3-D cross-link), made artifact-focused.
+  - *Rich forensic* (ledger entry) → **distinct wider forensic surface** (the
+    inspector in a `.forensic` mode: wider, hash-chain strip prev‹·›next,
+    walkable custody/evidence) — visibly richer than the generic detail.
+  - *Debate* → pair prosecution+defense+verdict per finding; click → popover.
+- **MITRE data question (real):** the ledger holds **13 distinct techniques**
+  across **302 threat clusters** (multi-vector), but the matrix showed only 3
+  because `techniqueCounts()` read the recent-32 window. `/api/ledger/recent`
+  caps at 200 (5 techniques there); no passwordless sudo to add+restart a backend
+  route live. **Decision = global + contextual:** client builds a session-global
+  set (recent-200 + accumulate across refreshes, so the count grows as new types
+  detect) and, when an artifact is selected, **filters** the lit tiles to that
+  artifact's techniques (different threats light different tiles) with a "show
+  all" reset. Added `/api/mitre/coverage` (full-history aggregate) to `http.py`
+  with client fallback — it activates on the next dashboard restart for the
+  complete 13-technique global view.
+
 ### Fix 3 — interactive threat graph (done)
 - The kill-chain already had pan + wheel-zoom + hover tooltip + click-select.
   Added the missing **node dragging** (grab a node → reposition it, edges follow;

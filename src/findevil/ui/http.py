@@ -87,6 +87,26 @@ async def api_ledger_recent(n: int = 32) -> JSONResponse:
     return JSONResponse(rows)
 
 
+@app.get("/api/mitre/coverage")
+async def api_mitre_coverage() -> JSONResponse:
+    """Session-global MITRE technique coverage: technique -> finding count across
+    the whole ledger. Backs the dashboard matrix's global view (the client falls
+    back to aggregating /api/ledger/recent when this route is unavailable)."""
+    r = LedgerReader()
+    try:
+        rows = await r.recent(100000)
+    finally:
+        r.close()
+    counts: dict[str, int] = {}
+    for row in rows:
+        e = row.get("entry") or {}
+        t = e.get("mitre_attack_technique")
+        for x in (t if isinstance(t, list) else ([t] if t else [])):
+            if x:
+                counts[str(x)] = counts.get(str(x), 0) + 1
+    return JSONResponse({"techniques": counts, "total_findings": len(rows)})
+
+
 @app.get("/api/attack_path")
 async def api_attack_path() -> dict:
     try:

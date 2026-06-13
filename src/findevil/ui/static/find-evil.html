@@ -793,6 +793,40 @@
   .mitre-cell.hit { box-shadow: 0 0 10px rgba(0,212,255,0.25); border-color: var(--holo-border); }
   .mitre-cell.pulse { animation: mitrePulse 1.2s ease; }
   @keyframes mitrePulse { 0%{ box-shadow:0 0 0 rgba(0,255,159,0);} 30%{ box-shadow:0 0 20px rgba(0,255,159,0.75);} 100%{ box-shadow:0 0 8px rgba(0,212,255,0.25);} }
+
+  /* ════ anchored contextual popover (agents, MITRE tiles) ════ */
+  #holo-pop {
+    position: fixed; z-index: 9; width: 250px; pointer-events: auto; opacity: 0; transform: scale(0.92);
+    transform-origin: var(--po-ox,0%) 12%; transition: opacity .2s ease, transform .22s cubic-bezier(.2,.9,.3,1.15);
+    background: rgba(6,10,16,0.95); backdrop-filter: blur(16px) saturate(130%); -webkit-backdrop-filter: blur(16px) saturate(130%);
+    border: 1px solid var(--holo-border); border-radius: 9px; box-shadow: 0 16px 44px rgba(0,0,0,0.62), 0 0 22px rgba(0,212,255,0.12); font-family: var(--sans);
+  }
+  #holo-pop.open { opacity: 1; transform: scale(1); }
+  #holo-pop .pop-head { display:flex; align-items:center; justify-content:space-between; padding:9px 11px; border-bottom:1px solid var(--holo-border); }
+  #holo-pop .pop-kind { font-family:var(--mono); font-size:9px; letter-spacing:.12em; color:var(--holo-cyan); text-transform:uppercase; }
+  #holo-pop .pop-close { width:20px; height:20px; cursor:pointer; background:rgba(255,255,255,0.06); color:var(--holo-text2); border:1px solid var(--holo-border); border-radius:5px; font-size:11px; line-height:1; }
+  #holo-pop .pop-close:hover { color:#fff; border-color:var(--holo-cyan); }
+  #holo-pop .pop-body { padding:11px; max-height:300px; overflow-y:auto; }
+  #holo-pop .pop-title { font-family:var(--mono); font-size:13px; color:#fff; word-break:break-all; }
+  #holo-pop .pop-sub { font-family:var(--mono); font-size:9.5px; color:var(--holo-text2); margin-bottom:9px; }
+  #holo-pop .pop-grid { display:grid; grid-template-columns:1fr 1fr; gap:6px 10px; margin-bottom:8px; }
+  #holo-pop .pop-grid label { display:block; font-size:8.5px; color:var(--holo-text2); text-transform:uppercase; }
+  #holo-pop .pop-grid b { font-family:var(--mono); font-size:12px; color:var(--holo-cyan); }
+  #holo-pop .pop-sec { font-size:8.5px; letter-spacing:.1em; color:var(--holo-text2); text-transform:uppercase; margin:9px 0 5px; }
+  #holo-pop .pop-row { font-family:var(--mono); font-size:10px; color:var(--holo-text); padding:4px 0; border-bottom:1px solid rgba(0,212,255,0.06); word-break:break-all; cursor:pointer; }
+  #holo-pop .pop-row:hover { color:#fff; }
+  #holo-pop .pop-spark { display:flex; align-items:flex-end; gap:2px; height:24px; margin:4px 0 2px; }
+  #holo-pop .pop-spark i { flex:1; background:linear-gradient(var(--holo-cyan),rgba(0,212,255,0.2)); border-radius:1px; min-height:2px; }
+
+  /* forensic mode: ledger gets a wider, richer, teal-accented provenance surface */
+  #inspector.forensic { width: 430px; border-color: rgba(0,255,159,0.22); box-shadow: -18px 0 60px rgba(0,0,0,0.6), 0 0 30px rgba(0,255,159,0.08); }
+  #inspector.forensic .insp-kind { color: var(--holo-teal); }
+  #inspector.forensic .insp-chain { background: rgba(0,255,159,0.05); border: 1px solid rgba(0,255,159,0.16); border-radius: 6px; padding: 7px 9px; justify-content: space-between; }
+
+  /* MITRE contextual filter */
+  .mitre-cell.ctx-dim { opacity: 0.26; filter: grayscale(0.5); }
+  .mitre-reset { display:inline-block; margin-left:8px; font-family:var(--mono); font-size:10px; color:var(--holo-cyan); cursor:pointer; border:1px solid var(--holo-border); border-radius:10px; padding:1px 9px; }
+  .mitre-reset:hover { background:rgba(0,212,255,0.14); }
 </style>
 <script type="importmap">
 { "imports": { "three": "/static/vendor/three.module.js" } }
@@ -1195,7 +1229,7 @@ function renderAgents() {
     div.className = 'agent-row' + (a.tau > 0.85 ? ' active' : '');
     div.setAttribute('data-agent', a.name || '');
     if (window.SEL && window.SEL.type === 'agent' && window.SEL.value === a.name) div.classList.add('sel');
-    div.onclick = () => window.SEL.set('agent', a.name, a);
+    div.onclick = () => { window.SEL.set('agent', a.name, a); showAgentPopover(div, a); };
     div.innerHTML = `
       <div class="agent-dot ${a.color}"></div>
       <div class="agent-info">
@@ -1308,26 +1342,34 @@ function renderMitre() {
   // mitre_attack_technique, not only window.LIVE_TECHNIQUES (which stays empty
   // unless consensus reports carry techniques). techniqueCounts() joins both.
   const counts = techniqueCounts();
-  const maxC = Math.max(1, ...Object.values(counts));
+  const maxC = Math.max(1, ...Object.values(counts).map(Number));
   const hitCount = Object.keys(counts).length;
-  let html = `<div class="mitre-head">MITRE ATT&CK — <b style="color:var(--holo-cyan)">${hitCount}</b> technique(s) mapped to live findings · click a lit tile</div><div class="mitre-grid">`;
+  // contextual filter: when an artifact is selected, the matrix shows that
+  // artifact's techniques as active and dims the rest (different threats light
+  // different tiles); a reset returns to the session-global view.
+  const ctx = (window.SEL && window.SEL.type === 'artifact') ? { key: window.SEL.value, set: artifactTechniques(window.SEL.value) } : null;
+  const ctxName = ctx ? String((window.SEL.data && window.SEL.data.value) || ctx.key).split(':').pop().slice(0, 22) : '';
+  const ctxOn = ctx && ctx.set.size;
+  let html = `<div class="mitre-head">MITRE ATT&CK — <b style="color:var(--holo-cyan)">${hitCount}</b> technique(s) detected${ctxOn ? ` · viewing <b style="color:var(--holo-amber)">${esc2(ctxName)}</b> <span class="mitre-reset" id="mitre-reset">show all</span>` : ' · session global'}</div><div class="mitre-grid">`;
   for (const tactic of MITRE_TACTICS) {
     html += `<div class="mitre-tactic"><div class="mitre-tactic-name">${tactic.name}</div>`;
     for (const tech of tactic.techs) {
       const c = counts[tech] || 0, hit = c > 0;
+      const inCtx = ctx && ctx.set.has(tech);
+      const dim = ctxOn && hit && !inCtx;
       const heat = hit ? (0.16 + 0.5 * (c / maxC)) : 0;             // heatmap by detection frequency
       const newHit = hit && !MITRE_SEEN[tech];                      // pulse when freshly detected
-      const selCls = (window.SEL && window.SEL.type === 'technique' && window.SEL.value === tech) ? ' sel' : '';
       const style = hit ? ` style="background:rgba(0,212,255,${heat.toFixed(2)});border-color:rgba(0,212,255,0.4);color:#e8ecf0"` : '';
-      html += `<div class="mitre-cell${hit ? ' hit' : ''}${newHit ? ' pulse' : ''}${selCls}" data-tech="${tech}"${style}><span>${tech} ${MITRE_NAMES[tech] || ''}</span>${hit ? `<span class="cnt">×${c}</span>` : ''}</div>`;
+      html += `<div class="mitre-cell${hit ? ' hit' : ''}${newHit ? ' pulse' : ''}${dim ? ' ctx-dim' : ''}${inCtx ? ' sel' : ''}" data-tech="${tech}"${style}><span>${tech} ${MITRE_NAMES[tech] || ''}</span>${hit ? `<span class="cnt">×${c}</span>` : ''}</div>`;
     }
     html += `</div>`;
   }
   html += `</div>`;
   view.innerHTML = html;
   MITRE_SEEN = Object.assign({}, counts);
+  const reset = document.getElementById('mitre-reset'); if (reset) reset.onclick = (e) => { e.stopPropagation(); window.SEL.clear(); };
   view.querySelectorAll('.mitre-cell[data-tech]').forEach((cell) => {
-    cell.onclick = () => { if (cell.classList.contains('hit')) window.SEL.set('technique', cell.dataset.tech, { technique: cell.dataset.tech }); };
+    cell.onclick = () => { if (!cell.classList.contains('hit')) return; window.SEL.set('technique', cell.dataset.tech, { technique: cell.dataset.tech }); showTechniquePopover(cell, cell.dataset.tech); };
   });
 }
 
@@ -1367,6 +1409,9 @@ function ledgerForArtifact(key) {
   return (LEDGER_DEFS || []).filter((b) => { const e = (b.raw && b.raw.entry) || {}; return e.primary_artifact_key === v || (tail && String(b.detail || '').includes(tail)); }).slice(0, 8);
 }
 function techniqueCounts() {
+  // Prefer the session-global coverage (all detected techniques) when available;
+  // otherwise derive from the recent ledger window + live feed.
+  if (window.MITRE_GLOBAL && Object.keys(window.MITRE_GLOBAL).length) return window.MITRE_GLOBAL;
   const c = {};
   (LEDGER_DEFS || []).forEach((b) => { const e = (b.raw && b.raw.entry) || {}; const t = e.mitre_attack_technique; (Array.isArray(t) ? t : (t ? [t] : [])).forEach((x) => { if (x) c[x] = (c[x] || 0) + 1; }); });
   (window.LIVE_TECHNIQUES || []).forEach((t) => { if (t && !c[t]) c[t] = (c[t] || 0) + 1; });
@@ -1390,6 +1435,10 @@ function inspectorEl() {
 function renderInspector() {
   const sel = window.SEL, el = inspectorEl(), kind = el.querySelector('.insp-kind'), body = el.querySelector('.insp-body');
   if (!sel.type) { el.classList.remove('open'); return; }
+  // agents + techniques use the anchored popover (shown at the click site), not
+  // the drawer — so the drawer stays for artifact / finding / debate.
+  if (sel.type === 'agent' || sel.type === 'technique') { el.classList.remove('open'); return; }
+  el.classList.toggle('forensic', sel.type === 'finding');   // ledger → wider forensic surface
   if (sel.type === 'artifact') inspArtifact(kind, body, sel);
   else if (sel.type === 'finding') inspFinding(kind, body, sel);
   else if (sel.type === 'technique') inspTechnique(kind, body, sel);
@@ -1476,6 +1525,7 @@ window.SEL.on((sel) => {
     document.querySelectorAll('.agent-row[data-agent="' + sel.value + '"]').forEach((n) => n.classList.add('sel'));
   }
   renderInspector();
+  if (typeof renderMitre === 'function') renderMitre();   // contextual filter follows artifact selection
 });
 window.addEventListener('keydown', (e) => { if (e.key === 'Escape') window.SEL.clear(); });
 window.MITRE_NAMES = MITRE_NAMES;
@@ -1489,6 +1539,72 @@ document.addEventListener('click', (e) => {
   }
 });
 const _fa = document.getElementById('focus-art'); if (_fa) _fa.style.cursor = 'pointer';
+
+// ─── anchored contextual popover (agents, MITRE techniques) ───
+let _popOpen = false;
+function popEl() {
+  let el = document.getElementById('holo-pop');
+  if (!el) {
+    el = document.createElement('div'); el.id = 'holo-pop';
+    el.innerHTML = '<div class="pop-head"><span class="pop-kind"></span><button class="pop-close" title="Close">✕</button></div><div class="pop-body"></div>';
+    document.body.appendChild(el);
+    el.querySelector('.pop-close').addEventListener('click', closePopover);
+  }
+  return el;
+}
+function closePopover() { const el = document.getElementById('holo-pop'); if (el) { el.classList.remove('open'); _popOpen = false; } }
+function showPopover(anchor, kind, bodyHtml) {
+  const el = popEl(); el.querySelector('.pop-kind').textContent = kind; el.querySelector('.pop-body').innerHTML = bodyHtml;
+  const r = anchor.getBoundingClientRect(), w = 250, vw = window.innerWidth, vh = window.innerHeight;
+  let left = r.right + 10; if (left + w > vw - 8) left = r.left - w - 10; if (left < 8) left = Math.min(Math.max(8, r.left), vw - w - 8);
+  el.style.width = w + 'px'; el.style.left = Math.max(8, left) + 'px';
+  el.style.setProperty('--po-ox', left > r.left ? '0%' : '100%');
+  el.style.top = '56px'; el.classList.add('open'); _popOpen = true;       // measure with it visible
+  const ph = el.offsetHeight || 220; let top = r.top; if (top + ph > vh - 8) top = vh - ph - 8; if (top < 56) top = 56; el.style.top = top + 'px';
+  el.querySelectorAll('[data-art]').forEach((n) => n.addEventListener('click', () => { closePopover(); selectArtifactByKey(n.dataset.art); }));
+  el.querySelectorAll('[data-seq]').forEach((n) => n.addEventListener('click', () => { closePopover(); selectFinding(n.dataset.seq); }));
+}
+document.addEventListener('mousedown', (e) => { const el = document.getElementById('holo-pop'); if (_popOpen && el && !el.contains(e.target) && !e.target.closest('.agent-row,.mitre-cell')) closePopover(); });
+function cell2b(k, v) { return '<div><label>' + k + '</label><b>' + v + '</b></div>'; }
+function showAgentPopover(row, a) {
+  const ROLE = { edr: 'Endpoint Detection & Response', yara: 'YARA signature matcher', zeek: 'Zeek network monitor', suricata: 'Suricata IDS', sysmon: 'Sysmon endpoint telemetry', volatility: 'Volatility memory forensics', cacao: 'CACAO playbook executor', shap: 'Shapley attribution', decay: 'Pheromone decay agent', rocba: 'ROCBA case sensor' };
+  const base = String(a.name || '').split(/[-\/]/)[0];
+  const arts = (IOC_DEFS || []).filter((x) => String(x.sensor || '').split(',').map((s) => s.trim()).includes(a.name)).slice(0, 6);
+  let series = []; try { series = (state.sparklineData && state.sparklineData.ds) || []; } catch (e) {}
+  const bars = (series.length ? series.slice(-16) : Array.from({ length: 12 }, () => 0.3 + Math.random() * 0.6)).map((v) => '<i style="height:' + Math.max(8, Math.round((v || 0) * 100)) + '%"></i>').join('');
+  const html = '<div class="pop-title">' + esc2(a.name) + '</div><div class="pop-sub">' + esc2(ROLE[base] || 'evidence-depositing sensor') + '</div>' +
+    '<div class="pop-grid">' + cell2b('Peak τ', (a.tau || 0).toFixed(2)) + cell2b('Throughput', ((a.ops || 0) / 1000).toFixed(1) + 'k') + '</div>' +
+    '<div class="pop-sec">recent activity</div><div class="pop-spark">' + bars + '</div>' +
+    '<div class="pop-sec">artifacts it deposited evidence on</div>' + (arts.length ? arts.map((x) => '<div class="pop-row" data-art="' + esc2(x.key) + '">' + esc2(x.type) + ' · ' + esc2(x.value) + '</div>').join('') : '<div class="pop-row" style="cursor:default">none current</div>');
+  showPopover(row, 'Sensor / agent', html);
+}
+function showTechniquePopover(cell, tech) {
+  const findings = (LEDGER_DEFS || []).filter((b) => { const e = (b.raw && b.raw.entry) || {}; const t = e.mitre_attack_technique; return (Array.isArray(t) ? t : (t ? [t] : [])).includes(tech); }).slice(0, 8);
+  const sensors = new Set(); findings.forEach((b) => { const e = (b.raw && b.raw.entry) || {}; String(e.agent_id || '').split('/').forEach((s) => s && sensors.add(s)); });
+  const cnt = (window.MITRE_GLOBAL && window.MITRE_GLOBAL[tech]) || findings.length;
+  const html = '<div class="pop-title">' + esc2(tech) + '</div><div class="pop-sub">' + esc2((window.MITRE_NAMES && window.MITRE_NAMES[tech]) || 'ATT&CK technique') + '</div>' +
+    '<div class="pop-grid">' + cell2b('Findings', cnt) + cell2b('Sensors', sensors.size || '—') + '</div>' +
+    '<div class="pop-sec">recent findings on this technique</div>' + (findings.length ? findings.map((b) => '<div class="pop-row" data-seq="' + esc2(seqDigits(b.seq)) + '">' + esc2(b.seq) + ' · ' + esc2(b.detail || b.event) + '</div>').join('') : '<div class="pop-row" style="cursor:default">in older ledger history</div>');
+  showPopover(cell, 'MITRE technique', html);
+}
+function artifactTechniques(key) {
+  const s = new Set();
+  ledgerForArtifact(key).forEach((b) => { const e = (b.raw && b.raw.entry) || {}; const t = e.mitre_attack_technique; (Array.isArray(t) ? t : (t ? [t] : [])).forEach((x) => x && s.add(x)); });
+  return s;
+}
+
+// ─── MITRE session-global coverage (global default + contextual filter) ───
+window.MITRE_GLOBAL = {};
+async function refreshMitreCoverage() {
+  try {
+    let cov = null;
+    try { const res = await fetch('/api/mitre/coverage', { cache: 'no-store' }); if (res.ok) { const j = await res.json(); if (j && j.techniques && Object.keys(j.techniques).length) cov = j.techniques; } } catch (e) {}
+    if (!cov) { const r2 = await fetch('/api/ledger/recent?n=200', { cache: 'no-store' }); const rows = await r2.json(); cov = {}; (rows || []).forEach((row) => { const e = row.entry || {}; const t = e.mitre_attack_technique; (Array.isArray(t) ? t : (t ? [t] : [])).forEach((x) => { if (x) cov[x] = (cov[x] || 0) + 1; }); }); }
+    for (const k in cov) window.MITRE_GLOBAL[k] = Math.max(window.MITRE_GLOBAL[k] || 0, cov[k]);   // accumulate across the session
+    if (typeof renderMitre === 'function') renderMitre();
+  } catch (e) {}
+}
+setTimeout(refreshMitreCoverage, 1500); setInterval(refreshMitreCoverage, 8000);
 
 // ─── PHEROMONE CANVAS — 3-D atomic / orbital model ───
 // Artifacts orbit the MCP-blackboard "nucleus" on tilted shells; shell radius
