@@ -478,3 +478,31 @@ narrator step so the verdict is already in the ledger to show.
   overlapping pairs**, **0 churn over 600 ms** (stable set = no flicker), MCP
   BLACKBOARD present and no longer colliding, zero console errors.
 - Status: done
+
+### Fix 3 — professional animated threat graph (done)
+- **Research:** professional attack-chain tools (CrowdStrike Threat Graph, MITRE
+  ATT&CK matrices) lay the narrative out as **tactic columns with left→right
+  kill-chain progression**, not a random force layout. Chose **Canvas 2-D**
+  (Option A-style, consistent with the field, no new deps, fully controllable
+  /verifiable) over 3d-force-graph/React Flow.
+- **Approach:** rewrote `initThreatGraphCanvas` as a tactic-ordered DAG: nodes
+  placed in columns by ATT&CK tactic (Initial Access → … → Impact), typed
+  shapes (process=rounded-rect, file/malware=hex, network=circle, registry=notch,
+  c2=triangle) coloured by severity, belief-arc rings, action badges
+  (🛡/⚠/🔍/👁), MITRE pills that turn green when the technique is in
+  `window.LIVE_TECHNIQUES`. Typed edges (spawn/file/net/c2/lateral) with
+  **flowing particles** in attack direction, arrowheads, 2.5-D drop-shadow depth
+  with the **critical path raised**. A holographic **timeline scrubber**
+  (play/pause + drag) reveals the chain step by step; pan (drag) + wheel-zoom.
+- **Bug found + fixed:** nodes used a `dt`-based materialise fade; on the very
+  first frame `dt≈0` left `appear≈0` so nodes were invisible (and the preview
+  tab is `document.hidden` → `requestAnimationFrame` paused, so the loop never
+  advanced). Fixed by initialising `appear` to the revealed state in `layout()`
+  (dt-independent) — static view draws fully on frame 1; fade only animates new
+  reveals during scrubbing.
+- **Verify (headless @ :9400, synchronous frame):** 35.8k lit px, ~23k red
+  (critical chain), cyan headers, white labels, content spans full width
+  (columns left→right), step 10/10, scrubber + play present, zero console
+  errors; pheromone field still booted. (Particle flow + autoplay are
+  rAF-driven → animate in a visible browser.)
+- Status: done

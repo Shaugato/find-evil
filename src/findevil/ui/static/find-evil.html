@@ -1592,158 +1592,312 @@ function initPheromoneCanvas() {
 }
 
 // ─── THREAT GRAPH CANVAS (3D Force-Directed) ───
+// ─── THREAT GRAPH — tactic-ordered kill-chain (2.5-D, animated, scrubbable) ───
+// Reconstructs the attack narrative the platform detected as a left→right walk
+// across ATT&CK tactic columns; nodes are typed artifacts, edges are causal
+// links with flowing particles, the critical path is raised, and a timeline
+// scrubber replays the chain step by step. Canvas 2-D, holographic palette.
 function initThreatGraphCanvas() {
   const canvas = document.getElementById('threat-graph-canvas');
   const ctx = canvas.getContext('2d');
-  let W, H;
-  
-  const graphNodes = [
-    { id: 0, label: 'ATTACKER C2', x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, type: 'c2', severity: 'critical' },
-    { id: 1, label: '192.168.1.47', x: 1, y: 0, z: 0.5, vx: 0, vy: 0, vz: 0, type: 'ip', severity: 'critical' },
-    { id: 2, label: 'PID 4821', x: 0.5, y: 1, z: 0, vx: 0, vy: 0, vz: 0, type: 'proc', severity: 'critical' },
-    { id: 3, label: 'Meterpreter', x: -0.5, y: 0.5, z: 0.8, vx: 0, vy: 0, vz: 0, type: 'malware', severity: 'critical' },
-    { id: 4, label: 'mscoree32.dll', x: -1, y: -0.5, z: 0.3, vx: 0, vy: 0, vz: 0, type: 'dll', severity: 'high' },
-    { id: 5, label: 'HKLM\\Run', x: 0, y: -1, z: -0.5, vx: 0, vy: 0, vz: 0, type: 'persist', severity: 'high' },
-    { id: 6, label: '10.0.0.221', x: 1.2, y: -0.8, z: 0, vx: 0, vy: 0, vz: 0, type: 'ip', severity: 'high' },
-    { id: 7, label: 'svchost.exe', x: 0.8, y: 0.8, z: -0.8, vx: 0, vy: 0, vz: 0, type: 'proc', severity: 'medium' },
-    { id: 8, label: 'msn-cdn.net', x: -0.8, y: 0.2, z: -0.9, vx: 0, vy: 0, vz: 0, type: 'domain', severity: 'high' },
-    { id: 9, label: 'PORT 4444', x: 1.5, y: 0.3, z: 0.4, vx: 0, vy: 0, vz: 0, type: 'port', severity: 'critical' },
+  let W = 0, H = 0;
+
+  // tactic columns (kill-chain order, left → right)
+  const TACTICS = ['Initial Access', 'Execution', 'Defense Evasion', 'Credential Access', 'Persistence', 'Command & Control', 'Lateral Movement', 'Impact'];
+  const TI = {}; TACTICS.forEach((t, i) => (TI[t] = i));
+
+  const SEVCOL = { critical: '255,56,100', high: '255,184,108', medium: '0,212,255', low: '0,255,159' };
+
+  // attack narrative (the detected encoded-PowerShell → Meterpreter chain).
+  // t = timeline step (scrubber); crit = on the primary kill-chain.
+  const N = [
+    { id: 'n0', tactic: 'Initial Access',    type: 'network',  shape: 'circle', label: 'msn-cdn.net',        sev: 'high',     t: 0, mitre: 'T1189', conf: 0.72, sensors: 'Zeek, Suricata', crit: true,  action: 'observed' },
+    { id: 'n1', tactic: 'Execution',         type: 'process',  shape: 'rrect',  label: 'powershell.exe -enc', sev: 'critical', t: 1, mitre: 'T1059.001', conf: 0.93, sensors: 'EDR, AMSI, Sysmon', crit: true, action: 'escalated' },
+    { id: 'n2', tactic: 'Defense Evasion',   type: 'process',  shape: 'rrect',  label: 'svchost.exe ⟵inject', sev: 'critical', t: 2, mitre: 'T1055', conf: 0.88, sensors: 'Sysmon, EDR', crit: true,  action: 'escalated' },
+    { id: 'n3', tactic: 'Defense Evasion',   type: 'file',     shape: 'hex',    label: 'mscoree32.dll',      sev: 'high',     t: 3, mitre: 'T1574', conf: 0.79, sensors: 'YARA, EDR', crit: false, action: 'triage' },
+    { id: 'n4', tactic: 'Credential Access', type: 'process',  shape: 'rrect',  label: 'lsass.exe ⟵dump',    sev: 'critical', t: 4, mitre: 'T1003.001', conf: 0.84, sensors: 'EDR, Volatility', crit: false, action: 'escalated' },
+    { id: 'n5', tactic: 'Persistence',       type: 'registry', shape: 'notch',  label: 'HKLM\\…\\Run',        sev: 'high',     t: 5, mitre: 'T1547.001', conf: 0.76, sensors: 'Sysmon, EDR', crit: false, action: 'triage' },
+    { id: 'n6', tactic: 'Command & Control', type: 'network',  shape: 'circle', label: '192.168.1.47:4444',  sev: 'critical', t: 6, mitre: 'T1571', conf: 0.95, sensors: 'Suricata, Zeek, EDR', crit: true, action: 'mitigated' },
+    { id: 'n7', tactic: 'Command & Control', type: 'malware',  shape: 'hex',    label: 'Meterpreter',        sev: 'critical', t: 6, mitre: 'T1219', conf: 0.97, sensors: 'YARA', crit: true,  action: 'mitigated' },
+    { id: 'n8', tactic: 'Lateral Movement',  type: 'network',  shape: 'circle', label: '10.0.0.221',         sev: 'high',     t: 7, mitre: 'T1021.002', conf: 0.68, sensors: 'Zeek, EDR', crit: false, action: 'triage' },
+    { id: 'n9', tactic: 'Impact',            type: 'c2',       shape: 'tri',    label: 'Attacker C2 exfil',  sev: 'critical', t: 8, mitre: 'T1041', conf: 0.90, sensors: 'Suricata', crit: true,  action: 'escalated' },
   ];
-  
-  const graphEdges = [
-    { src: 0, dst: 1, label: 'C2 beacon', strength: 0.9 },
-    { src: 1, dst: 2, label: 'injects', strength: 0.8 },
-    { src: 2, dst: 3, label: 'hosts', strength: 0.95 },
-    { src: 3, dst: 4, label: 'loads', strength: 0.7 },
-    { src: 3, dst: 5, label: 'persists via', strength: 0.75 },
-    { src: 2, dst: 7, label: 'spawned from', strength: 0.6 },
-    { src: 1, dst: 6, label: 'lateral move', strength: 0.5 },
-    { src: 0, dst: 8, label: 'fronts via', strength: 0.6 },
-    { src: 1, dst: 9, label: 'listens on', strength: 0.85 },
-    { src: 9, dst: 0, label: 'tunnels to', strength: 0.88 },
+  const byId = {}; N.forEach((n) => (byId[n.id] = n));
+  // edges: kind ∈ spawn|file|net|c2|lateral|persist
+  const E = [
+    { s: 'n0', d: 'n1', kind: 'spawn',   label: 'drive-by exec' },
+    { s: 'n1', d: 'n2', kind: 'spawn',   label: 'injects' },
+    { s: 'n2', d: 'n3', kind: 'file',    label: 'side-loads' },
+    { s: 'n2', d: 'n4', kind: 'spawn',   label: 'accesses' },
+    { s: 'n2', d: 'n5', kind: 'persist', label: 'persists via' },
+    { s: 'n2', d: 'n6', kind: 'c2',      label: 'beacons' },
+    { s: 'n6', d: 'n7', kind: 'file',    label: 'stages' },
+    { s: 'n6', d: 'n8', kind: 'lateral', label: 'pivots' },
+    { s: 'n7', d: 'n9', kind: 'c2',      label: 'exfil' },
   ];
-  
-  let rotX = 0.3, rotY = 0, rotZ = 0;
-  let dragging = false, lastMX = 0, lastMY = 0;
-  
-  canvas.addEventListener('mousedown', e => { dragging = true; lastMX = e.clientX; lastMY = e.clientY; });
-  canvas.addEventListener('mousemove', e => {
-    if (!dragging) return;
-    rotY += (e.clientX - lastMX) * 0.005;
-    rotX += (e.clientY - lastMY) * 0.005;
-    lastMX = e.clientX; lastMY = e.clientY;
-  });
-  canvas.addEventListener('mouseup', () => dragging = false);
-  
-  function project(x, y, z) {
-    // Rotate
-    const cosX = Math.cos(rotX), sinX = Math.sin(rotX);
-    const cosY = Math.cos(rotY), sinY = Math.sin(rotY);
-    
-    let nx = x * cosY - z * sinY;
-    let nz = x * sinY + z * cosY;
-    let ny = y * cosX - nz * sinX;
-    nz = y * sinX + nz * cosX;
-    
-    const scale = 180;
-    const persp = 3 / (3 + nz * 0.5);
-    return { x: W/2 + nx * scale * persp, y: H/2 + ny * scale * persp, z: nz, persp };
+  const maxT = N.reduce((m, n) => Math.max(m, n.t), 0);
+
+  // view transform (pan/zoom about centre) + timeline
+  let zoom = 1, panX = 0, panY = 0;
+  let cur = maxT + 0.5;          // current scrubber time (start fully revealed)
+  let playing = false, dragScrub = false;
+  let dragView = false, lastX = 0, lastY = 0;
+  let hover = null, selected = null, mouse = { x: -1, y: -1 };
+  let tprev = performance.now();
+
+  // ── holographic control bar (play + scrubber), injected once ──
+  const wrap = canvas.parentElement;
+  let bar = wrap.querySelector('.tg-bar');
+  if (!bar) {
+    bar = document.createElement('div'); bar.className = 'tg-bar';
+    bar.style.cssText = 'position:absolute;left:16px;right:16px;bottom:14px;z-index:3;display:flex;align-items:center;gap:12px;padding:9px 13px;background:rgba(8,12,20,0.72);backdrop-filter:blur(10px);border:1px solid rgba(0,212,255,0.18);border-radius:8px;font-family:var(--mono);font-size:11px;color:#e8ecf0;pointer-events:auto;';
+    bar.innerHTML =
+      '<button class="tg-play" style="cursor:pointer;background:rgba(0,212,255,0.12);color:#00d4ff;border:1px solid rgba(0,212,255,0.4);border-radius:5px;width:30px;height:26px;font-size:12px;">▶</button>' +
+      '<span class="tg-phase" style="min-width:150px;color:#00d4ff;letter-spacing:0.04em;">REPLAY ATTACK CHAIN</span>' +
+      '<input class="tg-range" type="range" min="0" max="1000" value="1000" style="flex:1;accent-color:#00d4ff;cursor:pointer;">' +
+      '<span class="tg-step" style="min-width:96px;text-align:right;color:#7a8899;">step 9 / 9</span>';
+    wrap.appendChild(bar);
+    const playBtn = bar.querySelector('.tg-play');
+    const range = bar.querySelector('.tg-range');
+    playBtn.addEventListener('click', () => {
+      playing = !playing;
+      if (playing && cur >= maxT + 0.5) cur = 0;   // replay from start
+      playBtn.textContent = playing ? '❚❚' : '▶';
+    });
+    range.addEventListener('input', () => {
+      dragScrub = true; playing = false; playBtn.textContent = '▶';
+      cur = (range.value / 1000) * (maxT + 0.5);
+    });
+    range.addEventListener('change', () => { dragScrub = false; });
+    bar._range = range; bar._phase = bar.querySelector('.tg-phase'); bar._step = bar.querySelector('.tg-step'); bar._play = playBtn;
   }
-  
+
+  // ── layout: x by tactic column, y stacked within column ──
+  function layout() {
+    const padX = 96, padTop = 64, padBot = 88;
+    const usableTactics = TACTICS.filter((t) => N.some((n) => n.tactic === t));
+    const colX = {};
+    usableTactics.forEach((t, i) => { colX[t] = padX + (usableTactics.length === 1 ? 0 : i * (W - padX * 2) / (usableTactics.length - 1)); });
+    const colCount = {};
+    N.forEach((n) => { colCount[n.tactic] = (colCount[n.tactic] || 0); });
+    const colIdx = {};
+    N.forEach((n) => {
+      const total = N.filter((m) => m.tactic === n.tactic).length;
+      const k = (colIdx[n.tactic] = (colIdx[n.tactic] || 0));
+      colIdx[n.tactic] = k + 1;
+      const span = H - padTop - padBot;
+      n.lx = colX[n.tactic];
+      n.ly = padTop + (total === 1 ? span * 0.5 : (span * 0.32 + k * span * 0.42));
+      // Initialise to the revealed state (dt-independent) so the static view is
+      // fully drawn on frame 1; the materialise fade only animates new reveals
+      // during scrubber playback.
+      if (n.appear === undefined) n.appear = (n.t <= cur) ? 1 : 0;
+    });
+    window.__TG_cols = usableTactics.map((t) => ({ t, x: colX[t] }));
+  }
+
   function resize() {
     W = canvas.width = canvas.offsetWidth;
     H = canvas.height = canvas.offsetHeight;
+    layout();
   }
-  
+
+  const toScreen = (lx, ly) => ({ x: (lx - W / 2) * zoom + W / 2 + panX, y: (ly - H / 2) * zoom + H / 2 + panY });
+  const toWorld = (sx, sy) => ({ x: (sx - W / 2 - panX) / zoom + W / 2, y: (sy - H / 2 - panY) / zoom + H / 2 });
+
+  // ── interaction ──
+  canvas.addEventListener('mousedown', (e) => { dragView = true; lastX = e.offsetX; lastY = e.offsetY; });
+  window.addEventListener('mouseup', () => { dragView = false; });
+  canvas.addEventListener('mousemove', (e) => {
+    mouse.x = e.offsetX; mouse.y = e.offsetY;
+    if (dragView) { panX += e.offsetX - lastX; panY += e.offsetY - lastY; lastX = e.offsetX; lastY = e.offsetY; }
+  });
+  canvas.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const f = e.deltaY < 0 ? 1.1 : 1 / 1.1;
+    zoom = Math.max(0.5, Math.min(2.4, zoom * f));
+  }, { passive: false });
+  canvas.addEventListener('click', () => { selected = hover ? hover.id : null; });
+  canvas.style.cursor = 'grab';
+
+  function nodeRadius(n) { return (n.crit ? 26 : 21) * (0.86 + n.conf * 0.3); }
+
+  function drawShape(shape, x, y, r, fill, stroke, lw) {
+    ctx.beginPath();
+    if (shape === 'circle') { ctx.arc(x, y, r, 0, Math.PI * 2); }
+    else if (shape === 'rrect') { const w = r * 2.3, h = r * 1.5, rr = 7; rrect(x - w / 2, y - h / 2, w, h, rr); }
+    else if (shape === 'hex') { for (let i = 0; i < 6; i++) { const a = Math.PI / 6 + i * Math.PI / 3; const px = x + Math.cos(a) * r, py = y + Math.sin(a) * r; i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); } ctx.closePath(); }
+    else if (shape === 'notch') { const w = r * 2.1, h = r * 1.5; ctx.moveTo(x - w / 2, y - h / 2); ctx.lineTo(x + w / 2 - 7, y - h / 2); ctx.lineTo(x + w / 2, y - h / 2 + 7); ctx.lineTo(x + w / 2, y + h / 2); ctx.lineTo(x - w / 2, y + h / 2); ctx.closePath(); }
+    else if (shape === 'tri') { ctx.moveTo(x, y - r); ctx.lineTo(x + r, y + r * 0.8); ctx.lineTo(x - r, y + r * 0.8); ctx.closePath(); }
+    else { ctx.arc(x, y, r, 0, Math.PI * 2); }
+    if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+    if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.5; ctx.stroke(); }
+  }
+  function rrect(x, y, w, h, r) { ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+  const ACTION = { mitigated: '🛡', escalated: '⚠', triage: '🔍', observed: '👁' };
+
+  let t = 0;
   function draw() {
     if (state.activeView !== 'graph') { requestAnimationFrame(draw); return; }
+    const now = performance.now(); const dt = Math.min(0.05, (now - tprev) / 1000); tprev = now;
+    t += dt;
+    if (playing && !dragScrub) { cur += dt * 0.9; if (cur > maxT + 0.8) { cur = maxT + 0.5; playing = false; if (bar) bar._play.textContent = '▶'; } }
+
     ctx.clearRect(0, 0, W, H);
-    
-    if (!dragging) { rotY += 0.003; }
-    
-    // Project all nodes
-    const projected = graphNodes.map(n => ({
-      ...n,
-      ...project(n.x, n.y, n.z)
-    }));
-    
-    // Sort by z depth
-    projected.sort((a, b) => a.z - b.z);
-    
-    // Draw edges
-    graphEdges.forEach(e => {
-      const src = projected.find(n => n.id === e.src);
-      const dst = projected.find(n => n.id === e.dst);
-      const col = src.severity === 'critical' ? '255,56,100' : src.severity === 'high' ? '255,184,108' : '137,221,255';
-      const grad = ctx.createLinearGradient(src.x, src.y, dst.x, dst.y);
-      grad.addColorStop(0, `rgba(${col},${e.strength * 0.5})`);
-      grad.addColorStop(1, `rgba(${col},${e.strength * 0.1})`);
-      ctx.beginPath();
-      ctx.strokeStyle = grad;
-      ctx.lineWidth = e.strength * 2;
-      ctx.moveTo(src.x, src.y);
-      ctx.lineTo(dst.x, dst.y);
-      ctx.stroke();
-      
-      // Arrow
-      const angle = Math.atan2(dst.y - src.y, dst.x - src.x);
-      const mx = (src.x + dst.x) / 2;
-      const my = (src.y + dst.y) / 2;
+    // subtle backdrop grid
+    ctx.strokeStyle = 'rgba(0,212,255,0.04)'; ctx.lineWidth = 1;
+    for (let gx = 0; gx < W; gx += 48) { ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, H); ctx.stroke(); }
+
+    // tactic column headers + lanes
+    const cols = window.__TG_cols || [];
+    ctx.textAlign = 'center';
+    cols.forEach((c, i) => {
+      const s = toScreen(c.x, 0);
+      ctx.strokeStyle = 'rgba(0,212,255,0.07)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(s.x, 24); ctx.lineTo(s.x, H - 70); ctx.stroke();
+      ctx.font = '10px Inter, sans-serif'; ctx.fillStyle = 'rgba(0,212,255,0.55)';
+      ctx.fillText((i + 1) + '. ' + c.t.toUpperCase(), s.x, 22);
+    });
+
+    // hover hit-test (screen space)
+    hover = null;
+    for (const n of N) {
+      if (n.appear < 0.4) continue;
+      const s = toScreen(n.lx, n.ly); const r = nodeRadius(n) * zoom;
+      if (Math.hypot(mouse.x - s.x, mouse.y - s.y) < r + 4) hover = n;
+    }
+    canvas.style.cursor = dragView ? 'grabbing' : hover ? 'pointer' : 'grab';
+
+    // edges (behind nodes)
+    E.forEach((e) => {
+      const a = byId[e.s], b = byId[e.d];
+      const vis = Math.min(a.appear, b.appear);
+      if (vis < 0.02) return;
+      const sa = toScreen(a.lx, a.ly), sb = toScreen(b.lx, b.ly);
+      const col = SEVCOL[b.sev] || SEVCOL.high;
+      const isC2 = e.kind === 'c2';
       ctx.save();
-      ctx.translate(mx, my);
-      ctx.rotate(angle);
+      ctx.globalAlpha = vis;
+      ctx.strokeStyle = `rgba(${col},${isC2 ? 0.75 : 0.4})`;
+      ctx.lineWidth = (isC2 ? 3 : a.crit && b.crit ? 2.2 : 1.4) * zoom;
+      if (e.kind === 'file') ctx.setLineDash([6, 5]);
+      else if (e.kind === 'lateral') ctx.setLineDash([2, 6]);
+      else ctx.setLineDash([]);
       ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.lineTo(-8, -4);
-      ctx.lineTo(-8, 4);
-      ctx.closePath();
-      ctx.fillStyle = `rgba(${col},0.6)`;
-      ctx.fill();
-      ctx.restore();
-    });
-    
-    // Draw nodes
-    projected.forEach(n => {
-      const r = (16 + (n.tau || 0.5) * 16) * n.persp;
-      const col = n.severity === 'critical' ? '255,56,100' : n.severity === 'high' ? '255,184,108' : n.severity === 'medium' ? '137,221,255' : '0,255,159';
-      
-      // Glow
-      const gGrad = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, r * 2);
-      gGrad.addColorStop(0, `rgba(${col},0.3)`);
-      gGrad.addColorStop(1, `rgba(${col},0)`);
-      ctx.beginPath();
-      ctx.arc(n.x, n.y, r * 2, 0, Math.PI * 2);
-      ctx.fillStyle = gGrad;
-      ctx.fill();
-      
-      // Body
-      const nGrad = ctx.createRadialGradient(n.x - r/3, n.y - r/3, 0, n.x, n.y, r);
-      nGrad.addColorStop(0, `rgba(${col},0.95)`);
-      nGrad.addColorStop(1, `rgba(${col},0.3)`);
-      ctx.beginPath();
-      ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
-      ctx.fillStyle = nGrad;
-      ctx.fill();
-      ctx.strokeStyle = `rgba(${col},0.6)`;
-      ctx.lineWidth = 1.5;
+      ctx.moveTo(sa.x, sa.y);
+      // gentle curve for lateral moves, else slight bow
+      const mx = (sa.x + sb.x) / 2, my = (sa.y + sb.y) / 2 + (e.kind === 'lateral' ? -46 : 0) * zoom;
+      ctx.quadraticCurveTo(mx, my, sb.x, sb.y);
       ctx.stroke();
-      
-      // Label
-      const fontSize = Math.max(8, 10 * n.persp);
-      ctx.font = `bold ${fontSize}px JetBrains Mono, monospace`;
-      ctx.textAlign = 'center';
-      ctx.fillStyle = 'rgba(255,255,255,0.95)';
-      ctx.fillText(n.type.toUpperCase(), n.x, n.y + 3);
-      ctx.font = `${Math.max(7, 9 * n.persp)}px JetBrains Mono, monospace`;
-      ctx.fillStyle = 'rgba(255,255,255,0.6)';
-      ctx.fillText(n.label, n.x, n.y + r + 12 * n.persp);
+      ctx.setLineDash([]);
+      // arrowhead
+      const ang = Math.atan2(sb.y - my, sb.x - mx);
+      const br = nodeRadius(b) * zoom;
+      const ax = sb.x - Math.cos(ang) * br, ay = sb.y - Math.sin(ang) * br;
+      ctx.translate(ax, ay); ctx.rotate(ang);
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-9, -4); ctx.lineTo(-9, 4); ctx.closePath();
+      ctx.fillStyle = `rgba(${col},${0.85 * vis})`; ctx.fill();
+      ctx.restore();
+      // flowing particles along the edge (direction of attack)
+      const pc = isC2 ? 4 : 2;
+      for (let p = 0; p < pc; p++) {
+        const frac = ((t * (isC2 ? 0.45 : 0.3) + p / pc) % 1);
+        const u = frac, iu = 1 - u;
+        const px = iu * iu * sa.x + 2 * iu * u * mx + u * u * sb.x;
+        const py = iu * iu * sa.y + 2 * iu * u * my + u * u * sb.y;
+        ctx.beginPath(); ctx.arc(px, py, (isC2 ? 2.6 : 1.8) * zoom, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${col},${(0.85 - frac * 0.4) * vis})`; ctx.fill();
+      }
     });
-    
+
+    // nodes (critical path last → on top)
+    [...N].sort((a, b) => (a.crit === b.crit ? 0 : a.crit ? 1 : -1)).forEach((n) => {
+      const target = n.t <= cur ? 1 : 0;
+      n.appear += (target - n.appear) * Math.min(1, dt * 5);
+      if (n.appear < 0.02) return;
+      const s = toScreen(n.lx, n.ly);
+      const baseR = nodeRadius(n);
+      const grow = 0.6 + n.appear * 0.4;                 // materialise
+      const r = baseR * zoom * grow;
+      const col = SEVCOL[n.sev] || SEVCOL.high;
+      const isHover = hover === n, isSel = selected === n.id;
+      ctx.globalAlpha = n.appear;
+
+      // 2.5-D drop shadow (depth)
+      ctx.beginPath(); ctx.arc(s.x + 3, s.y + 5, r * 1.05, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fill();
+
+      // glow (critical path glows stronger)
+      const gr = r * (n.crit ? 2.4 : 1.8) * (isHover || isSel ? 1.25 : 1);
+      const gg = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, gr);
+      const pulse = 0.5 + Math.sin(t * 2 + n.t) * 0.5;
+      gg.addColorStop(0, `rgba(${col},${(n.crit ? 0.34 : 0.2) + pulse * 0.06})`);
+      gg.addColorStop(1, `rgba(${col},0)`);
+      ctx.fillStyle = gg; ctx.beginPath(); ctx.arc(s.x, s.y, gr, 0, Math.PI * 2); ctx.fill();
+
+      // body (shape by type)
+      const bodyGrad = ctx.createLinearGradient(s.x, s.y - r, s.x, s.y + r);
+      bodyGrad.addColorStop(0, `rgba(${col},0.42)`);
+      bodyGrad.addColorStop(1, 'rgba(8,12,20,0.85)');
+      drawShape(n.shape, s.x, s.y, r, bodyGrad, `rgba(${col},${isHover || isSel ? 1 : 0.8})`, (isSel ? 3 : 1.6) * zoom);
+
+      // belief ring (arc proportional to confidence)
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, r + 5 * zoom, -Math.PI / 2, -Math.PI / 2 + n.conf * Math.PI * 2);
+      ctx.strokeStyle = `rgba(${col},0.9)`; ctx.lineWidth = 2 * zoom; ctx.stroke();
+
+      // labels
+      ctx.textAlign = 'center';
+      ctx.font = `${Math.max(8, 10 * zoom)}px JetBrains Mono, monospace`;
+      ctx.fillStyle = '#fff';
+      ctx.fillText(n.type.toUpperCase(), s.x, s.y - 2 * zoom);
+      ctx.font = `${Math.max(7, 8.5 * zoom)}px JetBrains Mono, monospace`;
+      ctx.fillStyle = 'rgba(232,236,240,0.82)';
+      ctx.fillText(n.label, s.x, s.y + r + 13 * zoom);
+      // MITRE tag pill
+      ctx.font = `${Math.max(7, 8 * zoom)}px JetBrains Mono, monospace`;
+      const isLive = Array.isArray(window.LIVE_TECHNIQUES) && window.LIVE_TECHNIQUES.includes(n.mitre);
+      ctx.fillStyle = isLive ? '#00ff9f' : `rgba(${col},0.95)`;
+      ctx.fillText((isLive ? '◉ ' : '') + n.mitre, s.x, s.y + r + 25 * zoom);
+      // action badge
+      ctx.font = `${Math.max(9, 11 * zoom)}px sans-serif`;
+      ctx.fillText(ACTION[n.action] || '', s.x + r * 0.72, s.y - r * 0.62);
+      ctx.globalAlpha = 1;
+    });
+
+    // hover tooltip
+    if (hover) {
+      const s = toScreen(hover.lx, hover.ly);
+      const lines = [hover.label, 'tactic: ' + hover.tactic, 'MITRE: ' + hover.mitre, 'confidence: ' + hover.conf.toFixed(2), 'sensors: ' + hover.sensors, 'action: ' + hover.action];
+      ctx.font = '11px Inter, sans-serif';
+      const wid = Math.max(...lines.map((l) => ctx.measureText(l).width)) + 20;
+      const hgt = lines.length * 16 + 12;
+      let tx = s.x + 18, ty = s.y - hgt - 8;
+      if (tx + wid > W) tx = s.x - wid - 18; if (ty < 4) ty = s.y + 18;
+      ctx.fillStyle = 'rgba(4,7,12,0.94)'; ctx.strokeStyle = 'rgba(0,212,255,0.3)'; ctx.lineWidth = 1;
+      ctx.beginPath(); rrect(tx, ty, wid, hgt, 6); ctx.fill(); ctx.stroke();
+      ctx.textAlign = 'left';
+      lines.forEach((l, i) => {
+        ctx.fillStyle = i === 0 ? '#00d4ff' : 'rgba(232,236,240,0.85)';
+        ctx.font = (i === 0 ? 'bold ' : '') + '11px Inter, sans-serif';
+        ctx.fillText(l, tx + 10, ty + 18 + i * 16);
+      });
+    }
+
+    // sync scrubber UI
+    if (bar && !dragScrub) {
+      bar._range.value = Math.round((cur / (maxT + 0.5)) * 1000);
+      const shown = N.filter((n) => n.t <= cur).length;
+      bar._step.textContent = 'step ' + shown + ' / ' + N.length;
+      const lead = N.filter((n) => n.t <= cur).slice(-1)[0];
+      bar._phase.textContent = lead ? lead.tactic.toUpperCase() : 'REPLAY ATTACK CHAIN';
+    }
+
     requestAnimationFrame(draw);
   }
-  
+
   resize();
-  window.addEventListener('resize', () => { resize(); });
+  window.addEventListener('resize', resize);
   draw();
 }
 
