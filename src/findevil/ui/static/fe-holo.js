@@ -200,7 +200,11 @@ import { OrbitControls } from '/static/vendor/OrbitControls.js';
     const iocs = getIocs();
     const seen = new Set([NUC]);
 
-    iocs.slice(0, 80).forEach((d) => {
+    // Rank by belief (real signal) and cap to the most meaningful artifacts so
+    // the 3-D scene stays readable and honest — every atom is a real reported
+    // artifact; benign low-confidence ones are dimmed (LOD), not decorative.
+    const ranked = iocs.slice().sort((a, b) => beliefOf(b) - beliefOf(a)).slice(0, 60);
+    ranked.forEach((d) => {
       const id = d.key || (d.type + ':' + d.value);
       seen.add(id);
       const bel = beliefOf(d);
@@ -226,7 +230,8 @@ import { OrbitControls } from '/static/vendor/OrbitControls.js';
       n.pl = Math.min(1, Math.max(bel, Number(d.pl) || bel));   // plausibility ≥ belief
       n.severity = d.severity || 'low';
       n.targetColor = beliefColor(bel);
-      n.baseSize = 6 + Math.min(1, tau) * 16;        // 6..22 world units
+      n.lod = bel < 0.30;                            // benign / low-confidence → dim LOD
+      n.baseSize = (6 + Math.min(1, tau) * 16) * (n.lod ? 0.5 : 1);
       n.dead = false;
     });
 
@@ -311,9 +316,17 @@ import { OrbitControls } from '/static/vendor/OrbitControls.js';
     particles.forEach((p) => particleGroup.remove(p.sprite));
     particles = [];
     if (!edges.length) return;
-    const count = Math.min(160, Math.max(24, edges.length * 3));
+    // Particles = evidence flowing toward real threats. Only emit on edges whose
+    // artifact endpoint has belief ≥ 0.3 (meaningful signal), not random sparkle.
+    const meaningful = edges.filter((e) => {
+      const ab = e.a.isNucleus ? 0 : (e.a.bel || 0);
+      const bb = e.b.isNucleus ? 0 : (e.b.bel || 0);
+      return Math.max(ab, bb) >= 0.3;
+    });
+    const pool = meaningful.length ? meaningful : edges;
+    const count = Math.min(70, Math.max(16, pool.length * 2));
     for (let i = 0; i < count; i++) {
-      const e = edges[(Math.random() * edges.length) | 0];
+      const e = pool[(Math.random() * pool.length) | 0];
       const col = (e.b.isNucleus ? C.malicious : beliefColor(e.b.bel));
       const sp = nodeSprite(coreTex, col, 1.5); sp.renderOrder = 4;
       particleGroup.add(sp);
@@ -558,8 +571,9 @@ import { OrbitControls } from '/static/vendor/OrbitControls.js';
       const gscale = size * boost;
       n.glow.scale.set(gscale, gscale, 1);
       n.core.scale.set(size * 0.42 * boost, size * 0.42 * boost, 1);
-      n.glow.material.opacity = dim;
-      n.core.material.opacity = dim;
+      const lodDim = (n.lod && n.id !== expanded) ? 0.4 : 1;   // recede benign LOD
+      n.glow.material.opacity = dim * lodDim;
+      n.core.material.opacity = dim * lodDim;
       // colour (with Yager two-tone oscillation when K is high)
       if (!n.isNucleus && n.targetColor) {
         if (n.k >= 0.3) {
@@ -576,7 +590,7 @@ import { OrbitControls } from '/static/vendor/OrbitControls.js';
     // particles
     for (const p of particles) {
       p.t += p.speed * dt;
-      if (p.t > 1) { p.t -= 1; if (Math.random() < 0.3 && edges.length) { p.e = edges[(Math.random() * edges.length) | 0]; } }
+      if (p.t > 1) { p.t -= 1; }   // loop along the same (meaningful) edge
       const a = p.e.a.pos, b = p.e.b.pos;
       p.sprite.position.set(a.x + (b.x - a.x) * p.t, a.y + (b.y - a.y) * p.t, a.z + (b.z - a.z) * p.t);
       const col = p.e.b.isNucleus ? C.malicious : beliefColor(p.e.b.bel);

@@ -557,3 +557,17 @@ narrator step so the verdict is already in the ledger to show.
   (`tweening:true`); zero console errors. (Tween progression + camera flight are
   rAF-driven → run in a visible browser; the hidden preview tab pauses rAF.)
 - Status: done
+
+### Fix 2 — honest density (done)
+- **Data check:** 202 real artifacts (46 malicious ≥.85, 79 elevated, 69 suspect,
+  8 benign). Atoms were already 1:1 with real artifacts (no filler) — the
+  clutter was the **160 decorative particles** + an 80-atom cap.
+- **Approach (`fe-holo.js`):** rank artifacts by belief and cap to the top 60
+  (most meaningful real threats); benign (<0.30) atoms get a dim LOD (half size,
+  0.4 opacity) so the eye focuses on real signal. Particles now only flow on
+  edges whose artifact endpoint has belief ≥ 0.30 (count 160→≤70) and loop on the
+  same edge — so every particle is evidence riding a real correlation toward a
+  real threat, not random sparkle.
+- **Verify (@ :9400):** booted, 202 real artifacts, lit-pixel density ~40%
+  (was ~58%), zero console errors.
+- Status: done
