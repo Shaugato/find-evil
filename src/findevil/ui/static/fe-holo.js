@@ -123,7 +123,7 @@ import { OrbitControls } from '/static/vendor/OrbitControls.js';
     controls.minDistance = 50;
     controls.maxDistance = 320;
     controls.autoRotate = true;
-    controls.autoRotateSpeed = 0.55;
+    controls.autoRotateSpeed = 0.4;
     controls.target.set(0, 0, 0);
 
     glowTex = radialTexture([[0, 'rgba(255,255,255,1)'], [0.22, 'rgba(255,255,255,0.8)'], [0.5, 'rgba(255,255,255,0.22)'], [1, 'rgba(255,255,255,0)']]);
@@ -496,39 +496,79 @@ import { OrbitControls } from '/static/vendor/OrbitControls.js';
   }
 
   // ── HTML labels (near hemisphere / high-tau / hovered only) ──────────────
-  const labelPool = [];
-  const MAX_LABELS = 14;
+  // Labels are HTML overlays (pixel-crisp). To stop the centre congestion +
+  // flicker we: (1) bind one persistent div per node by id so content never
+  // swaps frame-to-frame, (2) do priority-ordered greedy screen-space collision
+  // avoidance (nucleus reserved first → a clear exclusion zone at centre;
+  // hovered/selected forced), (3) fade opacity in/out so show/hide never pops.
+  const labelEls = new Map();         // node.id -> { el, op, target, x, y }
+  const MAX_LABELS = 16;
+  const _lv = new THREE.Vector3();
+  function estLabelBox(n, x, y) {
+    const txt = n.isNucleus ? 'BLACKBOARD' : (n.value || n.type || '');
+    const w = Math.max(54, Math.min(190, txt.length * 6.2 + 14));
+    const h = n.isNucleus ? 28 : 36;          // matches translate(-50%,-150%)
+    return { x0: x - w / 2, x1: x + w / 2, y0: y - h * 1.5, y1: y - h * 0.4 };
+  }
   function updateLabels() {
-    // Always label the nucleus + hovered + selected; otherwise the top-N
-    // artifacts by tau, so a dense live field stays legible (no label soup).
+    labelEls.forEach((r) => { r.target = 0; });   // default: fade out
+
     const arts = [];
     nodes.forEach((n) => { if (!n.dead && !n.isNucleus) arts.push(n); });
     arts.sort((a, b) => (b.tau || 0) - (a.tau || 0));
-    const cands = [];
-    const push = (n) => { if (n && !n.dead && cands.indexOf(n) === -1) cands.push(n); };
-    push(nodes.get(NUC));
-    push(hovered);
-    if (selected && nodes.has(selected)) push(nodes.get(selected));
-    for (let i = 0; i < arts.length && cands.length < MAX_LABELS; i++) push(arts[i]);
-    let li = 0;
-    const v = new THREE.Vector3();
-    for (const n of cands) {
-      v.copy(n.pos).project(camera);
-      if (v.z > 1) continue;
-      const x = (v.x * 0.5 + 0.5) * W, y = (-v.y * 0.5 + 0.5) * H;
-      let el = labelPool[li];
-      if (!el) { el = document.createElement('div'); el.className = 'holo-label'; labelLayer.appendChild(el); labelPool[li] = el; }
-      const depth = 1 - Math.min(1, Math.max(0, (camera.position.distanceTo(n.pos) - 50) / 260));
-      el.style.display = 'block';
-      el.style.transform = 'translate(-50%,-140%) translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px)';
-      el.style.opacity = (n.isNucleus || n === hovered || n.id === selected) ? 1 : (0.35 + depth * 0.5).toFixed(2);
-      const tau = (n.tau || 0).toFixed(2);
-      el.innerHTML = n.isNucleus
+    const ordered = [];
+    const add = (n) => { if (n && !n.dead && ordered.indexOf(n) === -1) ordered.push(n); };
+    add(nodes.get(NUC)); add(hovered);
+    if (selected && nodes.has(selected)) add(nodes.get(selected));
+    for (let i = 0; i < arts.length && ordered.length < MAX_LABELS + 8; i++) add(arts[i]);
+
+    const placed = []; const PAD = 5;
+    for (const n of ordered) {
+      let rec = labelEls.get(n.id);
+      if (!rec) {
+        const el = document.createElement('div'); el.className = 'holo-label';
+        labelLayer.appendChild(el); rec = { el, op: 0, target: 0, x: 0, y: 0 };
+        labelEls.set(n.id, rec);
+      }
+      const html = n.isNucleus
         ? '<span class="ll-t">MCP</span><span class="ll-v">BLACKBOARD</span>'
-        : '<span class="ll-t">' + esc(n.type) + '</span><span class="ll-v">' + esc(n.value) + '</span><span class="ll-tau">τ ' + tau + '</span>';
-      li++;
+        : '<span class="ll-t">' + esc(n.type) + '</span><span class="ll-v">' + esc(n.value) + '</span><span class="ll-tau">τ ' + (n.tau || 0).toFixed(2) + '</span>';
+      if (rec.el._html !== html) { rec.el.innerHTML = html; rec.el._html = html; }
+
+      _lv.copy(n.pos).project(camera);
+      const onScreen = _lv.z <= 1 && _lv.x > -1.08 && _lv.x < 1.08 && _lv.y > -1.08 && _lv.y < 1.08;
+      if (!onScreen) continue;
+      const x = (_lv.x * 0.5 + 0.5) * W, y = (-_lv.y * 0.5 + 0.5) * H;
+      rec.x = x; rec.y = y;
+      const forced = n.isNucleus || n === hovered || n.id === selected;
+      const box = estLabelBox(n, x, y);
+      let clash = false;
+      if (!forced) {
+        for (const b of placed) {
+          if (!(box.x1 < b.x0 - PAD || box.x0 > b.x1 + PAD || box.y1 < b.y0 - PAD || box.y0 > b.y1 + PAD)) { clash = true; break; }
+        }
+      }
+      if (forced || !clash) {
+        placed.push(box);
+        const depth = 1 - Math.min(1, Math.max(0, (camera.position.distanceTo(n.pos) - 50) / 260));
+        rec.target = forced ? 1 : (0.5 + depth * 0.45);
+      }
     }
-    for (; li < labelPool.length; li++) labelPool[li].style.display = 'none';
+
+    labelEls.forEach((rec, id) => {
+      const node = nodes.get(id);
+      if (!node || node.dead) rec.target = 0;
+      rec.op += (rec.target - rec.op) * 0.18;          // smooth fade
+      const el = rec.el;
+      if (rec.op < 0.02) {
+        el.style.display = 'none';
+        if ((!node || node.dead) && rec.target === 0) { el.remove(); labelEls.delete(id); }
+        return;
+      }
+      el.style.display = 'block';
+      el.style.opacity = rec.op.toFixed(3);
+      el.style.transform = 'translate(-50%,-150%) translate(' + Math.round(rec.x) + 'px,' + Math.round(rec.y) + 'px)';
+    });
   }
 
   function onResize() {

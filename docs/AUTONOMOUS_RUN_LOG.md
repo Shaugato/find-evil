@@ -455,3 +455,26 @@ narrator step so the verdict is already in the ledger to show.
   labelled counters emit on first observation by design. Ledger 936/936
   clean after service restarts.
 - Status: done
+
+---
+
+## SESSION v4 (2026-06-13, holographic UI refinement: labels · threat graph · atom expand)
+
+### Fix 1 — pheromone label congestion + flicker (done)
+- **Research:** the standard technique for dense graph labels is *priority-ordered
+  greedy screen-space collision detection* (label important nodes first, hide
+  lower-priority labels that overlap) — confirmed via the label-placement
+  literature (PRISM overlap removal; map-labeling priority hiding).
+- **Approach:** labels were already pixel-crisp HTML overlays (no sprite z-fighting),
+  so the real causes were (a) an index-pooled div showing a *different* node each
+  frame (content-swap flicker) and (b) hard show/hide popping, plus the nucleus
+  "MCP BLACKBOARD" sitting where atoms cluster. Fix in `fe-holo.js updateLabels()`:
+  bind one persistent `<div>` per node **by id** (content never swaps); run
+  priority-ordered greedy collision avoidance (nucleus reserved **first** → a clear
+  centre exclusion zone; hovered/selected forced-visible); **fade opacity** toward a
+  per-node target each frame so show/hide never pops; calmed `autoRotateSpeed`
+  0.55→0.40. Labels GC when their node dies.
+- **Verify (headless @ :9400, 202 live artifacts):** 17 labels visible, **0
+  overlapping pairs**, **0 churn over 600 ms** (stable set = no flicker), MCP
+  BLACKBOARD present and no longer colliding, zero console errors.
+- Status: done
