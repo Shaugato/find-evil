@@ -671,9 +671,14 @@
   #center-panel { background: transparent !important; pointer-events: none; }
   #view-tabs { pointer-events: auto; background: var(--holo-glass) !important; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-bottom: 1px solid var(--holo-border); }
   #view-container { pointer-events: none; }
-  #view-pheromone { pointer-events: none; }
+  /* Only the ACTIVE non-pheromone view captures input. Inactive views stay
+     pointer-events:none (base .view rule) so they don't sit invisibly over the
+     3-D canvas and steal orbit/zoom/double-click. The pheromone view is always
+     transparent to input so OrbitControls receives drags/scroll/dblclick. */
+  #view-pheromone { pointer-events: none !important; }
+  .view.active#view-graph, .view.active#view-ledger, .view.active#view-mitre, .view.active#view-debate { pointer-events: auto; }
   #view-graph, #view-ledger, #view-mitre, #view-debate {
-    pointer-events: auto; background: rgba(6,10,16,0.78); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    background: rgba(6,10,16,0.78); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
   }
   #pheromone-canvas { display: none !important; }
 
@@ -683,6 +688,15 @@
     background: var(--holo-glass) !important; border: 1px solid var(--holo-border) !important;
     box-shadow: 0 10px 34px rgba(0,0,0,0.5), 0 0 16px rgba(0,212,255,0.06);
   }
+
+  /* navigation hint */
+  #holo-hint {
+    position: fixed; left: 50%; bottom: 216px; transform: translateX(-50%); z-index: 4; pointer-events: none;
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: .04em; color: var(--holo-text2);
+    background: rgba(6,10,16,0.55); border: 1px solid var(--holo-border); border-radius: 20px; padding: 5px 14px;
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); transition: opacity 1.2s ease; opacity: 0.9;
+  }
+  #holo-hint.fade { opacity: 0; }
 
   /* HTML node labels projected over the 3-D scene */
   #holo-labels { position: absolute; inset: 0; pointer-events: none; z-index: 2; overflow: hidden; }

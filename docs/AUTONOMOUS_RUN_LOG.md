@@ -531,3 +531,29 @@ narrator step so the verdict is already in the ledger to show.
   null; zero console errors. (Atom scale / orbit / helix / camera dolly are
   rAF-driven → animate in a visible browser.)
 - Status: done
+
+---
+
+## SESSION v5 (2026-06-13, true navigable 3D · honest density · interactive threat graph)
+
+### Fix 1 — navigable 3D scene (done)
+- **Critical discovery:** the pheromone field was *already* a real Three.js scene
+  with a PerspectiveCamera + OrbitControls (orbit + zoom enabled). It only *felt*
+  un-navigable because the **inactive overlay views** (`#view-debate` etc.) were
+  `opacity:0` but my earlier holo CSS gave them `pointer-events:auto`
+  unconditionally — an invisible panel sat over the canvas and **ate every
+  drag/scroll**. `document.elementFromPoint(centre)` returned `DIV.debate-msg`,
+  not the canvas. **Fix 1a:** scope capture to `.view.active` so inactive views
+  are `pointer-events:none`; `#view-pheromone` stays none so OrbitControls
+  receives input. After: `elementFromPoint` at centre/upper/mid all return the
+  CANVAS.
+- **Fix 1b:** enabled pan (right-drag, `screenSpacePanning`), added **double-click
+  dive-in** — raycast the atom, tween the camera (`easeOutCubic`, 0.8 s) to a
+  point 64 u out along the view axis to its target, then expand; Escape /
+  click-out flies back to the overview. Added a fading nav hint and exposed
+  `__FE_GRAPH.nav()`.
+- **Verify (@ :9400):** `nav()` → enableRotate/enableZoom/enablePan all true,
+  autoRotate on, dist 132 at overview; `focusTop()` activates the dive tween
+  (`tweening:true`); zero console errors. (Tween progression + camera flight are
+  rAF-driven → run in a visible browser; the hidden preview tab pauses rAF.)
+- Status: done

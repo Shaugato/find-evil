@@ -88,6 +88,9 @@ import { OrbitControls } from '/static/vendor/OrbitControls.js';
   // click-to-expand atom detail view
   let expanded = null, expandT = 0, detailGroup = null, hud = null;
   const _focus = new THREE.Vector3(), _origin = new THREE.Vector3();
+  // camera fly-to tween (double-click dive-in / collapse-out)
+  let camTween = { active: false, t: 0, dur: 0.8, fromPos: null, toPos: null, fromTgt: null, toTgt: null, then: null };
+  let _hintEl = null;
 
   // tuning
   const R_SPHERE = 46;       // target layout radius
@@ -127,11 +130,13 @@ import { OrbitControls } from '/static/vendor/OrbitControls.js';
     controls.enableDamping = true;
     controls.dampingFactor = 0.08;
     controls.rotateSpeed = 0.6;
-    controls.enablePan = false;
-    controls.minDistance = 50;
-    controls.maxDistance = 320;
+    controls.enablePan = true;            // right-drag / two-finger pan
+    controls.screenSpacePanning = true;
+    controls.minDistance = 36;
+    controls.maxDistance = 340;
     controls.autoRotate = true;
     controls.autoRotateSpeed = 0.4;
+    controls.zoomSpeed = 0.9;
     controls.target.set(0, 0, 0);
 
     glowTex = radialTexture([[0, 'rgba(255,255,255,1)'], [0.22, 'rgba(255,255,255,0.8)'], [0.5, 'rgba(255,255,255,0.22)'], [1, 'rgba(255,255,255,0)']]);
@@ -154,8 +159,15 @@ import { OrbitControls } from '/static/vendor/OrbitControls.js';
 
     renderer.domElement.addEventListener('pointermove', onPointerMove);
     renderer.domElement.addEventListener('pointerdown', onPointerDown);
+    renderer.domElement.addEventListener('dblclick', onDblClick);
     window.addEventListener('resize', onResize);
     window.addEventListener('keydown', (e) => { if (e.key === 'Escape') collapseDetail(); });
+
+    // navigation hint (auto-fades; hidden on first dive)
+    _hintEl = document.createElement('div'); _hintEl.id = 'holo-hint';
+    _hintEl.textContent = 'drag to orbit · scroll to zoom · double-click an atom to dive in';
+    host.appendChild(_hintEl);
+    setTimeout(() => { if (_hintEl) _hintEl.classList.add('fade'); }, 9000);
 
     clock = new THREE.Clock();
     buildNucleus();
@@ -370,21 +382,48 @@ import { OrbitControls } from '/static/vendor/OrbitControls.js';
     }
   }
   function onPointerDown() {
+    // Single click = select (light). Double-click dives in (onDblClick) — this
+    // matches the globe model and avoids expanding when the user drags to orbit.
     if (hovered && !hovered.isNucleus) {
       selected = hovered.id;
-      // immediate blackboard feedback (live layer re-asserts within ~800ms)
       try {
         setTxt('focus-art', hovered.value);
         setTxt('bel-val', (hovered.bel || 0).toFixed(3));
-        setTxt('pl-val', Math.max(hovered.bel || 0, hovered.tau || 0).toFixed(3));
+        setTxt('pl-val', (hovered.pl != null ? hovered.pl : hovered.bel || 0).toFixed(3));
         setTxt('k-val', (hovered.k || 0).toFixed(3));
         setTxt('sensor-div', hovered.sensor || 'swarm');
       } catch (_) {}
-      expandNode(hovered);          // ← drill into the atom
     } else {
       selected = hovered ? hovered.id : null;
-      collapseDetail();             // click nucleus or empty space → collapse
+      if (expanded) collapseDetail();   // click nucleus / empty space → collapse + fly out
     }
+  }
+  function onDblClick(ev) {
+    const r = renderer.domElement.getBoundingClientRect();
+    pointer.x = ((ev.clientX - r.left) / r.width) * 2 - 1;
+    pointer.y = -((ev.clientY - r.top) / r.height) * 2 + 1;
+    raycaster.setFromCamera(pointer, camera);
+    const hit = raycaster.intersectObjects(spriteList(), false)[0];
+    const n = hit && nodes.get(hit.object.userData.id);
+    if (n && !n.isNucleus) { selected = n.id; if (_hintEl) _hintEl.classList.add('fade'); flyToNode(n); }
+  }
+  function flyToNode(n) {
+    const dir = camera.position.clone().sub(controls.target).normalize();
+    camTween = {
+      active: true, t: 0, dur: 0.8,
+      fromPos: camera.position.clone(), toPos: n.pos.clone().add(dir.multiplyScalar(64)),
+      fromTgt: controls.target.clone(), toTgt: n.pos.clone(), then: () => expandNode(n),
+    };
+    controls.enabled = false;
+  }
+  function flyToOverview() {
+    const dir = camera.position.clone().sub(controls.target).normalize();
+    camTween = {
+      active: true, t: 0, dur: 0.7,
+      fromPos: camera.position.clone(), toPos: _origin.clone().add(dir.multiplyScalar(150)),
+      fromTgt: controls.target.clone(), toTgt: _origin.clone(), then: null,
+    };
+    controls.enabled = false;
   }
   function setTxt(id, v) { const el = document.getElementById(id); if (el) el.textContent = v; }
   function esc(s) { return String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c])); }
@@ -398,9 +437,11 @@ import { OrbitControls } from '/static/vendor/OrbitControls.js';
     document.body.classList.add('holo-focus');
   }
   function collapseDetail() {
+    const was = expanded;
     expanded = null;
     if (hud) hud.classList.remove('open');
     document.body.classList.remove('holo-focus');
+    if (was) flyToOverview();          // fly the camera back out to the overview
     // detailGroup is disposed in animate() once expandT eases to 0
   }
   function buildDetailGroup(n) {
@@ -572,10 +613,12 @@ import { OrbitControls } from '/static/vendor/OrbitControls.js';
     // ── click-to-expand: drive transition, focus camera, animate sub-scene ──
     if (expanded && !nodes.get(expanded)) collapseDetail();   // expanded node vanished
     expandT += ((expanded ? 1 : 0) - expandT) * Math.min(1, dt * 4);
-    controls.autoRotate = !expanded;
     const fnode = expanded ? nodes.get(expanded) : null;
-    _focus.lerp(fnode ? fnode.pos : _origin, Math.min(1, dt * 3.2));
-    controls.target.copy(_focus);
+    if (!camTween.active) {
+      controls.autoRotate = !expanded;
+      _focus.lerp(fnode ? fnode.pos : _origin, Math.min(1, dt * 3.2));
+      controls.target.copy(_focus);
+    }
     if (!expanded && expandT < 0.01 && detailGroup) destroyDetailGroup();
     if (detailGroup && fnode) {
       const base = fnode.baseSize * (1 + expandT * 2.6);
@@ -603,7 +646,18 @@ import { OrbitControls } from '/static/vendor/OrbitControls.js';
       });
     }
 
-    controls.update();
+    // camera fly-to tween (dive-in / collapse-out) takes over from OrbitControls
+    if (camTween.active) {
+      camTween.t += dt / camTween.dur;
+      const k = camTween.t >= 1 ? 1 : 1 - Math.pow(1 - camTween.t, 3);   // easeOutCubic
+      camera.position.lerpVectors(camTween.fromPos, camTween.toPos, k);
+      controls.target.copy(camTween.fromTgt).lerp(camTween.toTgt, k);
+      _focus.copy(controls.target);
+      camera.lookAt(controls.target);
+      if (camTween.t >= 1) { camTween.active = false; controls.enabled = true; const f = camTween.then; camTween.then = null; if (f) f(); }
+    } else {
+      controls.update();
+    }
     renderer.render(scene, camera);
     updateLabels();
   }
@@ -706,8 +760,16 @@ import { OrbitControls } from '/static/vendor/OrbitControls.js';
   }
   window.__FE_GRAPH = {
     boot, sync: () => { if (booted) sync(); }, onResize,
-    focusTop: () => { let best = null; nodes.forEach((n) => { if (!n.isNucleus && !n.dead && (!best || n.tau > best.tau)) best = n; }); if (best) { hovered = best; expandNode(best); } return best ? best.id : null; },
+    focusTop: () => { let best = null; nodes.forEach((n) => { if (!n.isNucleus && !n.dead && (!best || n.tau > best.tau)) best = n; }); if (best) { hovered = best; flyToNode(best); } return best ? best.id : null; },
     collapse: collapseDetail,
+    nav: () => (camera && controls) ? {
+      dist: +camera.position.distanceTo(controls.target).toFixed(1),
+      target: controls.target.toArray().map((v) => +v.toFixed(1)),
+      enableRotate: controls.enableRotate !== false,
+      enableZoom: controls.enableZoom !== false,
+      enablePan: controls.enablePan === true,
+      autoRotate: controls.autoRotate, tweening: camTween.active,
+    } : null,
     get booted() { return booted; }, get expanded() { return expanded; },
   };
   window.fireConsensusRipple = function (color) { if (booted) fireRipple(color); };
