@@ -827,6 +827,22 @@
   .mitre-cell.ctx-dim { opacity: 0.26; filter: grayscale(0.5); }
   .mitre-reset { display:inline-block; margin-left:8px; font-family:var(--mono); font-size:10px; color:var(--holo-cyan); cursor:pointer; border:1px solid var(--holo-border); border-radius:10px; padding:1px 9px; }
   .mitre-reset:hover { background:rgba(0,212,255,0.14); }
+
+  /* ════ adversarial debate — paired exchange cards (prosecution | defense+judge) ════ */
+  #view-debate #debate-view { display:block; overflow-y:auto; padding:14px; }
+  .debate-exchange { background:rgba(8,12,20,0.5); border:1px solid var(--holo-border); border-radius:9px; margin-bottom:11px; overflow:hidden; cursor:pointer; transition:border-color .2s, box-shadow .2s; }
+  .debate-exchange:hover, .debate-exchange.sel { border-color:var(--holo-cyan); box-shadow:0 0 16px rgba(0,212,255,0.18); }
+  .dx-head { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:9px 12px; border-bottom:1px solid var(--holo-border); background:rgba(0,212,255,0.04); }
+  .dx-art { font-family:var(--mono); font-size:12px; color:#fff; word-break:break-all; }
+  .dx-verdict { font-family:var(--mono); font-size:9px; letter-spacing:.06em; border:1px solid; border-radius:5px; padding:2px 8px; white-space:nowrap; flex-shrink:0; }
+  .dx-cols { display:grid; grid-template-columns:1fr 1fr; }
+  .dx-side { padding:9px 12px; }
+  .dx-side.pros { border-right:1px solid var(--holo-border); background:rgba(255,56,100,0.05); }
+  .dx-side.def { background:rgba(0,212,255,0.05); }
+  .dx-role { font-family:var(--mono); font-size:8.5px; letter-spacing:.1em; margin-bottom:5px; }
+  .dx-side.pros .dx-role { color:var(--red2); } .dx-side.def .dx-role { color:var(--holo-cyan); }
+  .dx-arg { font-family:var(--mono); font-size:10.5px; color:var(--holo-text); line-height:1.5; }
+  .debate-empty { font-family:var(--mono); font-size:12px; color:var(--holo-text2); text-align:center; padding:40px 20px; }
 </style>
 <script type="importmap">
 { "imports": { "three": "/static/vendor/three.module.js" } }
@@ -1375,18 +1391,45 @@ function renderMitre() {
 
 // ─── DEBATE ───
 function renderDebate() {
-  const redEl = document.getElementById('red-messages');
-  const blueEl = document.getElementById('blue-messages');
-  const mkMsg = (m, side, label, parent) => {
-    const div = document.createElement('div');
-    div.className = 'debate-msg ' + side;
-    div.innerHTML = `<div class="debate-msg-header">${m.ts} · ${label}</div><div class="debate-msg-body">${m.text}</div>`;
-    const seq = /^#?\d+$/.test(String(m.ts || '').trim()) ? seqDigits(m.ts) : '';
-    div.onclick = () => window.SEL.set('debate', (m.ts || '') + '|' + side, { ts: m.ts, text: m.text, side, seq });
-    parent.appendChild(div);
-  };
-  RED_MSGS.forEach(m => mkMsg(m, 'red', 'PROSECUTION', redEl));
-  BLUE_MSGS.forEach(m => mkMsg(m, 'blue', 'DEFENSE · JUDGE', blueEl));
+  const view = document.getElementById('debate-view');
+  if (!view) return;
+  // Pair the debate by the artifact under examination: prosecution's case (the
+  // highest-belief sensor/consensus claim) BESIDE the defense & judge verdict
+  // (narrator / Yager-conflict / observe / CACAO), with the ruling resolving
+  // between them — one coherent exchange per artifact, not two flat lists.
+  const byArt = new Map();
+  (LEDGER_DEFS || []).forEach((b) => {
+    const e = (b.raw && b.raw.entry) || {};
+    const key = e.primary_artifact_key; if (!key) return;
+    const claim = (Array.isArray(e.reasoning_trace) && e.reasoning_trace[0] && e.reasoning_trace[0].claim) || b.detail || '';
+    const aid = String(e.agent_id || '').toLowerCase();
+    const cons = e.consensus || null;
+    const bel = cons && cons.belief_evil != null ? cons.belief_evil : (Number(e.confidence) || 0);
+    const k = cons && cons.conflict_K != null ? cons.conflict_K : 0;
+    if (!byArt.has(key)) byArt.set(key, { key, value: String(key).split(':').pop(), pros: null, def: null, bel: 0, k: 0, seq: b.seq });
+    const ex = byArt.get(key);
+    ex.bel = Math.max(ex.bel, bel); ex.k = Math.max(ex.k, k);
+    const isVerdict = aid.includes('narrator') || aid.includes('judge') || aid.includes('cacao') || aid.includes('conflict') || /conflict|verdict|observe|benign/i.test(claim) || (cons && bel < 0.5);
+    if (isVerdict) { if (!ex.def) ex.def = claim; }
+    else if (bel >= 0.5 || /malicious|mitigat|consensus/i.test(claim)) { if (!ex.pros) ex.pros = claim; }
+    else if (!ex.def) ex.def = claim;
+  });
+  const exchanges = [...byArt.values()]
+    .filter((x) => String(x.key).startsWith('pher:') && (x.pros || x.def))   // real artifacts, not cacao/raw keys
+    .sort((a, b) => ((b.pros && b.def ? 1 : 0) - (a.pros && a.def ? 1 : 0)) || (b.bel - a.bel))   // two-sided debates first
+    .slice(0, 8);
+  if (!exchanges.length) { view.innerHTML = '<div class="debate-empty">Waiting for consensus / narrator findings from the live ledger…</div>'; return; }
+  view.innerHTML = exchanges.map((x) => {
+    const a = actionBadge(x.bel, x.k);
+    const selCls = (window.SEL && window.SEL.type === 'artifact' && window.SEL.value === x.key) ? ' sel' : '';
+    return '<div class="debate-exchange' + selCls + '" data-art="' + esc2(x.key) + '">' +
+      '<div class="dx-head"><span class="dx-art">' + esc2(x.value) + '</span><span class="dx-verdict" style="color:' + a.c + ';border-color:' + a.c + '">' + a.t + '</span></div>' +
+      '<div class="dx-cols">' +
+        '<div class="dx-side pros"><div class="dx-role">PROSECUTION · MALICIOUS</div><div class="dx-arg">' + esc2(x.pros || 'no prosecution argument recorded') + '</div></div>' +
+        '<div class="dx-side def"><div class="dx-role">DEFENSE · JUDGE</div><div class="dx-arg">' + esc2(x.def || 'awaiting verdict') + '</div></div>' +
+      '</div></div>';
+  }).join('');
+  view.querySelectorAll('.debate-exchange[data-art]').forEach((card) => { card.onclick = () => selectArtifactByKey(card.dataset.art); });
 }
 
 // ─── COORDINATED SELECTION + INSPECTOR (brushing-and-linking) ───
@@ -1514,6 +1557,7 @@ window.SEL.on((sel) => {
   if (sel.type === 'artifact') {
     document.querySelectorAll('.ioc-card[data-art="' + sel.value + '"]').forEach((n) => n.classList.add('sel'));
     ledgerForArtifact(sel.value).forEach((b) => document.querySelectorAll('.ledger-block[data-seq="' + seqDigits(b.seq) + '"]').forEach((n) => n.classList.add('sel')));
+    document.querySelectorAll('.debate-exchange[data-art="' + sel.value + '"]').forEach((n) => n.classList.add('sel'));
     if (window.__FE_GRAPH && window.__FE_GRAPH.selectArtifact) window.__FE_GRAPH.selectArtifact(sel.value);
   } else if (sel.type === 'finding') {
     document.querySelectorAll('.ledger-block[data-seq="' + sel.value + '"]').forEach((n) => n.classList.add('sel'));
