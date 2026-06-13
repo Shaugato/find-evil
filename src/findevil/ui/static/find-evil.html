@@ -767,7 +767,10 @@
     box-shadow: -18px 0 60px rgba(0,0,0,0.6), 0 0 30px rgba(0,212,255,0.08);
     display: flex; flex-direction: column; font-family: var(--sans);
   }
-  #inspector.open { transform: translateX(0); }
+  /* slide in but STOP short of the blackboard (right panel = 320px) so the
+     inspector never overlaps/intercepts blackboard clicks — this is the cause
+     of the "alternating entries don't select" bug. */
+  #inspector.open { transform: translateX(-332px); }
   #inspector .insp-head { display:flex; align-items:center; justify-content:space-between; padding:13px 15px; border-bottom:1px solid var(--holo-border); flex-shrink:0; }
   #inspector .insp-kind { font-family:var(--mono); font-size:10px; letter-spacing:.12em; color:var(--holo-cyan); text-transform:uppercase; }
   #inspector .insp-close { width:24px; height:24px; cursor:pointer; background:rgba(255,255,255,0.06); color:var(--holo-text2); border:1px solid var(--holo-border); border-radius:6px; font-size:13px; }
@@ -1265,7 +1268,12 @@ function renderAgents() {
 function renderIOCs() {
   const list = document.getElementById('ioc-list');
   list.innerHTML = '';
-  IOC_DEFS.forEach((ioc, i) => {
+  // Render the SAME artifacts the 3-D field instantiates (top 60 by belief,
+  // matching fe-holo's beliefOf ranking) so every blackboard entry maps 1:1 to
+  // an atom that can be selected/focused — no orphan entries without an atom.
+  const bof = (d) => { const b = Number(d.bel); return (Number.isFinite(b) && b > 0) ? Math.min(1, b) : Math.min(1, (Number(d.tau) || 0) / 10); };
+  const shown = (IOC_DEFS || []).filter((d) => d && !d.isPlaceholder).slice().sort((a, b) => bof(b) - bof(a)).slice(0, 60);
+  (shown.length ? shown : IOC_DEFS).forEach((ioc, i) => {
     const card = document.createElement('div');
     card.className = `ioc-card ${ioc.severity}`;
     card.setAttribute('data-art', ioc.key || '');
