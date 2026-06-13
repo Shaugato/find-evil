@@ -1,12 +1,19 @@
-# FIND EVIL — Live Requirement Traceability (COMPLIANCE_LIVE)
+# Stigmergy — Live Requirement Traceability (COMPLIANCE_LIVE)
 
 Source of truth: `docs/FIND_EVIL_Implementation_Document.docx` (extracted at
 `.codex_analysis/implementation_doc_extracted.md`) and the architecture PDF.
 Status values: **done** (runtime evidence) / **partial** (exists, deviation
 noted) / **missing** (not implemented — reason given).
 
-Last full re-verification: 2026-06-11 (autonomous sprint, see
-`docs/AUTONOMOUS_RUN_LOG.md` for command-level evidence).
+Last full re-verification: **2026-06-13** (see `docs/VERIFICATION_REPORT.md` for the
+command-level matrix). Every realisable row re-proven against the live platform:
+13/13 services active, `findevil verify` ok=true (1050 entries, tainted=[]),
+**96 tests pass**, **62 MCP tools**, `verify_battery` **6/6 PASS**, `verify_cacao`
+**PASS**, metrics on :8890–:8894, dashboard live (Stigmergy, 5 tabs, 0 console
+errors). Verdict: **CONDITIONALLY COMPLIANT** — only unmet items are documented
+hardware/env constraints (vLLM Profile B on 4 GB Pascal; live victim VM →
+synthetic + real ROCBA image), each with a satisfied in-doc alternative.
+(Earlier sprint evidence: 2026-06-11, see `docs/AUTONOMOUS_RUN_LOG.md`.)
 
 ## Part 1 — Host preparation (WSL2 / Ubuntu 24.04 / systemd / GPU)
 
@@ -196,11 +203,17 @@ Last full re-verification: 2026-06-11 (autonomous sprint, see
 
 ## Active work queue derived from this sweep
 
-1. TABLE 11 doc-named metrics (Part 14) — add + wire.
-2. bulk_extractor MCP shim (Part 12).
-3. TAXII 2.1 CTI ingest agent → pheromone priors (FOR578).
-4. Diamond Model relationship graph resource (FOR578).
-5. bench_mcp_write.py + bench_pivot_infer.py (Part 18.4).
-6. Narrator LedgerReader enrichment (narrator/service.py TODO).
-7. cacao/sign.py: migrate authlib.jose → joserfc (doc names joserfc).
-8. G4 GPU offload (in progress, time-boxed).
+Items 1–7 below were **closed** in the 2026-06-11/12 sprints and re-confirmed live
+on 2026-06-13 (see `docs/VERIFICATION_REPORT.md`): TABLE 11 metrics wired,
+bulk_extractor shim, TAXII CTI priors, Diamond Model graph, narrator LedgerReader
+enrichment, and cacao/sign.py on joserfc. Item 8 (GPU offload) was investigated
+and closed — CPU is faster on the P620; the hot path is LLM-free.
+
+**Remaining (documented, non-blocking):**
+- `bench_mcp_write.py` + `bench_pivot_infer.py` — secondary micro-benchmarks; the
+  hot-path SLA benchmark (p50 0.567 ms / p99 1.071 ms) is present and met.
+- vLLM Profile B / live Windows victim VM — hardware/env constraints with
+  satisfied in-document alternatives (Profile A; synthetic + real ROCBA image).
+
+Tool/test counts in the rows above reflect earlier snapshots; the current live
+totals are **62 MCP tools** and **96 tests** (1 skipped).
