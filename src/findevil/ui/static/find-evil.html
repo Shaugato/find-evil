@@ -701,12 +701,12 @@
       <div class="view active" id="view-pheromone">
         <canvas id="pheromone-canvas"></canvas>
         <div id="pher-legend">
-          <div class="leg-title">Pheromone Field</div>
-          <div class="leg-row"><span class="leg-dot" style="background:var(--red);box-shadow:0 0 8px var(--red)"></span>Likely malicious · Bel ≥ 0.85</div>
+          <div class="leg-title">Threat Atom</div>
+          <div class="leg-row"><span class="leg-dot" style="background:var(--red);box-shadow:0 0 8px var(--red)"></span>Inner shell · likely malicious · Bel ≥ 0.85</div>
           <div class="leg-row"><span class="leg-dot" style="background:var(--amber);box-shadow:0 0 8px var(--amber)"></span>Suspicious · under triage</div>
           <div class="leg-row"><span class="leg-dot" style="background:var(--blue);box-shadow:0 0 8px var(--blue)"></span>Low confidence · observed</div>
-          <div class="leg-row"><span class="leg-dot" style="background:var(--green);box-shadow:0 0 8px var(--green)"></span>Likely benign</div>
-          <div class="leg-note">Each node is an artifact (IP · domain · process · hash); its glow is threat confidence (τ). Particles are sensor evidence flowing to the MCP blackboard. An expanding ring is a consensus decision firing; a split red/blue glow is contradictory evidence (Yager conflict).</div>
+          <div class="leg-row"><span class="leg-dot" style="background:var(--green);box-shadow:0 0 8px var(--green)"></span>Outer shell · likely benign</div>
+          <div class="leg-note">Each electron is an artifact (IP · domain · process · hash) orbiting the MCP-blackboard nucleus. Shell radius is the threat tier — inner shells are malicious, outer shells benign — so the field self-separates by belief. Sparks are sensor evidence streaming to the blackboard; an expanding ring is a consensus decision firing; a split red/blue halo is contradictory evidence (Yager conflict).</div>
         </div>
       </div>
       <div class="view" id="view-graph">
@@ -1152,293 +1152,343 @@ function renderDebate() {
   });
 }
 
-// ─── PHEROMONE CANVAS ───
+// ─── PHEROMONE CANVAS — 3-D atomic / orbital model ───
+// Artifacts orbit the MCP-blackboard "nucleus" on tilted shells; shell radius
+// encodes the threat tier (inner = malicious, outer = benign) so the field
+// self-separates by physics instead of blooming into one red mass. The whole
+// structure precesses slowly and is drawn with perspective + depth shading for
+// real 3-D without WebGL. Same IOC_DEFS data + window.fireConsensusRipple hook,
+// so the live SSE layer (find-evil-live.js) is untouched.
 function initPheromoneCanvas() {
   const canvas = document.getElementById('pheromone-canvas');
   const ctx = canvas.getContext('2d');
+  let W, H, cx, cy, scale;
+  let shells = [];
+  let electrons = [];
+  let nucleons = [];
   let particles = [];
-  let nodes = [];
-  let ripples = [];   // consensus-fire burst rings
-  let W, H;
+  let ripples = [];
+  let rotY = 0;
+  let t = 0;
+  const FOCAL = 820;
 
-  // Consensus-fire ripple: a colored ring that propagates outward from (x,y).
-  // Exposed globally so the live SSE layer fires one when a mitigation crosses
-  // the consensus threshold — communicates "a decision just happened" at a glance.
+  const TIER = { critical: 0, high: 1, medium: 2, low: 3 };
+  const COL = { critical: '255,56,100', high: '255,184,108', medium: '137,221,255', low: '0,255,159' };
+  const sevColor = (s) => COL[s] || COL.medium;
+
+  // Consensus-fire ripple: a screen-space shockwave from the nucleus. Exposed
+  // globally so the live SSE layer fires one when a decision crosses threshold.
   function spawnRipple(x, y, color) {
-    ripples.push({ x, y, r: 6, max: Math.max(W, H) * 0.5, color, alpha: 0.9 });
+    ripples.push({ x, y, r: 8, max: Math.max(W, H) * 0.55, color, alpha: 0.9 });
     if (ripples.length > 12) ripples.shift();
   }
   window.fireConsensusRipple = function (color) {
-    // Fire from the most-suspicious node if present, else from centre.
-    const n = nodes.length > 1 ? nodes[1] : { x: W / 2, y: H / 2 };
-    spawnRipple(n.x, n.y, color || '#ff3864');
+    spawnRipple(cx, cy, color || '#ff3864');
   };
-  
+
   function resize() {
     W = canvas.width = canvas.offsetWidth;
     H = canvas.height = canvas.offsetHeight;
-    initNodes();
+    cx = W / 2; cy = H / 2;
+    scale = Math.min(W, H) || 600;
+    build();
   }
-  
-  function initNodes() {
-    nodes = IOC_DEFS.slice(0, 8).map((ioc, i) => {
-      const angle = (i / 8) * Math.PI * 2;
-      const r = Math.min(W, H) * 0.28;
+
+  function build() {
+    // Nucleus — a compact cluster of nucleons (protons red / neutrons slate).
+    nucleons = [];
+    const NN = 9;
+    for (let i = 0; i < NN; i++) {
+      const a = (i / NN) * Math.PI * 2;
+      const rr = i === 0 ? 0 : 8 + (i % 3) * 4;
+      nucleons.push({
+        bx: Math.cos(a) * rr,
+        by: Math.sin(a) * rr * 0.8,
+        bz: Math.sin(a * 1.6 + 1) * rr,
+        proton: i % 2 === 0,
+        ph: Math.random() * Math.PI * 2,
+      });
+    }
+
+    // Electrons — artifacts assigned to shells by severity tier.
+    const src = (typeof IOC_DEFS !== 'undefined' ? IOC_DEFS : [])
+      .filter((d) => d && !d.isPlaceholder)
+      .slice(0, 18);
+    const shellR = [0.15, 0.225, 0.30, 0.365].map((f) => f * scale);
+    const shellTilt = [0.92, 0.46, 1.22, 0.30];
+    const shellNode = [0.0, 0.9, 1.85, 2.7];
+    const sevByTier = ['critical', 'high', 'medium', 'low'];
+    shells = shellR.map((R, i) => ({ R, tilt: shellTilt[i], node: shellNode[i], tier: i, severity: sevByTier[i], count: 0 }));
+
+    electrons = src.map((d) => {
+      const tier = TIER[d.severity] != null ? TIER[d.severity] : 2;
+      const shell = shells[tier];
+      const idxInShell = shell.count++;
       return {
-        x: W/2 + Math.cos(angle) * r * (0.7 + Math.random() * 0.3),
-        y: H/2 + Math.sin(angle) * r * (0.7 + Math.random() * 0.3),
-        tau: ioc.tau,
-        severity: ioc.severity,
-        k: ioc.k || 0,
-        label: ioc.value.substring(0, 16),
-        type: ioc.type,
-        pulse: Math.random() * Math.PI * 2,
-        vx: (Math.random() - 0.5) * 0.3,
-        vy: (Math.random() - 0.5) * 0.3,
+        tier, shell, idxInShell,
+        tau: Math.max(0.04, d.tau || d.bel || 0.1),
+        k: d.k || 0,
+        severity: d.severity || 'medium',
+        type: d.type || 'IOC',
+        label: String(d.value || d.key || '').slice(0, 15),
+        theta: 0, speed: 0,
       };
     });
-    // Add center "blackboard" node
-    nodes.unshift({ x: W/2, y: H/2, tau: 1.0, severity: 'critical', label: 'MCP BLACKBOARD', type: 'BB', pulse: 0, vx: 0, vy: 0, isCenter: true });
+    const speedByTier = [0.0100, 0.0072, 0.0052, 0.0038];
+    electrons.forEach((e) => {
+      const n = Math.max(1, e.shell.count);
+      e.theta = (e.idxInShell / n) * Math.PI * 2 + e.tier * 0.6;
+      e.speed = speedByTier[e.tier] * (0.8 + e.tau * 0.5);
+    });
+
     spawnParticles();
   }
-  
+
   function spawnParticles() {
     particles = [];
-    for (let i = 0; i < 120; i++) spawnParticle();
+    const N = Math.min(72, 12 + electrons.length * 4);
+    for (let i = 0; i < N; i++) particles.push(mkParticle());
   }
-  
-  function spawnParticle() {
-    const srcIdx = Math.floor(Math.random() * (nodes.length - 1)) + 1;
-    const src = nodes[srcIdx];
-    const center = nodes[0];
-    particles.push({
-      x: src.x + (Math.random() - 0.5) * 20,
-      y: src.y + (Math.random() - 0.5) * 20,
-      tx: center.x,
-      ty: center.y,
-      src: srcIdx,
+  function mkParticle() {
+    return {
+      ei: electrons.length ? (Math.random() * electrons.length) | 0 : -1,
       progress: Math.random(),
-      speed: 0.003 + Math.random() * 0.006,
-      size: 1.5 + Math.random() * 2,
-      color: src.severity === 'critical' ? '#ff3864' : src.severity === 'high' ? '#ffb86c' : '#00ff9f',
-      alpha: 0.4 + Math.random() * 0.6,
-      trail: [],
-    });
+      speed: 0.004 + Math.random() * 0.006,
+      size: 1.0 + Math.random() * 1.5,
+      wob: Math.random() * Math.PI * 2,
+    };
   }
-  
-  let t = 0;
+
+  // Project a world point through global precession + perspective.
+  function project(x, y, z) {
+    const c = Math.cos(rotY), s = Math.sin(rotY);
+    const xr = x * c + z * s;
+    const zr = -x * s + z * c;
+    const f = FOCAL / (FOCAL + zr);
+    return { sx: cx + xr * f, sy: cy + y * f, depth: f, z: zr };
+  }
+
+  // A point at angle theta on a shell's tilted orbital plane.
+  function orbitPoint(shell, theta) {
+    const ox = Math.cos(theta) * shell.R;
+    const oz = Math.sin(theta) * shell.R;
+    const ct = Math.cos(shell.tilt), st = Math.sin(shell.tilt);
+    const y = -oz * st;
+    const z = oz * ct;
+    const cn = Math.cos(shell.node), sn = Math.sin(shell.node);
+    return project(ox * cn + z * sn, y, -ox * sn + z * cn);
+  }
+
+  function nucleusReadout() {
+    const top = (typeof IOC_DEFS !== 'undefined' && IOC_DEFS[0]) ? IOC_DEFS[0] : null;
+    return top ? (top.tau || top.bel || 0) : 0;
+  }
+
+  function renderElectron(e, p) {
+    const col = sevColor(e.severity);
+    const rad = Math.max(2.2, (2.4 + e.tau * 5.2) * p.depth);
+
+    // Faint bond to the core for strongly-bound (malicious) artifacts.
+    if (e.tau >= 0.6) {
+      ctx.beginPath();
+      ctx.moveTo(p.sx, p.sy);
+      ctx.lineTo(cx, cy);
+      ctx.strokeStyle = `rgba(${col},${0.04 + e.tau * 0.06})`;
+      ctx.lineWidth = 0.6;
+      ctx.stroke();
+    }
+
+    // Yager conflict (K ≥ 0.3): opposing red/blue arcs that fight.
+    if (e.k >= 0.3) {
+      const osc = Math.sin(t * 3 + e.theta);
+      for (let half = 0; half < 2; half++) {
+        const a0 = half * Math.PI - osc * e.k * 0.5;
+        ctx.beginPath();
+        ctx.arc(p.sx, p.sy, rad + 4, a0, a0 + Math.PI);
+        ctx.strokeStyle = `rgba(${half === 0 ? '255,56,100' : '137,221,255'},${0.4 + Math.abs(osc) * 0.35})`;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+    }
+
+    // Tight glow.
+    const g = ctx.createRadialGradient(p.sx, p.sy, 0, p.sx, p.sy, rad * 2.6);
+    g.addColorStop(0, `rgba(${col},${0.3 * p.depth})`);
+    g.addColorStop(1, `rgba(${col},0)`);
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(p.sx, p.sy, rad * 2.6, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Core sphere + specular highlight.
+    ctx.beginPath();
+    ctx.arc(p.sx, p.sy, rad, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(${col},${0.92 * Math.min(1, p.depth)})`;
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(p.sx - rad * 0.32, p.sy - rad * 0.32, rad * 0.34, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.55)';
+    ctx.fill();
+
+    // Label only in the near hemisphere, to keep the field legible.
+    if (p.depth > 1.05) {
+      const la = Math.min(1, (p.depth - 1.0) * 2.4);
+      ctx.textAlign = 'center';
+      ctx.fillStyle = `rgba(230,238,250,${0.85 * la})`;
+      ctx.font = '9px JetBrains Mono, monospace';
+      ctx.fillText(e.type, p.sx, p.sy - rad - 17);
+      ctx.fillStyle = `rgba(154,164,178,${0.7 * la})`;
+      ctx.font = '8px JetBrains Mono, monospace';
+      ctx.fillText(e.label, p.sx, p.sy - rad - 7);
+      ctx.fillStyle = `rgba(${col},${la})`;
+      ctx.font = 'bold 8px JetBrains Mono, monospace';
+      ctx.fillText('τ=' + e.tau.toFixed(2), p.sx, p.sy + rad + 11);
+    }
+  }
+
+  function drawNucleus() {
+    // Contained core glow (no oversized halo).
+    const cg = ctx.createRadialGradient(cx, cy, 0, cx, cy, scale * 0.12);
+    cg.addColorStop(0, 'rgba(255,56,100,0.22)');
+    cg.addColorStop(0.6, 'rgba(255,56,100,0.06)');
+    cg.addColorStop(1, 'rgba(255,56,100,0)');
+    ctx.fillStyle = cg;
+    ctx.beginPath();
+    ctx.arc(cx, cy, scale * 0.12, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Pulsing core boundary.
+    const pr = scale * 0.052 + Math.sin(t * 2) * 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, pr + 10, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(255,107,136,${0.22 + Math.abs(Math.sin(t * 2)) * 0.12})`;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Nucleons, depth-sorted.
+    const ns = nucleons.map((nu) => {
+      const jx = nu.bx + Math.sin(t * 1.7 + nu.ph) * 2.2;
+      const jy = nu.by + Math.cos(t * 1.5 + nu.ph) * 2.2;
+      const jz = nu.bz + Math.sin(t * 1.9 + nu.ph) * 2.2;
+      return { nu, p: project(jx, jy, jz) };
+    }).sort((a, b) => b.p.z - a.p.z);
+    ns.forEach(({ nu, p }) => {
+      const r = (nu.proton ? 6 : 5) * p.depth;
+      const base = nu.proton ? '255,107,136' : '154,164,178';
+      const gg = ctx.createRadialGradient(p.sx - r * 0.3, p.sy - r * 0.3, 0, p.sx, p.sy, r);
+      gg.addColorStop(0, `rgba(${base},${0.95 * p.depth})`);
+      gg.addColorStop(1, `rgba(${base},${0.35 * p.depth})`);
+      ctx.beginPath();
+      ctx.arc(p.sx, p.sy, r, 0, Math.PI * 2);
+      ctx.fillStyle = gg;
+      ctx.fill();
+    });
+
+    // Labels + τ readout.
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 10px JetBrains Mono, monospace';
+    ctx.fillText('MCP', cx, cy - 3);
+    ctx.fillStyle = 'rgba(230,238,250,0.7)';
+    ctx.font = '8px JetBrains Mono, monospace';
+    ctx.fillText('BLACKBOARD', cx, cy + 8);
+    ctx.fillStyle = 'rgba(255,184,196,0.85)';
+    ctx.font = '8px JetBrains Mono, monospace';
+    ctx.fillText('τ_max=' + nucleusReadout().toFixed(3), cx, cy + scale * 0.12 + 6);
+
+    if (!electrons.length) {
+      ctx.fillStyle = 'rgba(154,164,178,0.55)';
+      ctx.font = '10px JetBrains Mono, monospace';
+      ctx.fillText('awaiting live evidence…', cx, cy + scale * 0.22);
+    }
+  }
+
   function draw() {
     if (state.activeView !== 'pheromone') { requestAnimationFrame(draw); return; }
-    
     ctx.clearRect(0, 0, W, H);
-    
-    // Background grid
-    ctx.strokeStyle = 'rgba(255,255,255,0.03)';
-    ctx.lineWidth = 1;
-    for (let x = 0; x < W; x += 60) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
-    for (let y = 0; y < H; y += 60) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
-    
     t += 0.01;
-    
-    // Connections (pheromone trails)
-    nodes.slice(1).forEach((node, i) => {
-      const center = nodes[0];
-      const strength = node.tau;
-      const grad = ctx.createLinearGradient(node.x, node.y, center.x, center.y);
-      const col = node.severity === 'critical' ? '255,56,100' : node.severity === 'high' ? '255,184,108' : '0,255,159';
-      grad.addColorStop(0, `rgba(${col},${strength * 0.15})`);
-      grad.addColorStop(0.5, `rgba(${col},${strength * 0.08})`);
-      grad.addColorStop(1, `rgba(${col},0.02)`);
-      ctx.beginPath();
-      ctx.strokeStyle = grad;
-      ctx.lineWidth = strength * 2;
-      ctx.moveTo(node.x, node.y);
-      // Slight curve
-      const mx = (node.x + center.x) / 2 + Math.sin(t + i) * 20;
-      const my = (node.y + center.y) / 2 + Math.cos(t + i) * 20;
-      ctx.quadraticCurveTo(mx, my, center.x, center.y);
-      ctx.stroke();
-    });
-    
-    // Pheromone particles
-    particles.forEach((p, idx) => {
-      p.progress += p.speed;
-      if (p.progress >= 1) {
-        // Respawn
-        const srcIdx = Math.floor(Math.random() * (nodes.length - 1)) + 1;
-        const src = nodes[srcIdx];
-        particles[idx] = {
-          x: src.x + (Math.random() - 0.5) * 20,
-          y: src.y + (Math.random() - 0.5) * 20,
-          tx: nodes[0].x,
-          ty: nodes[0].y,
-          src: srcIdx,
-          progress: 0,
-          speed: 0.003 + Math.random() * 0.006,
-          size: 1.5 + Math.random() * 2,
-          color: src.severity === 'critical' ? '#ff3864' : src.severity === 'high' ? '#ffb86c' : '#00ff9f',
-          alpha: 0.4 + Math.random() * 0.6,
-        };
-        return;
-      }
-      const src = nodes[p.src];
-      // Bezier path
-      const mx = (src.x + nodes[0].x) / 2 + Math.sin(t * 0.5 + p.src) * 30;
-      const my = (src.y + nodes[0].y) / 2 + Math.cos(t * 0.5 + p.src) * 30;
-      const tt = p.progress;
-      const px = (1-tt)*(1-tt)*src.x + 2*(1-tt)*tt*mx + tt*tt*nodes[0].x;
-      const py = (1-tt)*(1-tt)*src.y + 2*(1-tt)*tt*my + tt*tt*nodes[0].y;
-      
-      ctx.beginPath();
-      ctx.arc(px, py, p.size, 0, Math.PI * 2);
-      ctx.fillStyle = p.color + Math.floor(p.alpha * (1 - tt * 0.5) * 255).toString(16).padStart(2, '0');
-      ctx.fill();
-      
-      // Glow
-      if (p.size > 2.5) {
+    rotY += 0.0016;
+
+    // Soft radial backdrop centred on the nucleus.
+    const bg = ctx.createRadialGradient(cx, cy, 0, cx, cy, scale * 0.5);
+    bg.addColorStop(0, 'rgba(255,56,100,0.05)');
+    bg.addColorStop(0.5, 'rgba(137,221,255,0.02)');
+    bg.addColorStop(1, 'rgba(10,14,20,0)');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, W, H);
+
+    // Orbital shells — depth-shaded segments give the rings real 3-D form.
+    const SEG = 96;
+    shells.forEach((shell) => {
+      if (!shell.count) return;
+      const col = sevColor(shell.severity);
+      let prev = orbitPoint(shell, 0);
+      for (let k = 1; k <= SEG; k++) {
+        const pt = orbitPoint(shell, (k / SEG) * Math.PI * 2);
+        const dn = (prev.depth + pt.depth) / 2;
         ctx.beginPath();
-        ctx.arc(px, py, p.size * 3, 0, Math.PI * 2);
-        const grad = ctx.createRadialGradient(px, py, 0, px, py, p.size * 3);
-        grad.addColorStop(0, p.color + '33');
-        grad.addColorStop(1, p.color + '00');
-        ctx.fillStyle = grad;
-        ctx.fill();
+        ctx.moveTo(prev.sx, prev.sy);
+        ctx.lineTo(pt.sx, pt.sy);
+        ctx.strokeStyle = `rgba(${col},${0.05 + Math.max(0, dn - 0.78) * 0.22})`;
+        ctx.lineWidth = 0.4 + Math.max(0, dn - 0.85) * 1.6;
+        ctx.stroke();
+        prev = pt;
       }
     });
-    
+
+    // Electron positions; depth-sort so near spheres occlude far ones.
+    const drawn = electrons.map((e) => {
+      e.theta += e.speed;
+      return { e, p: orbitPoint(e.shell, e.theta) };
+    });
+    drawn.sort((a, b) => b.p.z - a.p.z);
+
+    let i = 0;
+    for (; i < drawn.length && drawn[i].p.z > 0; i++) renderElectron(drawn[i].e, drawn[i].p);
+    drawNucleus();
+    for (; i < drawn.length; i++) renderElectron(drawn[i].e, drawn[i].p);
+
+    // Sensor-evidence sparks streaming inward to the nucleus.
+    particles.forEach((p, idx) => {
+      if (p.ei < 0 || p.ei >= electrons.length) { particles[idx] = mkParticle(); return; }
+      p.progress += p.speed;
+      if (p.progress >= 1) { particles[idx] = mkParticle(); return; }
+      const e = electrons[p.ei];
+      const sp = orbitPoint(e.shell, e.theta);
+      const ease = p.progress * p.progress;
+      const dx = cx - sp.sx, dy = cy - sp.sy;
+      const len = Math.hypot(dx, dy) || 1;
+      const amp = Math.sin(p.progress * Math.PI) * 10;
+      const x = sp.sx + dx * ease + (-dy / len) * Math.sin(t * 2 + p.wob) * amp;
+      const y = sp.sy + dy * ease + (dx / len) * Math.sin(t * 2 + p.wob) * amp;
+      ctx.beginPath();
+      ctx.arc(x, y, p.size, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${sevColor(e.severity)},${0.85 * (1 - ease * 0.4)})`;
+      ctx.fill();
+    });
+
     // Consensus-fire ripples — expanding rings that fade as they grow.
     ripples = ripples.filter((rp) => rp.alpha > 0.02);
     ripples.forEach((rp) => {
       rp.r += (rp.max - rp.r) * 0.04 + 2;
-      rp.alpha *= 0.96;
+      rp.alpha *= 0.955;
       const c = (rp.color || '#ff3864').replace('#', '');
-      const cr = parseInt(c.slice(0, 2), 16), cg = parseInt(c.slice(2, 4), 16), cb = parseInt(c.slice(4, 6), 16);
+      const cr = parseInt(c.slice(0, 2), 16), cgr = parseInt(c.slice(2, 4), 16), cb = parseInt(c.slice(4, 6), 16);
       ctx.beginPath();
       ctx.arc(rp.x, rp.y, rp.r, 0, Math.PI * 2);
-      ctx.strokeStyle = `rgba(${cr},${cg},${cb},${rp.alpha})`;
+      ctx.strokeStyle = `rgba(${cr},${cgr},${cb},${rp.alpha})`;
       ctx.lineWidth = 2.5;
       ctx.stroke();
       ctx.beginPath();
       ctx.arc(rp.x, rp.y, rp.r * 0.6, 0, Math.PI * 2);
-      ctx.strokeStyle = `rgba(${cr},${cg},${cb},${rp.alpha * 0.4})`;
+      ctx.strokeStyle = `rgba(${cr},${cgr},${cb},${rp.alpha * 0.4})`;
       ctx.lineWidth = 1;
       ctx.stroke();
     });
 
-    // Nodes
-    nodes.forEach((node, i) => {
-      if (i === 0) {
-        // Center blackboard node - 3D rotating hex
-        node.pulse += 0.02;
-        const r = 40 + Math.sin(node.pulse) * 5;
-        
-        // Outer glow rings
-        for (let ring = 0; ring < 3; ring++) {
-          const ringR = r + ring * 20 + Math.sin(t * 2 + ring) * 5;
-          const grad = ctx.createRadialGradient(node.x, node.y, ringR * 0.5, node.x, node.y, ringR);
-          grad.addColorStop(0, 'rgba(255,56,100,0)');
-          grad.addColorStop(1, `rgba(255,56,100,${0.15 - ring * 0.04})`);
-          ctx.beginPath();
-          ctx.arc(node.x, node.y, ringR, 0, Math.PI * 2);
-          ctx.fillStyle = grad;
-          ctx.fill();
-        }
-        
-        // Main node
-        const mainGrad = ctx.createRadialGradient(node.x - r/4, node.y - r/4, 0, node.x, node.y, r);
-        mainGrad.addColorStop(0, '#ff6b88');
-        mainGrad.addColorStop(0.5, '#cc0033');
-        mainGrad.addColorStop(1, '#880022');
-        ctx.beginPath();
-        ctx.arc(node.x, node.y, r, 0, Math.PI * 2);
-        ctx.fillStyle = mainGrad;
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(255,100,100,0.6)';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-        
-        // Label
-        ctx.fillStyle = '#fff';
-        ctx.font = 'bold 10px JetBrains Mono, monospace';
-        ctx.textAlign = 'center';
-        ctx.fillText('MCP', node.x, node.y - 4);
-        ctx.font = '9px JetBrains Mono, monospace';
-        ctx.fillStyle = 'rgba(255,255,255,0.7)';
-        ctx.fillText('BLACKBOARD', node.x, node.y + 8);
-        
-        // Tau readout
-        ctx.fillStyle = 'rgba(255,200,200,0.8)';
-        ctx.font = '8px JetBrains Mono, monospace';
-        ctx.fillText(`τ_max=${IOC_DEFS[0].tau.toFixed(3)}`, node.x, node.y + r + 14);
-      } else {
-        node.pulse += 0.015 + node.tau * 0.01;
-        node.x += node.vx;
-        node.y += node.vy;
-        // Gentle boundary
-        const pad = 80;
-        if (node.x < pad || node.x > W - pad) node.vx *= -1;
-        if (node.y < pad || node.y > H - pad) node.vy *= -1;
-        
-        const r = 14 + node.tau * 16;
-        const col = node.severity === 'critical' ? '255,56,100' : node.severity === 'high' ? '255,184,108' : '0,255,159';
-
-        // Yager-band conflict (K >= 0.3): a split-glow of two opposing colours
-        // (red=malicious vs blue=benign) that oscillate, visually "fighting" —
-        // the system's contradictory-evidence state, readable at a glance.
-        if (node.k >= 0.3) {
-          const osc = Math.sin(node.pulse * 3);
-          const swing = node.k * 0.5;
-          for (let half = 0; half < 2; half++) {
-            const a0 = half * Math.PI - osc * swing;
-            const a1 = a0 + Math.PI;
-            const cc = half === 0 ? '255,56,100' : '137,221,255';
-            ctx.beginPath();
-            ctx.arc(node.x, node.y, r + 7, a0, a1);
-            ctx.strokeStyle = `rgba(${cc},${0.45 + Math.abs(osc) * 0.35})`;
-            ctx.lineWidth = 3;
-            ctx.stroke();
-          }
-        }
-
-        // Pulse ring
-        const pulseR = r + Math.abs(Math.sin(node.pulse)) * 15;
-        ctx.beginPath();
-        ctx.arc(node.x, node.y, pulseR, 0, Math.PI * 2);
-        ctx.strokeStyle = `rgba(${col},${0.3 - Math.abs(Math.sin(node.pulse)) * 0.25})`;
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
-        
-        // Node body
-        const nGrad = ctx.createRadialGradient(node.x - r/3, node.y - r/3, 0, node.x, node.y, r);
-        nGrad.addColorStop(0, `rgba(${col},0.9)`);
-        nGrad.addColorStop(1, `rgba(${col},0.3)`);
-        ctx.beginPath();
-        ctx.arc(node.x, node.y, r, 0, Math.PI * 2);
-        ctx.fillStyle = nGrad;
-        ctx.fill();
-        
-        // Label
-        ctx.fillStyle = 'rgba(255,255,255,0.8)';
-        ctx.font = '9px JetBrains Mono, monospace';
-        ctx.textAlign = 'center';
-        ctx.fillText(node.type, node.x, node.y - 3);
-        ctx.fillStyle = 'rgba(255,255,255,0.5)';
-        ctx.font = '8px JetBrains Mono, monospace';
-        ctx.fillText(node.label, node.x, node.y + 7);
-        ctx.fillStyle = `rgba(${col},1)`;
-        ctx.font = 'bold 8px JetBrains Mono, monospace';
-        ctx.fillText(`τ=${node.tau.toFixed(2)}`, node.x, node.y + r + 12);
-      }
-    });
-    
-    // Pheromone field heatmap overlay hook; guard zero-sized startup frames.
-    if (W > 0 && H > 0) {
-      ctx.getImageData(0, 0, W, H);
-    }
-    
     requestAnimationFrame(draw);
   }
-  
+
   resize();
   window.addEventListener('resize', resize);
   draw();
