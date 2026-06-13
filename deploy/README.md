@@ -1,6 +1,6 @@
-# FIND EVIL — Docker deployment
+# Stigmergy — Docker deployment
 
-A judge-friendly Compose stack for FIND EVIL. This is the foundation the
+A judge-friendly Compose stack for Stigmergy. This is the foundation the
 one-click installer wraps (see the repo's `installer/` and GitHub Releases).
 
 ## Quick start
@@ -34,7 +34,7 @@ ENABLE_LLM=1 docker compose up -d
 
 - **Infra containers:** `valkey` (pheromone field, keyspace events on), `nats`
   (JetStream), `otel` (metrics).
-- **`findevil` container:** runs all FIND EVIL Python services under
+- **`findevil` container:** runs all Stigmergy Python services under
   `supervisord`. They are co-located because the hot path uses ZeroMQ `ipc://`
   sockets, which need a shared filesystem namespace. This is demo packaging —
   the native systemd deployment (see repo `etc/systemd/`) is the production

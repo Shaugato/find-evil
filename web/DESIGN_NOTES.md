@@ -1,4 +1,4 @@
-# FIND EVIL companion site — design notes
+# Stigmergy companion site — design notes
 
 ## Research → decision (Sections 10 Stage 1–3)
 
@@ -11,7 +11,7 @@ rather than generic particles. Technically they split into: Three.js / React
 Three Fiber scenes, Spline embeds, raw WebGL/GLSL shaders, and 2D motion via
 GSAP / Framer Motion + `<canvas>`.
 
-**Stage 2 — FIND EVIL's raw material.** The platform's most *visual* concept is
+**Stage 2 — Stigmergy's raw material.** The platform's most *visual* concept is
 the **stigmergic pheromone field**: a live, evolving graph of artifacts (IPs,
 domains, processes, hashes) whose suspicion (`belief_evil`) rises and decays as
 sensors deposit evidence. That maps directly to a force-directed particle

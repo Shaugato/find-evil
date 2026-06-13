@@ -17,7 +17,7 @@ export default function Home() {
             SANS Find Evil! — Custom MCP Server (Approach #2)
           </div>
           <h1 className="text-5xl font-bold leading-tight tracking-tight sm:text-7xl">
-            FIND <span className="text-gradient">EVIL</span>
+            <span className="text-gradient">Stigmergy</span>
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-lg text-gray-300 sm:text-xl">
             Autonomous DFIR at machine speed.{" "}
@@ -66,7 +66,7 @@ export default function Home() {
           </h2>
           <p className="mx-auto mt-4 max-w-3xl text-center text-gray-400">
             Connecting an LLM to 200 forensic tools makes it fast — and makes it
-            hallucinate. FIND EVIL fixes that <em>architecturally</em>, not with
+            hallucinate. Stigmergy fixes that <em>architecturally</em>, not with
             prompts. Three planes, one rule: the model is never in the decision
             path.
           </p>
@@ -112,7 +112,7 @@ export default function Home() {
             </h2>
             <p className="mt-3 max-w-3xl text-gray-400">
               The difference the brief asks for. If every prompt-based control
-              failed at once, FIND EVIL would still emit a correct, signed,
+              failed at once, Stigmergy would still emit a correct, signed,
               tamper-evident decision.
             </p>
           </Reveal>
@@ -208,7 +208,7 @@ export default function Home() {
               Download &amp; run it yourself
             </h2>
             <p className="mt-3 max-w-3xl text-gray-400">
-              FIND EVIL runs <span className="text-white">entirely on your
+              Stigmergy runs <span className="text-white">entirely on your
               machine</span> — your telemetry, models, and signed ledger never
               leave it. One prerequisite: Docker.
             </p>
@@ -222,7 +222,7 @@ export default function Home() {
                   <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-good/40 bg-good/10 px-3 py-1 text-xs text-good">
                     ★ Easiest — one-click installer
                   </div>
-                  <h3 className="text-2xl font-bold">Get FIND EVIL running in ~10 minutes</h3>
+                  <h3 className="text-2xl font-bold">Get Stigmergy running in ~10 minutes</h3>
                   <p className="mt-2 max-w-xl text-sm text-gray-300">
                     The launcher checks Docker, fetches the repo, starts the full
                     stack, and opens the dashboard. Works on Windows, macOS, and
@@ -276,7 +276,7 @@ export default function Home() {
             {[
               {
                 t: "Docker Compose",
-                d: "Prefer to drive it yourself? One command brings up valkey + nats + otel + the FIND EVIL services.",
+                d: "Prefer to drive it yourself? One command brings up valkey + nats + otel + the Stigmergy services.",
                 cmd: "docker compose up -d",
                 href: `${REPO}/tree/main/deploy`,
                 cta: "deploy/ →",
@@ -317,7 +317,7 @@ export default function Home() {
       </section>
 
       <footer className="border-t border-edge px-6 py-10 text-center text-sm text-muted">
-        FIND EVIL — local, defensive DFIR. MIT licensed. No offensive tooling;
+        Stigmergy — local, defensive DFIR. MIT licensed. No offensive tooling;
         validated on synthetic telemetry and legitimate sample forensic images.
         <div className="mt-2">
           <a href={REPO} className="text-cyan hover:underline">

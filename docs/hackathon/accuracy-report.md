@@ -1,6 +1,6 @@
-# FIND EVIL — Accuracy Report (Deliverable 6)
+# Stigmergy — Accuracy Report (Deliverable 6)
 
-This report is deliberately honest about what FIND EVIL gets right, what it gets
+This report is deliberately honest about what Stigmergy gets right, what it gets
 wrong, and — most importantly — *which errors can and cannot affect the evidence
 record.* The central claim is that **evidence integrity is architectural, not
 behavioral**: the LLM's mistakes are structurally prevented from corrupting a
@@ -20,7 +20,7 @@ decision or the ledger.
 | Zheng-2023 position-swap | Prompt-based | Reduces ordering bias in the judge; quality, not integrity. |
 
 **The test we hold ourselves to:** if every prompt-based control failed at once
-(the model ignored all instructions), FIND EVIL would still emit a correct,
+(the model ignored all instructions), Stigmergy would still emit a correct,
 signed, tamper-evident decision — because the decision was never the model's.
 
 ## 2. Spoliation / tamper testing
@@ -38,7 +38,7 @@ detects it.
 
 **Honest failure mode found:** the ledger proves *its own* integrity, but it
 cannot prove that a sensor *upstream* of ingest didn't lie. If a sensor feeds a
-false indicator, FIND EVIL faithfully records a finding about a false indicator.
+false indicator, Stigmergy faithfully records a finding about a false indicator.
 This is inherent to any evidence system — garbage in is recorded as
 provenance-tagged garbage, not silently "fixed." We surface the source sensor on
 every finding so a reviewer can audit the chain back to its origin.
@@ -143,7 +143,7 @@ fusion + threshold logic behaves correctly when ground truth is known.
 
 ## 6. Bottom line
 
-FIND EVIL will occasionally surface a benign carved string or write imperfect
+Stigmergy will occasionally surface a benign carved string or write imperfect
 narrator prose. It will **not** auto-mitigate on weak evidence, accept a
 fabricated citation, let the LLM override the math, or fail to detect tampering.
 The errors it makes are the *safe* kind; the errors it structurally prevents are

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================================
-#  FIND EVIL — one-line installer (macOS / Linux)
+#  Stigmergy — one-line installer (macOS / Linux)
 #
 #    curl -fsSL https://raw.githubusercontent.com/Shaugato/find-evil/main/installer/install.sh | bash
 #
@@ -16,7 +16,7 @@ GREEN='\033[0;32m'; RED='\033[0;31m'; NC='\033[0m'
 say() { echo -e "${GREEN}[find-evil]${NC} $*"; }
 die() { echo -e "${RED}[find-evil] ERROR:${NC} $*" >&2; exit 1; }
 
-say "FIND EVIL installer — defensive DFIR SOC, runs entirely on your machine."
+say "Stigmergy installer — defensive DFIR SOC, runs entirely on your machine."
 
 command -v git >/dev/null 2>&1 || die "git required. Install git and re-run."
 
@@ -33,7 +33,7 @@ if [ -d "$TARGET/.git" ]; then
   say "Updating existing checkout at $TARGET"
   git -C "$TARGET" pull --ff-only || say "pull skipped; using current checkout"
 else
-  say "Cloning FIND EVIL into $TARGET"
+  say "Cloning Stigmergy into $TARGET"
   git clone --depth 1 "$REPO_URL" "$TARGET"
 fi
 

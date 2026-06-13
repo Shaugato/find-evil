@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================================
-#  FIND EVIL — one-click launcher for macOS / Linux
+#  Stigmergy — one-click launcher for macOS / Linux
 #  Make executable (chmod +x) and double-click, or run from a terminal.
 #  Checks Docker, builds/starts the Compose stack, opens the dashboard.
 # ============================================================================
@@ -15,7 +15,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 echo
 echo "  ============================================"
-echo "    FIND EVIL - autonomous DFIR SOC (local)"
+echo "    Stigmergy - autonomous DFIR SOC (local)"
 echo "  ============================================"
 echo
 
@@ -41,13 +41,13 @@ if [ -d "$SCRIPT_DIR/../deploy" ]; then
   DEPLOY_DIR="$(cd "$SCRIPT_DIR/../deploy" && pwd)"
   say "Using existing repo at $(dirname "$DEPLOY_DIR")"
 else
-  command -v git >/dev/null 2>&1 || die "git required to fetch FIND EVIL. Install git and re-run."
+  command -v git >/dev/null 2>&1 || die "git required to fetch Stigmergy. Install git and re-run."
   TARGET="${FIND_EVIL_HOME:-$HOME/find-evil}"
   if [ -d "$TARGET/deploy" ]; then
     say "Updating existing checkout at $TARGET"
     git -C "$TARGET" pull --ff-only || say "pull skipped (local changes); using current checkout"
   else
-    say "Cloning FIND EVIL into $TARGET ..."
+    say "Cloning Stigmergy into $TARGET ..."
     git clone --depth 1 "$REPO_URL" "$TARGET" || die "git clone failed."
   fi
   DEPLOY_DIR="$TARGET/deploy"
@@ -82,7 +82,7 @@ done
 
 echo
 echo "  ============================================"
-echo "    FIND EVIL is up."
+echo "    Stigmergy is up."
 echo "      Dashboard : http://localhost:9400"
 echo "      MCP       : http://localhost:9310/mcp"
 echo "  ============================================"

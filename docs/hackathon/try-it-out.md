@@ -1,6 +1,6 @@
-# FIND EVIL — Try It Out (Deliverable 7)
+# Stigmergy — Try It Out (Deliverable 7)
 
-Three ways to evaluate FIND EVIL, fastest first.
+Three ways to evaluate Stigmergy, fastest first.
 
 > **Live companion site (no install):** **https://web-eight-sage-34.vercel.app**
 > Explore the architecture and replay the real ROCBA run in your browser with

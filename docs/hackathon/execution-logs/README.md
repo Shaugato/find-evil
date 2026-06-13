@@ -1,6 +1,6 @@
-# FIND EVIL — Agent Execution Logs (Deliverable 8)
+# Stigmergy — Agent Execution Logs (Deliverable 8)
 
-Structured, reproducible traces of FIND EVIL acting on the **real** SANS ROCBA
+Structured, reproducible traces of Stigmergy acting on the **real** SANS ROCBA
 case data: finding → tool execution → reasoning trace → chain of custody, with
 timestamps and ledger sequence numbers.
 

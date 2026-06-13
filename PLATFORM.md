@@ -1,6 +1,6 @@
-# FIND EVIL Platform
+# Stigmergy Platform
 
-FIND EVIL is a defensive autonomous SOC platform built around deterministic
+Stigmergy is a defensive autonomous SOC platform built around deterministic
 evidence fusion, a blackboard-style shared state model, and a tamper-evident
 forensic ledger. It is designed for local or on-prem operation where telemetry,
 models, response shims, and audit artifacts stay under the operator's control.
@@ -191,7 +191,7 @@ the hot path, this does not affect the detection/containment SLA.
 
 ## Standards Interop
 
-FIND EVIL supports:
+Stigmergy supports:
 
 - STIX 2.1 bundle emission
 - OCSF Detection Finding, `class_uid=2004`

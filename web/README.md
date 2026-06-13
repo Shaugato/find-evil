@@ -1,6 +1,6 @@
-# FIND EVIL — companion website (`web/`)
+# Stigmergy — companion website (`web/`)
 
-A zero-backend Next.js site that explains the FIND EVIL architecture and
+A zero-backend Next.js site that explains the Stigmergy architecture and
 **replays the real ROCBA run** from exported ledger JSON. It does **not** host
 the backend (Valkey/NATS/SQLite/local-LLM are incompatible with serverless) —
 it's a static explainer + client-side replay viewer.

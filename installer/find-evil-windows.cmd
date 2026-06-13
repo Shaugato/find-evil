@@ -1,15 +1,15 @@
 @echo off
 REM ============================================================================
-REM  FIND EVIL — one-click launcher for Windows
-REM  Double-click this file. It checks Docker, builds/starts the FIND EVIL
+REM  Stigmergy — one-click launcher for Windows
+REM  Double-click this file. It checks Docker, builds/starts the Stigmergy
 REM  Compose stack, optionally downloads the LLM, and opens the dashboard.
 REM ============================================================================
 setlocal enabledelayedexpansion
-title FIND EVIL launcher
+title Stigmergy launcher
 
 echo.
 echo  ============================================
-echo    FIND EVIL - autonomous DFIR SOC (local)
+echo    Stigmergy - autonomous DFIR SOC (local)
 echo  ============================================
 echo.
 
@@ -42,7 +42,7 @@ if exist "%ROOT%\deploy\docker-compose.yml" (
     echo [..] Updating existing checkout at !TARGET!
     git -C "!TARGET!" pull --ff-only
   ) else (
-    echo [..] Cloning FIND EVIL into !TARGET! ...
+    echo [..] Cloning Stigmergy into !TARGET! ...
     git clone --depth 1 "%REPO_URL%" "!TARGET!"
     if errorlevel 1 ( echo [ERROR] git clone failed. & pause & exit /b 1 )
   )
@@ -74,7 +74,7 @@ set /p LLM="Enable the AI narrator/pivot agents? Downloads ~2 GB model on first 
 if /i "!LLM!"=="y" ( set "ENABLE_LLM=1" ) else ( set "ENABLE_LLM=0" )
 
 echo.
-echo [..] Building and starting the FIND EVIL stack (first run may take a few minutes)...
+echo [..] Building and starting the Stigmergy stack (first run may take a few minutes)...
 set ENABLE_LLM=!ENABLE_LLM!
 docker compose up -d --build
 if errorlevel 1 (
@@ -93,7 +93,7 @@ if !tries! lss 20 goto waitdash
 
 echo.
 echo  ============================================
-echo    FIND EVIL is up.
+echo    Stigmergy is up.
 echo      Dashboard : http://localhost:9400
 echo      MCP       : http://localhost:9310/mcp
 echo  ============================================

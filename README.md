@@ -1,6 +1,6 @@
-# FIND EVIL
+# Stigmergy
 
-FIND EVIL is a local-first autonomous Security Operations Center platform for
+Stigmergy is a local-first autonomous Security Operations Center platform for
 defensive detection, evidence fusion, and safe-mode response automation. It
 ingests synthetic or owned telemetry, correlates evidence with deterministic
 Dempster-Shafer fusion, records every decision in a cryptographically verified
@@ -15,7 +15,7 @@ already been written to the ledger.
 ## SANS "Find Evil!" Hackathon
 
 This repository is a Find Evil! submission built as a **Custom MCP Server
-(Approach #2)**: 60 typed, schema-validated MCP tools with reference-resolved
+(Approach #2)**: 62 typed, schema-validated MCP tools with reference-resolved
 exhibit IDs and server-side output parsing — there is no `execute_shell_cmd`, so
 the agent cannot run arbitrary commands. **Math decides, the ledger records, the
 LLM only explains.**
@@ -55,7 +55,7 @@ artifacts, and workstation-specific UI design sources.
 
 ## Safety Scope
 
-FIND EVIL is defensive infrastructure. The validation harness uses locally
+Stigmergy is defensive infrastructure. The validation harness uses locally
 generated JSON telemetry published to local NATS/Valkey services. It does not
 require real malware, exploit traffic, or unauthorized access to any external
 system.

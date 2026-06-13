@@ -1,4 +1,4 @@
-# FIND EVIL — 8/8 Deliverable Checklist (the judges' checklist)
+# Stigmergy — 8/8 Deliverable Checklist (the judges' checklist)
 
 > "Missing any one means elimination." One line per deliverable: present /
 > location / status.

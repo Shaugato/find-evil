@@ -1,9 +1,9 @@
-# FIND EVIL — Architecture Diagram (Deliverable 3)
+# Stigmergy — Architecture Diagram (Deliverable 3)
 
 **Architectural pattern:** *Custom MCP Server (Approach #2)* from the Find Evil!
 brief — typed, schema-validated MCP tools instead of `execute_shell_cmd`, with
 server-side output parsing before anything reaches the LLM. The brief calls this
-"the most sound architecture in the evaluation… also the most work." FIND EVIL
+"the most sound architecture in the evaluation… also the most work." Stigmergy
 has done that work.
 
 The single most important property: **the LLM is never in the containment
@@ -81,7 +81,7 @@ flowchart TB
 ## Guardrails: architectural vs prompt-based
 
 The brief specifically asks submissions to **distinguish prompt-based guardrails
-from architectural guardrails.** This is FIND EVIL's strongest differentiator.
+from architectural guardrails.** This is Stigmergy's strongest differentiator.
 
 ```mermaid
 flowchart LR
@@ -107,7 +107,7 @@ flowchart LR
 ```
 
 **The line that matters:** if every prompt-based control failed simultaneously —
-the model ignored every instruction — FIND EVIL would still produce a correct,
+the model ignored every instruction — Stigmergy would still produce a correct,
 signed, tamper-evident decision, because the decision was never the model's to
 make. Prompt guardrails here improve *explanation quality*, not *evidence
 integrity*.
@@ -116,10 +116,10 @@ integrity*.
 
 ## How this maps to the 4 supported approaches
 
-| Approach | What it is | FIND EVIL |
+| Approach | What it is | Stigmergy |
 |---|---|---|
 | #1 Prompt-only | Tell the model to be careful | rejected — not enforceable |
-| **#2 Custom MCP Server** | **Typed tools, server-side parsing, ref-resolved IDs** | **this is FIND EVIL** |
+| **#2 Custom MCP Server** | **Typed tools, server-side parsing, ref-resolved IDs** | **this is Stigmergy** |
 | #3 Wrapper/proxy | Filter an `execute_shell_cmd` server | weaker than #2 |
 | #4 Fine-tune | Train a bespoke model | out of scope for local DFIR |
 
@@ -127,10 +127,10 @@ integrity*.
 
 Protocol SIFT is a **Claude Code skill-file + permissions configuration** for a
 SIFT workstation (behavioral rules, `settings.json` allow-lists, a `Stop` audit
-hook). It is *prompt-and-permission* tuning of a general agent. FIND EVIL is a
+hook). It is *prompt-and-permission* tuning of a general agent. Stigmergy is a
 **standalone Custom MCP Server** that runs **alongside** Protocol SIFT: a judge
-can point any MCP-capable agent (Claude Code included) at FIND EVIL's blackboard
+can point any MCP-capable agent (Claude Code included) at Stigmergy's blackboard
 on `127.0.0.1:9310/mcp` and get deterministic fusion + a signed ledger that
 Protocol SIFT's skill layer does not itself provide. The two are complementary —
-Protocol SIFT shapes *how the agent thinks*; FIND EVIL constrains *what the
+Protocol SIFT shapes *how the agent thinks*; Stigmergy constrains *what the
 agent can do and proves what it did.* See [try-it-out.md](try-it-out.md).

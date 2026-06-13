@@ -1,4 +1,4 @@
-# FIND EVIL Validation Report
+# Stigmergy Validation Report
 
 Date: 2026-05-10  
 Environment: WSL2 Ubuntu 24.04 on a local workstation  
@@ -113,7 +113,7 @@ batch 3: Rekor index 1492269391, 19-digit nanosecond timestamp
 
 ## Readiness Statement
 
-FIND EVIL is ready for public cloning, local defensive validation, and research
+Stigmergy is ready for public cloning, local defensive validation, and research
 review. Operators should install optional forensic binaries and configure local
 model inference according to their hardware before using it as a production SOC
 component.

@@ -1,8 +1,8 @@
-# FIND EVIL Project Report
+# Stigmergy Project Report
 
 ## Executive Summary
 
-FIND EVIL is a defensive autonomous Security Operations Center platform. It is
+Stigmergy is a defensive autonomous Security Operations Center platform. It is
 designed to help detect, correlate, explain, and safely respond to cyberattack
 signals faster than a human analyst could manually inspect every alert.
 
@@ -12,14 +12,14 @@ that evidence into a clear decision: observe, mitigate, escalate, or record a
 conflict. Every decision is written into a tamper-evident forensic ledger so the
 system can later prove what it saw, what it decided, and why.
 
-The key achievement is that FIND EVIL is not just a dashboard or a collection of
+The key achievement is that Stigmergy is not just a dashboard or a collection of
 scripts. It is an integrated defensive platform with live services, mathematical
 evidence fusion, automated safe-mode response, standards-based exports, local
 AI-assisted explanation, and a validated test suite.
 
 ## What Was Built
 
-FIND EVIL is an end-to-end autonomous SOC research platform. It includes:
+Stigmergy is an end-to-end autonomous SOC research platform. It includes:
 
 - A telemetry ingestion pipeline for synthetic and owned security events.
 - A Dempster-Shafer evidence fusion engine that combines sensor confidence
@@ -49,7 +49,7 @@ Attackers can move from initial execution to credential access or lateral
 movement in minutes. Traditional SOC workflows often depend on a human analyst
 reading isolated alerts and manually connecting the dots.
 
-FIND EVIL addresses that gap by automating the hot path:
+Stigmergy addresses that gap by automating the hot path:
 
 1. Collect evidence.
 2. Fuse the evidence mathematically.
@@ -63,7 +63,7 @@ logic before using it in a real operational setting.
 
 ## High-Level Architecture
 
-At a high level, FIND EVIL works like this:
+At a high level, Stigmergy works like this:
 
 ```text
 Security telemetry
@@ -102,7 +102,7 @@ Suricata, YARA, Volatility, and other forensic signals.
 ### Evidence Fusion
 
 Each sensor contributes a confidence value. Instead of using a simple average or
-weighted vote, FIND EVIL uses Dempster-Shafer theory. This lets the platform
+weighted vote, Stigmergy uses Dempster-Shafer theory. This lets the platform
 track not only belief that something is malicious, but also uncertainty and
 conflict between sensors.
 
@@ -155,7 +155,7 @@ verification fails.
 
 ### Safe-Mode CACAO Response
 
-When evidence crosses the mitigation threshold, FIND EVIL generates safe-mode
+When evidence crosses the mitigation threshold, Stigmergy generates safe-mode
 CACAO-style playbooks. These simulate response actions such as process
 containment, account reset, or network isolation without touching real
 production EDR or network infrastructure.
@@ -238,7 +238,7 @@ Validated scenario coverage included:
 
 ## Standards and Interoperability
 
-FIND EVIL aligns with several security and evidence standards:
+Stigmergy aligns with several security and evidence standards:
 
 | Standard | Use |
 |---|---|
@@ -308,7 +308,7 @@ working local platform.
 
 ## Conclusion
 
-FIND EVIL demonstrates that a defensive SOC platform can combine deterministic
+Stigmergy demonstrates that a defensive SOC platform can combine deterministic
 mathematical evidence fusion with modern agentic workflows while preserving a
 clear safety boundary. The system detects and correlates synthetic attack
 patterns, records decisions in a verifiable ledger, exposes standards-aligned

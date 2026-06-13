@@ -24,7 +24,7 @@ import typer
 
 from findevil.config.settings import settings
 
-cli = typer.Typer(add_completion=False, help="FIND EVIL — stigmergic DFIR SOC")
+cli = typer.Typer(add_completion=False, help="Stigmergy — stigmergic DFIR SOC")
 
 
 @cli.command()

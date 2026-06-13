@@ -1,6 +1,6 @@
-# FIND EVIL — one-click launcher
+# Stigmergy — one-click launcher
 
-Standalone launchers that get FIND EVIL running locally with one step. They
+Standalone launchers that get Stigmergy running locally with one step. They
 work **whether or not you've already cloned the repo** — if run on their own,
 they fetch the repo for you, then check Docker, start the
 [`deploy/`](../deploy) Compose stack, optionally download the LLM, and open the

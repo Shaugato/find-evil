@@ -1,4 +1,4 @@
-# FIND EVIL — Dataset Documentation (Deliverable 5)
+# Stigmergy — Dataset Documentation (Deliverable 5)
 
 ## Primary dataset — official SANS Find Evil! sample case
 

@@ -1,4 +1,4 @@
-# FIND EVIL — Project Description (Deliverable 4)
+# Stigmergy — Project Description (Deliverable 4)
 
 > An autonomous DFIR platform where **math decides, the ledger records, and the
 > LLM only explains** — so a hallucinating agent can never cause a wrong
@@ -19,7 +19,7 @@ evidence record at all.**
 
 ## What it does
 
-FIND EVIL is a local, defensive autonomous SOC/DFIR platform built around a
+Stigmergy is a local, defensive autonomous SOC/DFIR platform built around a
 deterministic hot path and an out-of-band reasoning plane:
 
 - **Sensors** (Volatility, YARA, Zeek, Sleuth Kit, tshark, Plaso,
@@ -110,6 +110,6 @@ misbehavior is structurally inert, every other decision got simpler.
 
 ---
 
-*FIND EVIL is local, defensive infrastructure. It contains no offensive tooling
+*Stigmergy is local, defensive infrastructure. It contains no offensive tooling
 and was validated only against synthetic telemetry and legitimate sample
 forensic images.*

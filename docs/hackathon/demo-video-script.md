@@ -1,4 +1,4 @@
-# FIND EVIL — Demo Video Script (Deliverable 2)
+# Stigmergy — Demo Video Script (Deliverable 2)
 
 > **⚠️ This is the one deliverable that requires YOU to hit record.** Everything
 > below is pre-staged: exact commands, expected output, and narration. Target
@@ -25,7 +25,7 @@ Have two windows ready: a **terminal** and the **dashboard browser tab**.
 **Narration:**
 > "AI attacks now move 47 times faster than human responders. The obvious fix —
 > point an LLM agent at 200 forensic tools — has a fatal flaw: it hallucinates.
-> FIND EVIL solves that architecturally. Math decides, a signed ledger records,
+> Stigmergy solves that architecturally. Math decides, a signed ledger records,
 > and the LLM only explains *after the fact*. A hallucination can't cause a
 > wrong containment, because the model was never in the decision path."
 
@@ -105,7 +105,7 @@ findevil verify
 **Narration:**
 > "Local, defensive, reproducible. The hot path runs in under a millisecond with
 > no LLM. The evidence is cryptographically provable. And the agent's
-> hallucinations are structurally inert. That's FIND EVIL — find evil at machine
+> hallucinations are structurally inert. That's Stigmergy — find evil at machine
 > speed, and prove it."
 
 ---

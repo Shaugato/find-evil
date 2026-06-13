@@ -1,4 +1,4 @@
-"""fastmcp 2.x server — the MCP blackboard for FIND EVIL (blueprint Part 5).
+"""fastmcp 2.x server — the MCP blackboard for Stigmergy (blueprint Part 5).
 
 This process is the SOLE public surface of the blackboard. Swarm agents, the
 Narrator, the Watcher/fractal spawner, the dashboard, and external triage clients
@@ -311,7 +311,7 @@ def _register_actuator_tools(mcp: FastMCP) -> None:
             return await fn(command_payload)
 
         _tool.__name__ = "tool_" + tool_name.replace(".", "_").replace("-", "_")
-        _tool.__doc__ = f"Invoke registered FIND EVIL actuator `{tool_name}`."
+        _tool.__doc__ = f"Invoke registered Stigmergy actuator `{tool_name}`."
         return _tool
 
     for name in registered():

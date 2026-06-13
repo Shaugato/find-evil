@@ -1,11 +1,11 @@
 [project]
 name = "findevil"
 version = "0.1.0"
-description = "FIND EVIL: Stigmergic-Blackboard Hybrid for Autonomous DFIR"
+description = "Stigmergy — autonomous DFIR through stigmergic swarm intelligence (built for the SANS Find Evil! hackathon)"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 license = { text = "MIT" }
-authors = [{ name = "FIND EVIL Team" }]
+authors = [{ name = "Stigmergy Team" }]
 dependencies = [
     # --- Serving / inference ---------------------------------------------------
     # Profile A is the implementation-guide path for 4 GB VRAM. Heavier

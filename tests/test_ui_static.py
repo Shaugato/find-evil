@@ -23,7 +23,7 @@ def test_legacy_operator_guide_still_available(_temp_findevil_root: Path) -> Non
     response = TestClient(app).get("/guide")
 
     assert response.status_code == 200
-    assert "FIND EVIL Operator Dashboard" in response.text
+    assert "Stigmergy Operator Dashboard" in response.text
 
 
 def test_live_adapter_preserves_design_renderers() -> None:
