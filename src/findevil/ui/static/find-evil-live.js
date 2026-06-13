@@ -180,23 +180,40 @@
   }
 
   function deriveDebateFromLedger(rows) {
+    // The adversarial debate is the prosecutor/defense/judge reasoning (impl doc
+    // Part 10) — NOT a separate red-team-emulator ledger stream (which only
+    // exists during red-team runs, hence the old empty column). Map the live
+    // ledger onto the two sides: RED = the prosecution's case that the artifact
+    // is malicious (sensor assertions + high-belief consensus + mitigation);
+    // BLUE = the defense & judge verdict (narrator, Yager-conflict refusals,
+    // CACAO containment, observe/benign outcomes). Both fill from real data.
     const red = [];
     const blue = [];
-    for (const row of rows.slice(0, 12).reverse()) {
+    for (const row of rows.slice(0, 18).reverse()) {
       const entry = row.entry || {};
-      const claim = Array.isArray(entry.reasoning_trace) && entry.reasoning_trace[0]
-        ? entry.reasoning_trace[0].claim
-        : entry.primary_artifact_key;
+      const aid = String(entry.agent_id || '').toLowerCase();
+      const claim = (Array.isArray(entry.reasoning_trace) && entry.reasoning_trace[0] && entry.reasoning_trace[0].claim)
+        || entry.primary_artifact_key;
       if (!claim) continue;
-      const msg = { ts: `#${row.seq}`, text: claim };
-      if (String(entry.agent_id || '').toLowerCase().includes('red')) red.push(msg);
-      else if (entry.consensus || String(entry.agent_id || '').includes('narrator')) blue.push(msg);
+      const msg = { ts: `#${row.seq}`, text: claim, seq: row.seq };
+      const cons = entry.consensus || null;
+      const bel = cons && cons.belief_evil != null ? cons.belief_evil : (num(entry.confidence) || 0);
+      const isVerdict = aid.includes('narrator') || aid.includes('judge') || aid.includes('defense')
+        || aid.includes('cacao') || aid.includes('conflict') || /conflict|verdict|defen|acquit|observe|benign/i.test(claim);
+      if (isVerdict || (cons && bel < 0.5)) {
+        blue.push(msg);
+      } else if (aid.includes('red') || aid.includes('adversary') || bel >= 0.6
+        || /mitigat|malicious|evil|consensus|prosecut/i.test(claim)) {
+        red.push(msg);
+      } else {
+        blue.push(msg);
+      }
     }
-    replaceArray(RED_MSGS, red.length ? red : [
-      { ts: 'LIVE', text: 'No adversary emulator assertions have been recorded in the ledger yet.' },
+    replaceArray(RED_MSGS, red.length ? red.slice(0, 8) : [
+      { ts: 'LIVE', text: 'No prosecution arguments in the recent ledger window — inject a malicious scenario to populate.' },
     ]);
-    replaceArray(BLUE_MSGS, blue.length ? blue : [
-      { ts: 'LIVE', text: 'Waiting for consensus or narrator findings from the live ledger.' },
+    replaceArray(BLUE_MSGS, blue.length ? blue.slice(0, 8) : [
+      { ts: 'LIVE', text: 'Waiting for narrator verdicts / consensus from the live ledger.' },
     ]);
   }
 

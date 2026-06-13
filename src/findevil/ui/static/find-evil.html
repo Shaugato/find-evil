@@ -901,14 +901,14 @@
           <div class="debate-pane">
             <div class="debate-header">
               <div class="agent-dot red"></div>
-              <div class="debate-role red">RED TEAM — ADVERSARY EMULATOR</div>
+              <div class="debate-role red">PROSECUTION · CASE FOR MALICIOUS</div>
             </div>
             <div class="debate-messages" id="red-messages"></div>
           </div>
           <div class="debate-pane">
             <div class="debate-header">
               <div class="agent-dot blue"></div>
-              <div class="debate-role blue">BLUE TEAM — DFIR INVESTIGATOR</div>
+              <div class="debate-role blue">DEFENSE &amp; JUDGE · VERDICT</div>
             </div>
             <div class="debate-messages" id="blue-messages"></div>
           </div>
@@ -1343,8 +1343,8 @@ function renderDebate() {
     div.onclick = () => window.SEL.set('debate', (m.ts || '') + '|' + side, { ts: m.ts, text: m.text, side, seq });
     parent.appendChild(div);
   };
-  RED_MSGS.forEach(m => mkMsg(m, 'red', 'RED TEAM EMULATOR', redEl));
-  BLUE_MSGS.forEach(m => mkMsg(m, 'blue', 'BLUE TEAM DFIR', blueEl));
+  RED_MSGS.forEach(m => mkMsg(m, 'red', 'PROSECUTION', redEl));
+  BLUE_MSGS.forEach(m => mkMsg(m, 'blue', 'DEFENSE · JUDGE', blueEl));
 }
 
 // ─── COORDINATED SELECTION + INSPECTOR (brushing-and-linking) ───
@@ -1453,8 +1453,8 @@ function inspAgent(kind, body, sel) {
     '<div class="insp-sec">Artifacts it deposited evidence on</div>' + (arts.length ? arts.map((x) => '<div class="insp-row insp-clk" data-art="' + esc2(x.key) + '">' + esc2(x.type) + ' · ' + esc2(x.value) + '</div>').join('') : '<div class="insp-row">no current artifacts</div>');
 }
 function inspDebate(kind, body, sel) {
-  const m = sel.data || {}; kind.textContent = (m.side === 'red' ? 'Red team · adversary' : 'Blue team · DFIR') + ' argument';
-  body.innerHTML = '<div class="insp-title">' + esc2(m.ts || '') + '</div><div class="insp-sub">' + (m.side === 'red' ? 'Adversary emulator assertion' : 'Prosecutor / defense / judge') + '</div>' +
+  const m = sel.data || {}; kind.textContent = (m.side === 'red' ? 'Prosecution' : 'Defense / judge') + ' argument';
+  body.innerHTML = '<div class="insp-title">' + esc2(m.ts || '') + '</div><div class="insp-sub">' + (m.side === 'red' ? 'Case for malicious' : 'Defense & judge verdict') + '</div>' +
     '<div class="insp-sec">Argument</div><div class="insp-row" style="white-space:normal">' + esc2(m.text || '') + '</div>' +
     (m.seq ? '<div class="insp-sec">Underlying finding</div><div class="insp-row insp-clk" data-seq="' + esc2(seqDigits(m.seq)) + '">' + esc2(m.seq) + '</div>' : '');
 }
@@ -1479,6 +1479,16 @@ window.SEL.on((sel) => {
 });
 window.addEventListener('keydown', (e) => { if (e.key === 'Escape') window.SEL.clear(); });
 window.MITRE_NAMES = MITRE_NAMES;
+window.selectArtifactByKey = selectArtifactByKey;
+window.selectFinding = selectFinding;
+// consensus "Focus Artifact" → select it across the dashboard (light touch)
+document.addEventListener('click', (e) => {
+  if (e.target && e.target.id === 'focus-art') {
+    const top = (IOC_DEFS || []).find((x) => !x.isPlaceholder) || (IOC_DEFS || [])[0];
+    if (top) window.SEL.set('artifact', top.key, top);
+  }
+});
+const _fa = document.getElementById('focus-art'); if (_fa) _fa.style.cursor = 'pointer';
 
 // ─── PHEROMONE CANVAS — 3-D atomic / orbital model ───
 // Artifacts orbit the MCP-blackboard "nucleus" on tilted shells; shell radius
@@ -2279,6 +2289,13 @@ function addEvent(ev) {
   const now = new Date();
   const ts = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}.${String(now.getMilliseconds()).padStart(3,'0')}`;
   div.innerHTML = `<span class="ev-time">${ts}</span><span class="ev-src ${ev.src}">${ev.src.toUpperCase()}</span><span class="ev-msg ${ev.level}">${ev.msg}</span>`;
+  // light-touch cross-link: click an event to select the finding/artifact it names
+  const seqM = String(ev.msg).match(/#(\d{2,})/);
+  const artM = String(ev.msg).match(/pher:[a-z0-9]+:[^\s…]+/i);
+  const fullArt = artM && !artM[0].includes('…') ? artM[0].replace(/[.,;]+$/, '') : null;
+  if ((seqM || fullArt) && typeof window.SEL !== 'undefined') {
+    div.onclick = () => { if (fullArt) selectArtifactByKey(fullArt); else selectFinding(seqM[1]); };
+  }
   stream.insertBefore(div, stream.firstChild);
   while (stream.children.length > 12) stream.removeChild(stream.lastChild);
   eventCount++;
@@ -2477,6 +2494,6 @@ function toggleSound() {
 // ─── LAUNCH ───
 runBoot();
 </script>
-<script src="/static/find-evil-live.js"></script>
+<script src="/static/find-evil-live.js?v=6"></script>
 </body>
 </html>
