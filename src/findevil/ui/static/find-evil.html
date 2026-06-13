@@ -1687,6 +1687,7 @@ function initThreatGraphCanvas() {
   let playing = false, dragScrub = false;
   let dragView = false, lastX = 0, lastY = 0;
   let hover = null, selected = null, mouse = { x: -1, y: -1 };
+  let dragNode = null, downX = 0, downY = 0, moved = false, tgHud = null;
   let tprev = performance.now();
 
   // ── holographic control bar (play + scrubber), injected once ──
@@ -1730,8 +1731,10 @@ function initThreatGraphCanvas() {
       const k = (colIdx[n.tactic] = (colIdx[n.tactic] || 0));
       colIdx[n.tactic] = k + 1;
       const span = H - padTop - padBot;
-      n.lx = colX[n.tactic];
-      n.ly = padTop + (total === 1 ? span * 0.5 : (span * 0.32 + k * span * 0.42));
+      if (!n.fixed) {            // keep user-dragged positions across re-layouts
+        n.lx = colX[n.tactic];
+        n.ly = padTop + (total === 1 ? span * 0.5 : (span * 0.32 + k * span * 0.42));
+      }
       // Initialise to the revealed state (dt-independent) so the static view is
       // fully drawn on frame 1; the materialise fade only animates new reveals
       // during scrubber playback.
@@ -1750,19 +1753,53 @@ function initThreatGraphCanvas() {
   const toWorld = (sx, sy) => ({ x: (sx - W / 2 - panX) / zoom + W / 2, y: (sy - H / 2 - panY) / zoom + H / 2 });
 
   // ── interaction ──
-  canvas.addEventListener('mousedown', (e) => { dragView = true; lastX = e.offsetX; lastY = e.offsetY; });
-  window.addEventListener('mouseup', () => { dragView = false; });
+  // Interactive: grab a node to reposition it (edges follow), drag empty space
+  // to pan, scroll to zoom, click a node to open its detail.
+  canvas.addEventListener('mousedown', (e) => {
+    downX = e.offsetX; downY = e.offsetY; moved = false;
+    if (hover) { dragNode = hover; } else { dragView = true; lastX = e.offsetX; lastY = e.offsetY; }
+  });
+  window.addEventListener('mouseup', () => {
+    if (dragNode && !moved) { selected = dragNode.id; openTgDetail(dragNode); }   // click ⇒ detail
+    dragNode = null; dragView = false;
+  });
   canvas.addEventListener('mousemove', (e) => {
     mouse.x = e.offsetX; mouse.y = e.offsetY;
-    if (dragView) { panX += e.offsetX - lastX; panY += e.offsetY - lastY; lastX = e.offsetX; lastY = e.offsetY; }
+    if (Math.abs(e.offsetX - downX) + Math.abs(e.offsetY - downY) > 4) moved = true;
+    if (dragNode) { const w = toWorld(e.offsetX, e.offsetY); dragNode.lx = w.x; dragNode.ly = w.y; dragNode.fixed = true; }
+    else if (dragView) { panX += e.offsetX - lastX; panY += e.offsetY - lastY; lastX = e.offsetX; lastY = e.offsetY; }
   });
   canvas.addEventListener('wheel', (e) => {
     e.preventDefault();
     const f = e.deltaY < 0 ? 1.1 : 1 / 1.1;
     zoom = Math.max(0.5, Math.min(2.4, zoom * f));
   }, { passive: false });
-  canvas.addEventListener('click', () => { selected = hover ? hover.id : null; });
+  window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && tgHud) { tgHud.style.opacity = '0'; tgHud.style.visibility = 'hidden'; } });
   canvas.style.cursor = 'grab';
+
+  function openTgDetail(n) {
+    if (!tgHud) {
+      tgHud = document.createElement('div');
+      tgHud.style.cssText = 'position:absolute;top:60px;right:16px;z-index:5;width:250px;pointer-events:auto;opacity:0;visibility:hidden;transition:opacity .3s ease;background:rgba(6,10,16,0.88);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(0,212,255,0.22);border-radius:9px;padding:14px;font-family:var(--sans);box-shadow:0 16px 44px rgba(0,0,0,0.6),0 0 22px rgba(0,212,255,0.1);';
+      wrap.appendChild(tgHud);
+      tgHud.addEventListener('click', (ev) => { if (ev.target.dataset.close !== undefined) { tgHud.style.opacity = '0'; tgHud.style.visibility = 'hidden'; } });
+    }
+    const col = SEVCOL[n.sev] || SEVCOL.high;
+    const live = Array.isArray(window.LIVE_TECHNIQUES) && window.LIVE_TECHNIQUES.includes(n.mitre);
+    const ACT = { mitigated: '🛡 Mitigated', escalated: '⚠ Escalated', triage: '🔍 Under triage', observed: '👁 Observed' };
+    const cell = (k, v) => '<div><div style="font-size:9px;color:#7a8899;text-transform:uppercase;letter-spacing:.05em">' + k + '</div><div style="color:#00d4ff">' + v + '</div></div>';
+    tgHud.innerHTML =
+      '<button data-close style="position:absolute;top:7px;right:8px;width:22px;height:22px;cursor:pointer;background:rgba(255,255,255,0.06);color:#7a8899;border:1px solid rgba(0,212,255,0.22);border-radius:5px;font-size:12px">✕</button>' +
+      '<div style="font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:rgb(' + col + ')">' + (n.tactic || '').toUpperCase() + '</div>' +
+      '<div style="font-family:var(--mono);font-size:14px;color:#fff;margin:3px 0 11px;word-break:break-all">' + n.label + '</div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;font-family:var(--mono);font-size:12px">' +
+        cell('type', n.type) + cell('MITRE', (live ? '◉ ' : '') + n.mitre) + cell('confidence', ((n.conf * 100) | 0) + '%') + cell('time step', 't+' + n.t) +
+      '</div>' +
+      '<div style="font-size:9px;letter-spacing:.1em;color:#7a8899;margin:12px 0 5px">CONTRIBUTING SENSORS</div>' +
+      '<div style="display:flex;flex-wrap:wrap;gap:5px">' + String(n.sensors || '').split(',').map((s) => '<span style="font-family:var(--mono);font-size:10px;color:#e8ecf0;background:rgba(0,212,255,0.10);border:1px solid rgba(0,212,255,0.2);border-radius:4px;padding:2px 7px">' + s.trim() + '</span>').join('') + '</div>' +
+      '<div style="text-align:center;font-family:var(--mono);font-size:11px;color:rgb(' + col + ');border:1px solid rgb(' + col + ');border-radius:6px;padding:6px;margin-top:12px">' + (ACT[n.action] || n.action) + '</div>';
+    tgHud.style.opacity = '1'; tgHud.style.visibility = 'visible';
+  }
 
   function nodeRadius(n) { return (n.crit ? 26 : 21) * (0.86 + n.conf * 0.3); }
 

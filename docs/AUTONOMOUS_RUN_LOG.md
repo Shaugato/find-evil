@@ -571,3 +571,17 @@ narrator step so the verdict is already in the ledger to show.
 - **Verify (@ :9400):** booted, 202 real artifacts, lit-pixel density ~40%
   (was ~58%), zero console errors.
 - Status: done
+
+### Fix 3 — interactive threat graph (done)
+- The kill-chain already had pan + wheel-zoom + hover tooltip + click-select.
+  Added the missing **node dragging** (grab a node → reposition it, edges follow;
+  `n.fixed` so re-layouts don't snap it back) and **click-to-expand detail**: a
+  click (mousedown→mouseup with <4px movement) on a node opens a holographic
+  detail panel (tactic, MITRE — green ◉ when live, confidence, time step,
+  contributing sensors, action badge); ✕ / Escape closes. Drag vs click is
+  disambiguated by movement threshold so repositioning doesn't trigger detail.
+- **Verify (@ :9400):** graph renders (lit 12.7k, red 5.5k on the critical
+  chain), control bar present, `openTgDetail` wired, init without error, zero
+  console errors. (Drag/hover need the live draw loop → exercise in a visible
+  browser; hidden preview pauses rAF.)
+- Status: done
