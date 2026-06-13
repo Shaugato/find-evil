@@ -50,7 +50,7 @@ export default function Home() {
             <span><span className="text-good mono">0.567ms</span> hot-path p50</span>
             <span><span className="text-good mono">96</span> tests passing</span>
             <span><span className="text-good mono">BLAKE3+Ed25519</span> ledger</span>
-            <span><span className="text-good mono">60</span> typed MCP tools</span>
+            <span><span className="text-good mono">62</span> typed MCP tools</span>
           </div>
         </div>
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-xs text-muted">
