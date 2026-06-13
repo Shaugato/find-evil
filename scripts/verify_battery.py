@@ -140,12 +140,18 @@ async def main() -> None:
             e = row.get("entry") or {}
             trace = e.get("reasoning_trace") or [{}]
             params = (trace[0] or {}).get("params") or {}
+            # CACAO execution entries are written by agent_id="cacao.executor"
+            # and carry the signing fpr at the top level (signing_pubkey_fpr);
+            # older entries recorded it under reasoning_trace[0].params.
+            if e.get("agent_id") == "cacao.executor":
+                sig_fpr = e.get("signing_pubkey_fpr") or e.get("signature") or params.get("signature_fpr")
+                break
             if "signature_fpr" in params:
                 sig_fpr = params["signature_fpr"]
                 break
         record("cacao_signed", bool(sig_fpr),
-               f"latest cacao entry signature_fpr={str(sig_fpr)[:20]}…" if sig_fpr
-               else "no cacao execution entry in recent 200 (run demo to generate)")
+               f"cacao.executor entry signed, fpr/sig={str(sig_fpr)[:20]}…" if sig_fpr
+               else "no cacao.executor entry in recent 200 (run a mitigation scenario)")
 
         # ------------------------------------------------ 6. dedupe
         # An identical event (same event_id) published twice must be routed to

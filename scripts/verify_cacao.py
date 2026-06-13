@@ -70,7 +70,11 @@ async def main() -> None:
             if e.get("primary_artifact_key") == artifact and "action=mitigate" in claim:
                 mitigate_seen = True
             params = (((e.get("reasoning_trace") or [{}])[0]).get("params") or {})
-            if "signature_fpr" in params:
+            # The CACAO executor writes agent_id="cacao.executor" with the signing
+            # fpr at top level and a "status=succeeded" claim once the playbook ran.
+            if e.get("agent_id") == "cacao.executor" and "status=succeeded" in claim:
+                sig_fpr = e.get("signing_pubkey_fpr") or e.get("signature") or params.get("signature_fpr")
+            elif "signature_fpr" in params:
                 sig_fpr = params["signature_fpr"]
         if mitigate_seen and sig_fpr:
             break
