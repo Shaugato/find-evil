@@ -418,7 +418,13 @@ import { OrbitControls } from '/static/vendor/OrbitControls.js';
     raycaster.setFromCamera(pointer, camera);
     const hit = raycaster.intersectObjects(spriteList(), false)[0];
     const n = hit && nodes.get(hit.object.userData.id);
-    if (n && !n.isNucleus) { selected = n.id; if (_hintEl) _hintEl.classList.add('fade'); flyToNode(n); }
+    if (n && !n.isNucleus) {
+      if (_hintEl) _hintEl.classList.add('fade');
+      // route through the shared selection store so the blackboard/ledger/MITRE
+      // highlight in sync; SEL → selectArtifact() flies the camera + expands.
+      const d = { key: n.id, value: n.value, type: n.type, bel: n.bel, pl: n.pl, tau: n.tau, k: n.k, sensor: n.sensor };
+      if (window.SEL) window.SEL.set('artifact', n.id, d); else { selected = n.id; flyToNode(n); }
+    }
   }
   function flyToNode(n) {
     const dir = camera.position.clone().sub(controls.target).normalize();
@@ -776,6 +782,13 @@ import { OrbitControls } from '/static/vendor/OrbitControls.js';
     boot, sync: () => { if (booted) sync(); }, onResize,
     focusTop: () => { let best = null; nodes.forEach((n) => { if (!n.isNucleus && !n.dead && (!best || n.tau > best.tau)) best = n; }); if (best) { hovered = best; flyToNode(best); } return best ? best.id : null; },
     collapse: collapseDetail,
+    selectArtifact: (key) => {
+      const n = nodes.get(key); if (!n || n.isNucleus) return false;
+      selected = n.id;
+      const vp = document.getElementById('view-pheromone');
+      if (vp && vp.classList.contains('active')) flyToNode(n);   // dive only when the field is on screen
+      return true;
+    },
     nav: () => (camera && controls) ? {
       dist: +camera.position.distanceTo(controls.target).toFixed(1),
       target: controls.target.toArray().map((v) => +v.toFixed(1)),

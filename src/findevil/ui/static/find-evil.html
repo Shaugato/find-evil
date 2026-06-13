@@ -748,6 +748,51 @@
   #holo-detail .hd-hash { font-family: var(--mono); font-size: 9px; color: var(--holo-text2); text-align: center; word-break: break-all; }
   /* recede the chrome while focused on an atom */
   body.holo-focus #topbar, body.holo-focus #left-panel, body.holo-focus #right-panel, body.holo-focus #bottom-panel { opacity: 0.5; transition: opacity .4s ease; }
+
+  /* ════ coordinated selection (brushing-and-linking) + inspector flyout ════ */
+  .ioc-card, .ledger-block, .agent-row, .mitre-cell, .debate-msg, .event-line { cursor: pointer; }
+  .ioc-card.sel, .ledger-block.sel, .agent-row.sel, .mitre-cell.sel, .debate-msg.sel, .event-line.sel {
+    outline: 1px solid var(--holo-cyan); outline-offset: -1px;
+    box-shadow: 0 0 16px rgba(0,212,255,0.4), inset 0 0 0 1px rgba(0,212,255,0.25);
+    transition: box-shadow .25s ease, outline-color .25s ease;
+  }
+  .row-flash { animation: rowFlash 1s ease; }
+  @keyframes rowFlash { 0%{ box-shadow:0 0 0 rgba(0,212,255,0); } 35%{ box-shadow:0 0 20px rgba(0,212,255,0.6); } 100%{ box-shadow:0 0 0 rgba(0,212,255,0); } }
+
+  #inspector {
+    position: fixed; top: 58px; right: 0; bottom: 8px; width: 344px; z-index: 8; pointer-events: auto;
+    transform: translateX(105%); transition: transform .42s cubic-bezier(.2,.9,.3,1.05);
+    background: rgba(6,10,16,0.92); backdrop-filter: blur(18px) saturate(130%); -webkit-backdrop-filter: blur(18px) saturate(130%);
+    border: 1px solid var(--holo-border); border-radius: 12px 0 0 12px;
+    box-shadow: -18px 0 60px rgba(0,0,0,0.6), 0 0 30px rgba(0,212,255,0.08);
+    display: flex; flex-direction: column; font-family: var(--sans);
+  }
+  #inspector.open { transform: translateX(0); }
+  #inspector .insp-head { display:flex; align-items:center; justify-content:space-between; padding:13px 15px; border-bottom:1px solid var(--holo-border); flex-shrink:0; }
+  #inspector .insp-kind { font-family:var(--mono); font-size:10px; letter-spacing:.12em; color:var(--holo-cyan); text-transform:uppercase; }
+  #inspector .insp-close { width:24px; height:24px; cursor:pointer; background:rgba(255,255,255,0.06); color:var(--holo-text2); border:1px solid var(--holo-border); border-radius:6px; font-size:13px; }
+  #inspector .insp-close:hover { color:#fff; border-color:var(--holo-cyan); }
+  #inspector .insp-body { padding:14px 15px; overflow-y:auto; flex:1; }
+  #inspector .insp-title { font-family:var(--mono); font-size:15px; color:#fff; word-break:break-all; margin-bottom:3px; }
+  #inspector .insp-sub { font-family:var(--mono); font-size:10px; color:var(--holo-text2); margin-bottom:12px; word-break:break-all; }
+  #inspector .insp-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px 12px; margin-bottom:6px; }
+  #inspector .insp-grid label { display:block; font-size:9px; color:var(--holo-text2); text-transform:uppercase; letter-spacing:.05em; }
+  #inspector .insp-grid b { font-family:var(--mono); font-size:13px; color:var(--holo-cyan); font-weight:500; }
+  #inspector .insp-sec { font-size:9px; letter-spacing:.1em; color:var(--holo-text2); text-transform:uppercase; margin:14px 0 6px; border-top:1px solid var(--holo-border); padding-top:10px; }
+  #inspector .insp-row { font-family:var(--mono); font-size:11px; color:var(--holo-text); padding:5px 0; border-bottom:1px solid rgba(0,212,255,0.06); word-break:break-all; }
+  #inspector .insp-chip { display:inline-block; font-family:var(--mono); font-size:10px; color:var(--holo-text); background:rgba(0,212,255,0.10); border:1px solid var(--holo-border); border-radius:4px; padding:2px 7px; margin:3px 4px 0 0; }
+  #inspector .insp-clk { cursor:pointer; }
+  #inspector .insp-clk:hover { border-color:var(--holo-cyan); color:#fff; background:rgba(0,212,255,0.16); }
+  #inspector .insp-hash { font-family:var(--mono); font-size:9.5px; color:var(--holo-text2); word-break:break-all; line-height:1.55; }
+  #inspector .insp-hash b { color:var(--holo-cyan); }
+  #inspector .insp-action { text-align:center; font-family:var(--mono); font-size:11px; border:1px solid; border-radius:6px; padding:6px; margin-top:12px; }
+  #inspector .insp-chain { display:flex; align-items:center; gap:6px; font-family:var(--mono); font-size:10px; color:var(--holo-text2); margin:8px 0; }
+  #inspector .insp-chain .lnk { color:var(--holo-cyan); cursor:pointer; } #inspector .insp-chain .lnk:hover { text-decoration:underline; }
+
+  /* MITRE live heat + detection pulse */
+  .mitre-cell.hit { box-shadow: 0 0 10px rgba(0,212,255,0.25); border-color: var(--holo-border); }
+  .mitre-cell.pulse { animation: mitrePulse 1.2s ease; }
+  @keyframes mitrePulse { 0%{ box-shadow:0 0 0 rgba(0,255,159,0);} 30%{ box-shadow:0 0 20px rgba(0,255,159,0.75);} 100%{ box-shadow:0 0 8px rgba(0,212,255,0.25);} }
 </style>
 <script type="importmap">
 { "imports": { "three": "/static/vendor/three.module.js" } }
@@ -1148,6 +1193,9 @@ function renderAgents() {
   AGENT_DEFS.forEach(a => {
     const div = document.createElement('div');
     div.className = 'agent-row' + (a.tau > 0.85 ? ' active' : '');
+    div.setAttribute('data-agent', a.name || '');
+    if (window.SEL && window.SEL.type === 'agent' && window.SEL.value === a.name) div.classList.add('sel');
+    div.onclick = () => window.SEL.set('agent', a.name, a);
     div.innerHTML = `
       <div class="agent-dot ${a.color}"></div>
       <div class="agent-info">
@@ -1170,6 +1218,8 @@ function renderIOCs() {
   IOC_DEFS.forEach((ioc, i) => {
     const card = document.createElement('div');
     card.className = `ioc-card ${ioc.severity}`;
+    card.setAttribute('data-art', ioc.key || '');
+    if (window.SEL && window.SEL.type === 'artifact' && window.SEL.value === ioc.key) card.classList.add('sel');
     card.innerHTML = `
       <div class="ioc-type">${ioc.type}</div>
       <div class="ioc-value">${ioc.value}</div>
@@ -1184,12 +1234,11 @@ function renderIOCs() {
       </div>
     `;
     card.onclick = () => {
-      document.querySelectorAll('.ioc-card').forEach(c => c.classList.remove('selected'));
-      card.classList.add('selected');
       document.getElementById('focus-art').textContent = ioc.value;
       document.getElementById('bel-val').textContent = ioc.bel.toFixed(3);
       document.getElementById('pl-val').textContent = ioc.pl.toFixed(3);
       document.getElementById('k-val').textContent = ioc.k.toFixed(3);
+      window.SEL.set('artifact', ioc.key, ioc);   // → coordinated highlight + inspector + atom dive
     };
     list.appendChild(card);
   });
@@ -1209,6 +1258,9 @@ function renderLedger() {
     if (seqNum > topSeq) topSeq = seqNum;
     const div = document.createElement('div');
     div.className = `ledger-block ${b.type}${isNew ? ' is-new' : ''}`;
+    div.setAttribute('data-seq', seqDigits(b.seq));
+    if (window.SEL && window.SEL.type === 'finding' && window.SEL.value === seqDigits(b.seq)) div.classList.add('sel');
+    div.onclick = () => window.SEL.set('finding', seqDigits(b.seq), b);   // → forensic detail + chain
     div.innerHTML = `
       <div class="ledger-seq">${b.seq}</div>
       <div class="ledger-content">
@@ -1248,42 +1300,185 @@ const MITRE_NAMES = {
   'T1071.001': 'Web C2', 'T1071.004': 'DNS C2', 'T1105': 'Ingress Tool', 'T1572': 'Tunneling',
   'T1486': 'Data Encrypted', 'T1567': 'Web Exfil', 'T1041': 'C2 Exfil',
 };
+let MITRE_SEEN = {};
 function renderMitre() {
   const view = document.getElementById('mitre-view');
   if (!view) return;
-  const counts = {};
-  for (const t of (window.LIVE_TECHNIQUES || [])) counts[t] = (counts[t] || 0) + 1;
+  // FIX (was always "0 mapped"): derive hits from REAL ledger findings'
+  // mitre_attack_technique, not only window.LIVE_TECHNIQUES (which stays empty
+  // unless consensus reports carry techniques). techniqueCounts() joins both.
+  const counts = techniqueCounts();
+  const maxC = Math.max(1, ...Object.values(counts));
   const hitCount = Object.keys(counts).length;
-  let html = `<div class="mitre-head">MITRE ATT&CK — ${hitCount} technique(s) mapped to live findings · enterprise matrix</div><div class="mitre-grid">`;
+  let html = `<div class="mitre-head">MITRE ATT&CK — <b style="color:var(--holo-cyan)">${hitCount}</b> technique(s) mapped to live findings · click a lit tile</div><div class="mitre-grid">`;
   for (const tactic of MITRE_TACTICS) {
     html += `<div class="mitre-tactic"><div class="mitre-tactic-name">${tactic.name}</div>`;
     for (const tech of tactic.techs) {
-      const hit = counts[tech] > 0;
-      html += `<div class="mitre-cell${hit ? ' hit' : ''}"><span>${tech} ${MITRE_NAMES[tech] || ''}</span>${hit ? `<span class="cnt">×${counts[tech]}</span>` : ''}</div>`;
+      const c = counts[tech] || 0, hit = c > 0;
+      const heat = hit ? (0.16 + 0.5 * (c / maxC)) : 0;             // heatmap by detection frequency
+      const newHit = hit && !MITRE_SEEN[tech];                      // pulse when freshly detected
+      const selCls = (window.SEL && window.SEL.type === 'technique' && window.SEL.value === tech) ? ' sel' : '';
+      const style = hit ? ` style="background:rgba(0,212,255,${heat.toFixed(2)});border-color:rgba(0,212,255,0.4);color:#e8ecf0"` : '';
+      html += `<div class="mitre-cell${hit ? ' hit' : ''}${newHit ? ' pulse' : ''}${selCls}" data-tech="${tech}"${style}><span>${tech} ${MITRE_NAMES[tech] || ''}</span>${hit ? `<span class="cnt">×${c}</span>` : ''}</div>`;
     }
     html += `</div>`;
   }
   html += `</div>`;
   view.innerHTML = html;
+  MITRE_SEEN = Object.assign({}, counts);
+  view.querySelectorAll('.mitre-cell[data-tech]').forEach((cell) => {
+    cell.onclick = () => { if (cell.classList.contains('hit')) window.SEL.set('technique', cell.dataset.tech, { technique: cell.dataset.tech }); };
+  });
 }
 
 // ─── DEBATE ───
 function renderDebate() {
   const redEl = document.getElementById('red-messages');
   const blueEl = document.getElementById('blue-messages');
-  RED_MSGS.forEach(m => {
+  const mkMsg = (m, side, label, parent) => {
     const div = document.createElement('div');
-    div.className = 'debate-msg red';
-    div.innerHTML = `<div class="debate-msg-header">${m.ts} · RED TEAM EMULATOR</div><div class="debate-msg-body">${m.text}</div>`;
-    redEl.appendChild(div);
-  });
-  BLUE_MSGS.forEach(m => {
-    const div = document.createElement('div');
-    div.className = 'debate-msg blue';
-    div.innerHTML = `<div class="debate-msg-header">${m.ts} · BLUE TEAM DFIR</div><div class="debate-msg-body">${m.text}</div>`;
-    blueEl.appendChild(div);
-  });
+    div.className = 'debate-msg ' + side;
+    div.innerHTML = `<div class="debate-msg-header">${m.ts} · ${label}</div><div class="debate-msg-body">${m.text}</div>`;
+    const seq = /^#?\d+$/.test(String(m.ts || '').trim()) ? seqDigits(m.ts) : '';
+    div.onclick = () => window.SEL.set('debate', (m.ts || '') + '|' + side, { ts: m.ts, text: m.text, side, seq });
+    parent.appendChild(div);
+  };
+  RED_MSGS.forEach(m => mkMsg(m, 'red', 'RED TEAM EMULATOR', redEl));
+  BLUE_MSGS.forEach(m => mkMsg(m, 'blue', 'BLUE TEAM DFIR', blueEl));
 }
+
+// ─── COORDINATED SELECTION + INSPECTOR (brushing-and-linking) ───
+// One shared selection store: selecting an artifact/finding/technique/agent
+// anywhere highlights every representation of it and opens a unified right-side
+// inspector flyout. Pheromone nodes additionally reuse the 3-D atom-expansion.
+window.SEL = {
+  type: null, value: null, data: null, _subs: [],
+  set(type, value, data) { this.type = type; this.value = value; this.data = data || null; this._emit(); },
+  clear() { this.type = this.value = this.data = null; this._emit(); },
+  on(fn) { this._subs.push(fn); },
+  _emit() { this._subs.forEach((f) => { try { f(this); } catch (e) {} }); },
+};
+function esc2(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+function seqDigits(s) { return String(s).replace(/[^0-9]/g, ''); }
+function shortHashSafe(s) { s = String(s || '-'); return s.length <= 30 ? s : s.slice(0, 18) + '…' + s.slice(-8); }
+function findingBySeq(seq) { return (LEDGER_DEFS || []).find((b) => seqDigits(b.seq) === String(seq)); }
+function ledgerForArtifact(key) {
+  const v = String(key || ''), tail = v.split(':').pop();
+  return (LEDGER_DEFS || []).filter((b) => { const e = (b.raw && b.raw.entry) || {}; return e.primary_artifact_key === v || (tail && String(b.detail || '').includes(tail)); }).slice(0, 8);
+}
+function techniqueCounts() {
+  const c = {};
+  (LEDGER_DEFS || []).forEach((b) => { const e = (b.raw && b.raw.entry) || {}; const t = e.mitre_attack_technique; (Array.isArray(t) ? t : (t ? [t] : [])).forEach((x) => { if (x) c[x] = (c[x] || 0) + 1; }); });
+  (window.LIVE_TECHNIQUES || []).forEach((t) => { if (t && !c[t]) c[t] = (c[t] || 0) + 1; });
+  return c;
+}
+function selectArtifactByKey(key) { const d = (IOC_DEFS || []).find((x) => x.key === key) || { key, value: String(key).split(':').pop() }; window.SEL.set('artifact', key, d); }
+function selectFinding(seq) { const b = findingBySeq(seq); window.SEL.set('finding', String(seqDigits(seq)), b || { seq }); }
+function cell2(k, v) { return '<div><label>' + k + '</label><b>' + v + '</b></div>'; }
+function actionBadge(bel, k) { return k >= 0.3 ? { t: 'CONFLICT → DEBATE', c: '#ffb86c' } : bel >= 0.85 ? { t: 'MITIGATED', c: '#ff3864' } : bel >= 0.55 ? { t: 'ESCALATED', c: '#ff6b35' } : { t: 'OBSERVED', c: '#00d4ff' }; }
+
+function inspectorEl() {
+  let el = document.getElementById('inspector');
+  if (!el) {
+    el = document.createElement('div'); el.id = 'inspector';
+    el.innerHTML = '<div class="insp-head"><span class="insp-kind"></span><button class="insp-close" title="Close (Esc)">✕</button></div><div class="insp-body"></div>';
+    document.body.appendChild(el);
+    el.querySelector('.insp-close').addEventListener('click', () => window.SEL.clear());
+  }
+  return el;
+}
+function renderInspector() {
+  const sel = window.SEL, el = inspectorEl(), kind = el.querySelector('.insp-kind'), body = el.querySelector('.insp-body');
+  if (!sel.type) { el.classList.remove('open'); return; }
+  if (sel.type === 'artifact') inspArtifact(kind, body, sel);
+  else if (sel.type === 'finding') inspFinding(kind, body, sel);
+  else if (sel.type === 'technique') inspTechnique(kind, body, sel);
+  else if (sel.type === 'agent') inspAgent(kind, body, sel);
+  else if (sel.type === 'debate') inspDebate(kind, body, sel);
+  body.querySelectorAll('[data-seq]').forEach((n) => n.addEventListener('click', () => selectFinding(n.dataset.seq)));
+  body.querySelectorAll('[data-art]').forEach((n) => n.addEventListener('click', () => selectArtifactByKey(n.dataset.art)));
+  body.querySelectorAll('[data-agent]').forEach((n) => n.addEventListener('click', () => { const a = (AGENT_DEFS || []).find((x) => x.name === n.dataset.agent) || { name: n.dataset.agent }; window.SEL.set('agent', n.dataset.agent, a); }));
+  body.querySelectorAll('[data-tech]').forEach((n) => n.addEventListener('click', () => window.SEL.set('technique', n.dataset.tech, { technique: n.dataset.tech })));
+  el.classList.add('open');
+}
+function inspArtifact(kind, body, sel) {
+  const d = sel.data || {}; kind.textContent = 'Artifact · ' + (d.type || 'IOC');
+  const led = ledgerForArtifact(sel.value), a = actionBadge(d.bel || 0, d.k || 0);
+  const sensors = String(d.sensor || '').split(',').map((s) => s.trim()).filter(Boolean);
+  body.innerHTML =
+    '<div class="insp-title">' + esc2(d.value || sel.value) + '</div><div class="insp-sub">' + esc2(sel.value) + '</div>' +
+    '<div class="insp-grid">' + cell2('Belief (evil)', (d.bel || 0).toFixed(3)) + cell2('Plausibility', (d.pl || 0).toFixed(3)) + cell2('Conflict K', (d.k || 0).toFixed(3)) + cell2('Pheromone τ', (d.tau || 0).toFixed(3)) + '</div>' +
+    '<div class="insp-action" style="color:' + a.c + ';border-color:' + a.c + '">' + a.t + '</div>' +
+    '<div class="insp-sec">Contributing sensors</div><div>' + (sensors.length ? sensors.map((s) => '<span class="insp-chip insp-clk" data-agent="' + esc2(s) + '">' + esc2(s) + '</span>').join('') : '<span class="insp-chip">—</span>') + '</div>' +
+    '<div class="insp-sec">Ledger entries referencing this artifact</div>' + (led.length ? led.map((b) => '<div class="insp-row insp-clk" data-seq="' + esc2(seqDigits(b.seq)) + '">' + esc2(b.seq) + ' · ' + esc2(b.event) + '</div>').join('') : '<div class="insp-row">none in the recent window</div>');
+}
+function inspFinding(kind, body, sel) {
+  const b = sel.data || {}, e = (b.raw && b.raw.entry) || {}; kind.textContent = 'Ledger finding';
+  const cons = e.consensus || {}, bel = cons.belief_evil != null ? cons.belief_evil : (e.confidence || 0), k = cons.conflict_K != null ? cons.conflict_K : 0;
+  const refs = (e.evidence_refs || []).map((r) => r.exhibit_id || r.pher_key || r.primary_artifact_key || r.blake3).filter(Boolean);
+  const custody = e.chain_of_custody || [], tech = e.mitre_attack_technique, techs = Array.isArray(tech) ? tech : (tech ? [tech] : []);
+  const cur = parseInt(seqDigits(b.seq), 10) || 0, prevB = findingBySeq(cur - 1), nextB = findingBySeq(cur + 1), a = actionBadge(bel, k);
+  body.innerHTML =
+    '<div class="insp-title">' + esc2(b.seq) + ' · ' + esc2(b.event) + '</div><div class="insp-sub">' + esc2(e.agent_id || '') + '</div>' +
+    '<div class="insp-chain">' + (prevB ? '<span class="lnk" data-seq="' + seqDigits(prevB.seq) + '">‹ ' + esc2(prevB.seq) + '</span>' : '<span>chain head</span>') + '<span>·</span>' + (nextB ? '<span class="lnk" data-seq="' + seqDigits(nextB.seq) + '">' + esc2(nextB.seq) + ' ›</span>' : '<span>tip</span>') + '</div>' +
+    '<div class="insp-grid">' + cell2('Belief', (bel || 0).toFixed(3)) + cell2('Conflict K', (k || 0).toFixed(3)) + '</div>' +
+    (e.primary_artifact_key ? '<div class="insp-sec">Primary artifact</div><div class="insp-row insp-clk" data-art="' + esc2(e.primary_artifact_key) + '">' + esc2(e.primary_artifact_key) + '</div>' : '') +
+    (techs.length ? '<div class="insp-sec">MITRE technique(s)</div><div>' + techs.map((t) => '<span class="insp-chip insp-clk" data-tech="' + esc2(t) + '">' + esc2(t) + '</span>').join('') + '</div>' : '') +
+    (refs.length ? '<div class="insp-sec">Evidence refs</div>' + refs.slice(0, 8).map((r) => '<div class="insp-row insp-clk" data-art="' + esc2(r) + '">' + esc2(shortHashSafe(r)) + '</div>').join('') : '') +
+    (custody.length ? '<div class="insp-sec">Chain of custody (parents)</div>' + custody.slice(0, 6).map((c) => '<div class="insp-row">' + esc2(c) + '</div>').join('') : '') +
+    '<div class="insp-sec">Cryptographic provenance</div><div class="insp-hash">' +
+      'finding_id <b>' + esc2((b.raw && b.raw.finding_id) || e.finding_id || '-') + '</b><br>' +
+      'blake3 <b>' + esc2((b.raw && b.raw.entry_hash) || '-') + '</b><br>' +
+      'prev_hash ' + esc2(e.prev_hash || '-') + '<br>' +
+      'ed25519 sig ' + esc2(shortHashSafe(e.signature || '-')) + '<br>' +
+      'merkle_root ' + esc2(shortHashSafe(e.merkle_root || (b.raw && b.raw.last_merkle_root) || '-')) +
+    '</div>' +
+    '<div class="insp-action" style="color:' + a.c + ';border-color:' + a.c + '">' + a.t + '</div>';
+}
+function inspTechnique(kind, body, sel) {
+  const tech = sel.value; kind.textContent = 'MITRE technique';
+  const findings = (LEDGER_DEFS || []).filter((b) => { const e = (b.raw && b.raw.entry) || {}; const t = e.mitre_attack_technique; return (Array.isArray(t) ? t : (t ? [t] : [])).includes(tech); }).slice(0, 12);
+  const sensors = new Set(); findings.forEach((b) => { const e = (b.raw && b.raw.entry) || {}; String(e.agent_id || '').split('/').forEach((s) => s && sensors.add(s)); });
+  body.innerHTML = '<div class="insp-title">' + esc2(tech) + '</div><div class="insp-sub">' + esc2((window.MITRE_NAMES && window.MITRE_NAMES[tech]) || 'ATT&CK technique') + '</div>' +
+    '<div class="insp-grid">' + cell2('Findings', findings.length) + cell2('Sensors', sensors.size) + '</div>' +
+    '<div class="insp-sec">Ledger findings on this technique</div>' + (findings.length ? findings.map((b) => '<div class="insp-row insp-clk" data-seq="' + esc2(seqDigits(b.seq)) + '">' + esc2(b.seq) + ' · ' + esc2(b.detail || b.event) + '</div>').join('') : '<div class="insp-row">no live findings yet</div>');
+}
+function inspAgent(kind, body, sel) {
+  const a = sel.data || { name: sel.value }; kind.textContent = 'Sensor / agent';
+  const ROLE = { edr: 'Endpoint Detection & Response', yara: 'YARA signature matcher', zeek: 'Zeek network monitor', suricata: 'Suricata IDS', sysmon: 'Sysmon endpoint telemetry', volatility: 'Volatility memory forensics', cacao: 'CACAO playbook executor', shap: 'Shapley attribution', decay: 'Pheromone decay agent' };
+  const base = String(a.name || sel.value).split(/[-\/]/)[0];
+  const arts = (IOC_DEFS || []).filter((x) => String(x.sensor || '').split(',').map((s) => s.trim()).includes(sel.value)).slice(0, 10);
+  body.innerHTML = '<div class="insp-title">' + esc2(a.name || sel.value) + '</div><div class="insp-sub">' + esc2(ROLE[base] || 'evidence-depositing sensor') + '</div>' +
+    '<div class="insp-grid">' + cell2('Peak τ', (a.tau || 0).toFixed(2)) + cell2('Throughput', ((a.ops || 0) / 1000).toFixed(1) + 'k') + '</div>' +
+    '<div class="insp-sec">Artifacts it deposited evidence on</div>' + (arts.length ? arts.map((x) => '<div class="insp-row insp-clk" data-art="' + esc2(x.key) + '">' + esc2(x.type) + ' · ' + esc2(x.value) + '</div>').join('') : '<div class="insp-row">no current artifacts</div>');
+}
+function inspDebate(kind, body, sel) {
+  const m = sel.data || {}; kind.textContent = (m.side === 'red' ? 'Red team · adversary' : 'Blue team · DFIR') + ' argument';
+  body.innerHTML = '<div class="insp-title">' + esc2(m.ts || '') + '</div><div class="insp-sub">' + (m.side === 'red' ? 'Adversary emulator assertion' : 'Prosecutor / defense / judge') + '</div>' +
+    '<div class="insp-sec">Argument</div><div class="insp-row" style="white-space:normal">' + esc2(m.text || '') + '</div>' +
+    (m.seq ? '<div class="insp-sec">Underlying finding</div><div class="insp-row insp-clk" data-seq="' + esc2(seqDigits(m.seq)) + '">' + esc2(m.seq) + '</div>' : '');
+}
+
+// coordinated highlight: clear all, then light up every representation of the selection
+window.SEL.on((sel) => {
+  document.querySelectorAll('.sel').forEach((n) => n.classList.remove('sel'));
+  if (sel.type === 'artifact') {
+    document.querySelectorAll('.ioc-card[data-art="' + sel.value + '"]').forEach((n) => n.classList.add('sel'));
+    ledgerForArtifact(sel.value).forEach((b) => document.querySelectorAll('.ledger-block[data-seq="' + seqDigits(b.seq) + '"]').forEach((n) => n.classList.add('sel')));
+    if (window.__FE_GRAPH && window.__FE_GRAPH.selectArtifact) window.__FE_GRAPH.selectArtifact(sel.value);
+  } else if (sel.type === 'finding') {
+    document.querySelectorAll('.ledger-block[data-seq="' + sel.value + '"]').forEach((n) => n.classList.add('sel'));
+    const e = (sel.data && sel.data.raw && sel.data.raw.entry) || {};
+    if (e.primary_artifact_key && window.__FE_GRAPH && window.__FE_GRAPH.selectArtifact) window.__FE_GRAPH.selectArtifact(e.primary_artifact_key);
+  } else if (sel.type === 'technique') {
+    document.querySelectorAll('.mitre-cell[data-tech="' + sel.value + '"]').forEach((n) => n.classList.add('sel'));
+  } else if (sel.type === 'agent') {
+    document.querySelectorAll('.agent-row[data-agent="' + sel.value + '"]').forEach((n) => n.classList.add('sel'));
+  }
+  renderInspector();
+});
+window.addEventListener('keydown', (e) => { if (e.key === 'Escape') window.SEL.clear(); });
+window.MITRE_NAMES = MITRE_NAMES;
 
 // ─── PHEROMONE CANVAS — 3-D atomic / orbital model ───
 // Artifacts orbit the MCP-blackboard "nucleus" on tilted shells; shell radius

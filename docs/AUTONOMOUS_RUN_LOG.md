@@ -572,6 +572,28 @@ narrator step so the verdict is already in the ledger to show.
   (was ~58%), zero console errors.
 - Status: done
 
+---
+
+## SESSION v6 (2026-06-13, dashboard interactivity: coordinated views / brushing-and-linking)
+
+### Design decision (recorded before building)
+- **Research:** professional SOC tools (Sentinel/Defender, Elastic Security,
+  Splunk, CrowdStrike) present detail in a **right-side slide-over flyout** and
+  implement cross-panel highlight via the academic **"coordinated multiple views
+  / brushing-and-linking"** pattern (select once → every representation reacts).
+- **Approach (vanilla, no React — the dashboard is vanilla JS):** a single shared
+  selection store `window.SEL` ({type, value, data} + pub/sub). Every panel
+  tags its rows with `data-art / data-seq / data-tech / data-agent` and
+  subscribes: on selection, matching rows across panels get `.sel`, the
+  pheromone atom focuses/expands (via `window.__FE_GRAPH.selectArtifact`), and a
+  unified **right-side Inspector flyout** (`#inspector`) renders type-specific
+  detail with clickable cross-links. Escape / click-empty clears everywhere.
+  Pheromone nodes reuse the existing 3-D atom-expansion as their detail surface;
+  all other selections use the flyout — one detail pattern, one motion language.
+- Items in order: selection store + inspector → blackboard↔field → ledger detail
+  → MITRE (fix "0 mapped" + live heatmap + clickable) → agents → debate → light
+  touch. Commit per item.
+
 ### Fix 3 — interactive threat graph (done)
 - The kill-chain already had pan + wheel-zoom + hover tooltip + click-select.
   Added the missing **node dragging** (grab a node → reposition it, edges follow;
