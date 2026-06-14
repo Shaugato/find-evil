@@ -85,6 +85,7 @@ import { OrbitControls } from '/static/vendor/OrbitControls.js';
   let ripples = [];          // {sprite, age, life, max}
   let cacao = [];            // {node, ring, age, life, settled}
   let hovered = null, selected = null;
+  let selRing = null;        // persistent pulsing ring marking the selected atom
   // click-to-expand atom detail view
   let expanded = null, expandT = 0, detailGroup = null, hud = null;
   const _focus = new THREE.Vector3(), _origin = new THREE.Vector3();
@@ -603,6 +604,27 @@ import { OrbitControls } from '/static/vendor/OrbitControls.js';
       }
     });
 
+    // selection ring — a bright pulsing outline that marks the selected atom so
+    // a blackboard/list selection is clearly visible in the field even when the
+    // camera doesn't dive to it (Fix 1: the 1.18× size boost alone is too subtle).
+    if (!selRing) {
+      selRing = new THREE.Sprite(new THREE.SpriteMaterial({ map: ringTex, color: new THREE.Color('#00e5ff'), blending: THREE.AdditiveBlending, transparent: true, depthWrite: false, opacity: 0 }));
+      selRing.renderOrder = 8; scene.add(selRing);
+    }
+    {
+      const sn = (selected && nodes.has(selected) && !nodes.get(selected).dead && !nodes.get(selected).isNucleus) ? nodes.get(selected) : null;
+      if (sn) {
+        selRing.visible = true;
+        selRing.position.copy(sn.pos);
+        const pulse = 1 + Math.sin(_t * 4.5) * 0.14;
+        const rs = (sn.baseSize * 2.6 + 10) * (sn.appear || 1) * pulse;
+        selRing.scale.set(rs, rs, 1);
+        selRing.material.opacity = 0.55 + 0.35 * ((Math.sin(_t * 4.5) + 1) / 2);
+      } else if (selRing.visible) {
+        selRing.visible = false; selRing.material.opacity = 0;
+      }
+    }
+
     updateEdgeGeometry();
 
     // particles
@@ -795,6 +817,7 @@ import { OrbitControls } from '/static/vendor/OrbitControls.js';
     focusTop: () => { let best = null; nodes.forEach((n) => { if (!n.isNucleus && !n.dead && (!best || n.tau > best.tau)) best = n; }); if (best) { hovered = best; flyToNode(best); } return best ? best.id : null; },
     collapse: collapseDetail,
     clearDetail: closeDetailHud,    // close GREEN HUD without flying out (routing layer)
+    deselect: () => { selected = null; },   // drop the selection ring (no atom selected)
     selectArtifact: (key, opts) => {
       const n = nodes.get(key); if (!n || n.isNucleus) return false;
       selected = n.id;
@@ -817,6 +840,8 @@ import { OrbitControls } from '/static/vendor/OrbitControls.js';
       autoRotate: controls.autoRotate, tweening: camTween.active,
     } : null,
     get booted() { return booted; }, get expanded() { return expanded; },
+    get selected() { return selected; },
+    get selRingShown() { return !!(selRing && selRing.visible && selRing.material.opacity > 0.05); },
   };
   window.fireConsensusRipple = function (color) { if (booted) fireRipple(color); };
 
