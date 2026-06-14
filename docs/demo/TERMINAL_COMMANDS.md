@@ -66,6 +66,50 @@ bash /opt/findevil/repo/scripts/demo_rocba_carve.sh
 
 ---
 
+## C1B — The MCP architectural guardrail (Approach #2)  → **PART 3B** (vo_03b_mcp)
+```bash
+bash /opt/findevil/repo/scripts/demo_mcp_tools.sh
+```
+**Real output** (reads the LIVE tool registry — nothing hardcoded; on‑camera ~3 s):
+```
+════════════════════════════════════════════════════════════════════
+ STIGMERGY · CUSTOM MCP SERVER (Approach #2) — typed tool catalog
+════════════════════════════════════════════════════════════════════
+ server : findevil.blackboard (FastMCP)
+ tools  : 62 typed functions — the ONLY things the agent can call
+
+ ── Forensic analysis (read / parse the evidence) ──
+     volatility.pslist
+     volatility.malfind
+     volatility.netscan
+     yara.scan
+     bulk_extractor.scan
+     plaso.extract
+     tshark.summary
+     tsk.fls
+     mftecmd.parse
+     …
+ ── Bounded response (CACAO containment actions, each audited) ──
+     edr.network_isolate
+     edr.kill_process
+     iam.disable_account
+     yara.quarantine
+     …
+════════════════════════════════════════════════════════════════════
+ GUARDRAIL ✓  NO execute_shell · NO arbitrary command exposed.
+ Every action is a typed, audited function — enforced by the MCP server
+ architecture, NOT by a prompt. The agent physically cannot run a raw
+ or destructive shell command: the server simply does not expose one.
+════════════════════════════════════════════════════════════════════
+```
+*Say:* "This is Approach #2 — a purpose‑built MCP server. Every one of these
+sixty‑two tools is a typed forensic or response function. There's no execute_shell,
+no arbitrary command — the agent physically can't run a destructive command,
+because the architecture never exposes one. That's a guardrail by construction,
+not a prompt." Point at the **GUARDRAIL ✓** line.
+
+---
+
 ## C2 — Verify ledger integrity  → **PART 3** (fold into vo_03)
 ```bash
 findevil verify
@@ -154,11 +198,45 @@ seq  artifact                agent
 
 ---
 
+## C6 — (OPTIONAL) Proof the ephemeral fractal pivot agents really spawned  → PART 4 (GAP 5)
+> Distinct from the 60 persistent sensor agents — these are short‑lived investigators
+> spawned on demand (bounded depth ≤ 3, width ≤ 16) that chase related evidence then
+> dissolve. They sign their findings to the ledger as `fractal.*`:
+```bash
+sqlite3 /opt/findevil/data/ledger/ledger.sqlite \
+  "SELECT seq, agent_id FROM (
+     SELECT seq, json_extract(CAST(payload AS TEXT),'\$.agent_id') AS agent_id FROM ledger)
+   WHERE agent_id LIKE 'fractal%';"
+```
+**Real output** (real spawned‑pivot findings):
+```
+321|fractal.ef42dace
+935|fractal.2fbb389d
+936|fractal.cdcf9b7c
+1010|fractal.7de55db0
+1047|fractal.5d69137d
+```
+
+## C7 — (OPTIONAL) Rekor transparency‑log anchor  → PART 7 (GAP 4)
+```bash
+sqlite3 /opt/findevil/data/ledger/ledger.sqlite \
+  "SELECT batch_seq, substr(merkle_root,1,16) AS merkle_root, rekor_log_index FROM anchor;"
+```
+**Real output** (batch #3 is anchored to the public Sigstore Rekor log):
+```
+1|4f2a0e364eade79b|
+2|193596bc5268b9ea|
+3|4e4a5c233977546b|1492269391
+```
+
+---
+
 ## Command order on camera
 1. **C1** — live ROCBA carve  (PART 3)
 2. **C2** — `findevil verify`  (PART 3, same breath)
-3. **C3** — live conflict ingest → self‑correction  (PART 4) → Alt+Tab to Debate tab
-4. *(optional)* C4 / C5 for extra detail
+3. **C1B** — `demo_mcp_tools.sh` — the MCP typed‑tool guardrail  (PART 3B)
+4. **C3** — live conflict ingest → self‑correction  (PART 4) → Alt+Tab to Debate tab
+5. *(optional)* C4 (MITRE), C5 (signed verdicts), C6 (fractal pivots), C7 (Rekor)
 
-**Don't** clear the screen between C1–C3 — let the carve + verify + conflict stack so
-the whole real‑data story stays on one screen.
+**Don't** clear the screen between C1–C3 — let the carve + verify + MCP catalog +
+conflict stack so the whole real‑data story stays on one screen.

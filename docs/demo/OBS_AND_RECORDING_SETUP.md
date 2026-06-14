@@ -58,17 +58,25 @@ Record as **one continuous take** if you can (easier than stitching), pausing
 between PARTS. Or record per‑segment files. Suggested approach:
 
 1. Start OBS recording.
-2. **PART 1–2** — browser full‑screen on the Pheromone Field (title/overview).
+2. **PART 1–2** — browser full‑screen on the Pheromone Field. In PART 2, **hold on
+   the MICRO‑AGENT SWARM panel ~5 s** so the per‑agent ops/s counters are visibly
+   ticking (GAP 3), while the narration lands the speed/no‑LLM point (GAP 2).
 3. **PART 3 (LIVE ROCBA carve)** — Alt+Tab to the **WSL2 terminal** (full‑screen);
    run **C1** (`demo_rocba_carve.sh` — the 18G image carved live) then **C2**
    (`findevil verify`). Narrate over the ~10–16 s carve.
-4. **PART 4 (self‑correction)** — still in the terminal, run **C3**
+4. **PART 3B (MCP guardrail)** — still in the terminal, run **C1B**
+   (`demo_mcp_tools.sh`) → the 62 typed tools + **GUARDRAIL ✓ no execute_shell**.
+   Pause on the banner. (~12 s)
+5. **PART 4 (self‑correction)** — still in the terminal, run **C3**
    (`demo_rocba_conflict.py` — conflict_K 0.354 → conflict_ledger), then **Alt+Tab
    to the browser → Adversarial Debate tab** and click the 142.250.64.106 ⚖ card.
-5. **PART 5–7** — in the **browser**: field dive + blackboard ring, threat‑graph
+6. **PART 5–7** — in the **browser**: field dive + blackboard ring, threat‑graph
    scrubber, MITRE per‑artifact (13→1 on PID 6201), ledger forensic block.
-6. **PART 8** — end on the title/field (or the website).
-7. Stop recording.
+7. **PART 8** — end on the title/field (or the website).
+8. Stop recording.
+
+> Keep C1 → C1B → C3 stacked on **one terminal screen** (don't clear) so the real
+> carve, the typed‑tool guardrail, and the live conflict read as one continuous story.
 
 > **Pre‑warm the carve** (do it once before recording, off camera): run
 > `bash /opt/findevil/repo/scripts/demo_rocba_carve.sh` once so the OS file cache is
@@ -86,10 +94,11 @@ between PARTS. Or record per‑segment files. Suggested approach:
   ```
   seg_01_problem.mp4
   seg_02_overview.mp4
-  seg_03_live_exec.mp4
+  seg_03_live_rocba.mp4
+  seg_03b_mcp.mp4
   seg_04_self_correction.mp4
   seg_05_field.mp4
-  seg_06_graph_debate.mp4
+  seg_06_graph.mp4
   seg_07_mitre_ledger.mp4
   seg_08_close.mp4
   ```
@@ -99,7 +108,9 @@ between PARTS. Or record per‑segment files. Suggested approach:
 ## Pre‑record checklist (tick before hitting Record)
 - [ ] WSL2 tab open, prompt `shaugato@AetherX`, venv activated, font 18–20 pt
 - [ ] ROCBA live segment ready: `Rocba-Memory.raw` (18G) present, `demo_rocba_carve.sh`
-      + `demo_rocba_conflict.py` in `/opt/findevil/repo/scripts/`, carve pre‑warmed once
+      + `demo_rocba_conflict.py` + `demo_mcp_tools.sh` in `/opt/findevil/repo/scripts/`,
+      carve pre‑warmed once
+- [ ] MCP guardrail beat ready: `demo_mcp_tools.sh` prints 62 tools + GUARDRAIL ✓
 - [ ] Dashboard restarted (per‑artifact MITRE live); field shows stable atoms
 - [ ] Browser full‑screen, 100% zoom, on the Pheromone Field tab
 - [ ] Taskbar hidden, desktop icons hidden, Focus Assist ON, notifications off

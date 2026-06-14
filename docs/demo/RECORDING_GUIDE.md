@@ -68,28 +68,31 @@ ATT&CK techniques · self‑correction verdicts at ledger **#985** and **#941**.
 
 ## PART 2 — What Stigmergy Is  (target: 35 s)
 
-**VOICEOVER** (`vo_02_overview.wav`):
-> "This is Stigmergy — a local‑first, defensive DFIR platform. Sixty micro‑agents
-> act like an ant colony: each sensor drops 'pheromone' on the artifacts it finds
-> suspicious — IPs, domains, processes, hashes — on a shared blackboard. A
-> deterministic hot path fuses those deposits with Dempster–Shafer evidence
-> theory into a single belief, signs the decision into a cryptographic ledger, and
-> only then does a language‑model debate explain it. Everything you'll see runs on
-> this one machine."
+**VOICEOVER** (`vo_02_overview.wav`) — lands the **speed / no‑LLM** point (GAP 2) and
+the **live swarm** (GAP 3):
+> "This is Stigmergy — a local, defensive DFIR platform. Sixty micro‑agents — you can
+> watch them ticking here — act like an ant colony: each continuously scores artifacts
+> and drops 'pheromone' on the IPs, domains, and processes it finds suspicious, on a
+> shared blackboard. A deterministic hot path fuses those deposits with Dempster–Shafer
+> evidence theory and decides in well under a millisecond — with no language model in
+> the loop — fast enough to keep pace with attacks that reach domain control in
+> minutes. The model only debates and explains afterward, off the critical path. And
+> it all runs on this one machine."
 >
-> Tone: confident, explanatory. Save as `vo_02_overview.wav`.
+> Tone: confident, explanatory; hit "well under a millisecond" and "no language model
+> in the loop." Save as `vo_02_overview.wav`.
 
 **SCREEN**:
 - Starting state: dashboard, **Pheromone Field** tab.
 - Actions:
   - `[0:00]` Show the whole dashboard. Mouse rests bottom‑center.
-  - `[0:06]` Slowly sweep the mouse left to the **MICRO‑AGENT SWARM** panel
-    (badge reads **60 LIVE**) — pause 2 s.
-  - `[0:14]` Sweep to the right **MCP BLACKBOARD** panel (`bb://ioc`) — the
-    artifact list — pause 2 s.
-  - `[0:22]` Sweep back to the center **3‑D field**; gently **drag to orbit** once
-    so the viewer sees it's a real 3‑D scene.
-- Focus: left swarm → right blackboard → center field (the data flow).
+  - `[0:05]` Sweep to the **MICRO‑AGENT SWARM** panel (left, badge **60 LIVE**) and
+    **hold ~5 s** — let the viewer see the per‑agent **ops/s counters ticking** and the
+    **τ** values changing. This is the swarm visibly working (GAP 3). Optionally hover
+    one agent row → its popover (role + sparkline).
+  - `[0:14]` Sweep to the right **MCP BLACKBOARD** panel (`bb://ioc`) — pause 2 s.
+  - `[0:22]` Sweep back to the center **3‑D field**; gently **drag to orbit** once.
+- Focus: the **ticking ops/s in the swarm panel**, then blackboard → field (the flow).
 - Don't: don't click individual entries yet; don't zoom in hard.
 - End state: field centered, slowly orbiting.
 
@@ -134,24 +137,59 @@ PowerShell; font 18–20 pt):
 - Don't: don't run in PowerShell (Linux paths fail); don't clear the screen — let
   the carve output stay visible. If the carve feels long, that's fine — narrate over it.
 - End state: terminal showing the carved indicators + `verify` ok. (Stay in the
-  terminal — PART 4 continues here.)
+  terminal — PART 3B continues here.)
+
+---
+
+## PART 3B — The MCP Architectural Guardrail (Approach #2)  (target: 15 s)  ⟵ TERMINAL (GAP 1 — must‑add)
+
+> The single highest‑value addition for SANS/DFIR judges: show — not just say — that
+> guardrails are **architectural, not prompt‑based**. The agent just used these typed
+> tools on the real evidence; now reveal the catalog.
+
+**VOICEOVER** (`vo_03b_mcp.wav`):
+> "And notice — the agent only ever calls typed forensic tools. This is Approach #2:
+> a purpose‑built MCP server. Sixty‑two typed functions — Volatility, YARA,
+> bulk_extractor — and no execute_shell, no arbitrary command. It physically cannot
+> run a destructive command, because the architecture never exposes one. That's a
+> guardrail by construction, not a prompt."
+>
+> Tone: pointed, the architecture flex. Save as `vo_03b_mcp.wav`.
+
+**SCREEN + TERMINAL** (same WSL2 terminal):
+- `[0:00]` Run (TERMINAL_COMMANDS.md **C1B**):
+  ```bash
+  bash /opt/findevil/repo/scripts/demo_mcp_tools.sh
+  ```
+- `[0:02]` It prints the **62 typed tools** grouped — *Forensic* (volatility.pslist,
+  volatility.malfind, yara.scan, bulk_extractor.scan, tshark.summary, tsk.fls…),
+  *Bounded response* (edr.network_isolate, edr.kill_process, iam.disable_account…),
+  *Standards* (stix.bundle, ocsf.finding) — then the **GUARDRAIL ✓** banner:
+  *"NO execute_shell · NO arbitrary command exposed."* Pause 4 s on that banner.
+- Focus: the typed forensic tool names, then the **GUARDRAIL ✓** line. Say
+  "Approach #2 … architectural guardrail, not a prompt."
+- Don't: don't scroll past the GUARDRAIL banner — it's the point.
+- End state: terminal showing the catalog + GUARDRAIL ✓. (Stay in the terminal — PART 4
+  continues here.)
 
 ---
 
 ## PART 4 — The Self‑Correction, on the Real ROCBA Data  (target: 45 s)  ⟵ TERMINAL + dashboard (the heart)
 
-**VOICEOVER** (`vo_04_self_correction.wav`):
-> "Now feed that carved indicator into the swarm. Two sensors disagree — Suricata
-> calls it malicious command‑and‑control, the endpoint agent says benign. Watch:
-> the ledger advances live, and the consensus engine computes a Yager conflict —
-> point three five — and instead of guessing, it raises a conflict and escalates.
-> That's the self‑correction: the swarm knows when it doesn't know. Off the hot
-> path, an LLM prosecutor, defense, and judge debate it and sign a verdict — here
-> it is on the dashboard, the judge's ruling on one‑forty‑two‑two‑fifty, recorded
-> in the immutable ledger."
+**VOICEOVER** (`vo_04_self_correction.wav`) — lands the self‑correction **and** the
+ephemeral **fractal pivot agents** (GAP 5, distinct from the 60 persistent sensors):
+> "Now feed that carved indicator into the swarm. Two sensors disagree — Suricata says
+> malicious command‑and‑control, the endpoint agent says benign. Watch the ledger
+> advance live: the consensus engine computes a Yager conflict — point three five —
+> and instead of guessing, it raises a conflict and escalates. That's the
+> self‑correction: the swarm knows when it doesn't know. And suspicious artifacts
+> spawn ephemeral fractal pivot agents — bounded autonomous investigators, depth
+> three, width sixteen — that chase the related evidence and then dissolve. The
+> conflict goes to a prosecutor, defense, and judge debate, and the signed verdict on
+> one‑forty‑two‑two‑fifty lands in the immutable ledger."
 >
-> Tone: the climax — confident, a little slower on "the swarm knows when it doesn't
-> know." Save as `vo_04_self_correction.wav`.
+> Tone: the climax — slower on "the swarm knows when it doesn't know." Save as
+> `vo_04_self_correction.wav`.
 
 **SCREEN + TERMINAL** (WSL2 tab, then browser):
 - `[0:00]` In the terminal, run (TERMINAL_COMMANDS.md **C3**):
@@ -162,14 +200,18 @@ PowerShell; font 18–20 pt):
   1085 ✓ real findings signed live"**, then the **SELF‑CORRECTION** block:
   `Yager conflict_K = 0.354 … action = conflict_ledger`. Pause 4 s — read the
   conflict_K and `conflict_ledger` aloud.
-- `[0:20]` **Alt+Tab to the browser.** Click the **ADVERSARIAL DEBATE** tab.
-- `[0:26]` Find the card for **142.250.64.106** (or another **⚖ debated** card) and
+- `[0:18]` *(optional, while saying the "fractal pivot agents" line)* the **EVENT
+  STREAM** (bottom‑left) tails `fractal` pivot lines when they fire; or run **C6** to
+  show the real `fractal.*` spawned‑pivot findings in the ledger. Keep it brief.
+- `[0:24]` **Alt+Tab to the browser.** Click the **ADVERSARIAL DEBATE** tab.
+- `[0:28]` Find the card for **142.250.64.106** (or another **⚖ debated** card) and
   **click it** → the amber debate inspector shows PROSECUTION, DEFENSE·JUDGE, and
   the **⚖ JUDGE RULING**. Pause 4 s.
 - Focus: `conflict_K = 0.354`, `action = conflict_ledger`, then the ⚖ ruling.
 - Don't: don't expect a fresh LLM verdict in the terminal (the debate runs off the
-  hot path) — the live part is the **conflict_ledger** escalation; the signed
-  verdict is shown on the dashboard.
+  hot path) — the live part is the **conflict_ledger** escalation; the signed verdict
+  is shown on the dashboard. Don't call the 60 sensors "spawned" — the *pivot* agents
+  are the ephemeral spawned ones.
 - End state: debate inspector open on the 142.250.64.106 verdict.
 
 ---
@@ -203,7 +245,7 @@ PowerShell; font 18–20 pt):
 
 ---
 
-## PART 6 — Threat Graph: the kill chain  (target: 35 s)
+## PART 6 — Threat Graph: the kill chain  (target: 30 s)
 
 **VOICEOVER** (`vo_06_graph.wav`):
 > "Stigmergy doesn't just score artifacts — it reconstructs the story. The Threat
@@ -230,15 +272,18 @@ PowerShell; font 18–20 pt):
 
 ## PART 7 — MITRE Per‑Artifact + Evidence Integrity  (target: 35 s)
 
-**VOICEOVER** (`vo_07_mitre_ledger.wav`):
-> "ATT&CK mapping is per‑threat, not just a global heatmap. Across the session,
-> thirteen techniques. But select one host and the matrix collapses to exactly
-> what *that* artifact did — this validation host only ran PowerShell, a single
-> technique. And every one of these decisions is court‑defensible: in the Merkle
-> Ledger I can open any finding and walk its BLAKE3 hash, Ed25519 signature, and
-> chain of custody back to the raw evidence."
+**VOICEOVER** (`vo_07_mitre_ledger.wav`) — adds **CACAO containment** and **Rekor
+transparency‑log** (GAP 4):
+> "ATT&CK mapping is per‑threat, not just a global heatmap — select one host and the
+> matrix collapses to exactly what that artifact did; this validation host only ran
+> PowerShell. And on a confident malicious verdict the platform doesn't just alert —
+> it fires an automated CACAO containment playbook: detection through response,
+> autonomously. Every decision is court‑defensible too — each finding is BLAKE3‑hashed,
+> Ed25519‑signed, hash‑chained, and anchored to a public Sigstore transparency log, so
+> anyone can verify the record wasn't altered."
 >
-> Tone: precise, closing the technical case. Save as `vo_07_mitre_ledger.wav`.
+> Tone: precise, closing the technical case. Say "transparency log," not "blockchain."
+> Save as `vo_07_mitre_ledger.wav`.
 
 **SCREEN** (browser):
 - `[0:00]` Click the **MITRE ATT&CK** tab. Header reads **"13 technique(s)
@@ -250,7 +295,9 @@ PowerShell; font 18–20 pt):
 - `[0:18]` Click the **MERKLE LEDGER** tab.
 - `[0:22]` **Click any entry** → the teal **forensic surface** opens: belief,
   primary artifact, technique chips, **chain of custody**, and the crypto block
-  (finding_id, blake3, prev_hash, ed25519 sig, merkle_root). Pause 4 s.
+  (finding_id, blake3, prev_hash, ed25519 sig, merkle_root). Pause 4 s. *(Optional:
+  in the terminal, **C7** shows the real Rekor anchor — log index 1492269391 — as you
+  say "anchored to a public transparency log.")*
 - Focus: header changing 13 → 1 on selection; the cryptographic block.
 - Don't: don't pick an IP that shows "full ATT&CK map after restart" for the
   per‑artifact point — use **6201** (always 1 tile) or **10.1.0.7** (5 tiles).
@@ -282,14 +329,15 @@ PowerShell; font 18–20 pt):
 | Part | What | Where | Target | Running |
 |---|---|---|---|---|
 | 1 | Problem hook | Title/field | 0:25 | 0:25 |
-| 2 | What Stigmergy is | Dashboard overview | 0:30 | 0:55 |
-| 3 | **LIVE ROCBA carve** (real evidence → real indicators) | **Terminal** | 0:55 | 1:50 |
-| 4 | **Self‑correction** on the carved IP (conflict_ledger → debate) | **Terminal + dashboard** | 0:45 | 2:35 |
-| 5 | Pheromone Field | Dashboard 3‑D | 0:30 | 3:05 |
-| 6 | Threat Graph (kill chain) | Dashboard | 0:35 | 3:40 |
-| 7 | MITRE per‑artifact + Ledger | Dashboard | 0:35 | 4:15 |
-| 8 | Close | Title/site | 0:20 | **4:35** |
+| 2 | What Stigmergy is + **swarm alive** + **speed/no‑LLM** | Dashboard overview | 0:35 | 1:00 |
+| 3 | **LIVE ROCBA carve** (real evidence → real indicators) | **Terminal** | 0:55 | 1:55 |
+| 3B | **MCP typed‑tool guardrail** (Approach #2) | **Terminal** | 0:15 | 2:10 |
+| 4 | **Self‑correction** + **fractal pivots** on the carved IP | **Terminal + dashboard** | 0:45 | 2:55 |
+| 5 | Pheromone Field | Dashboard 3‑D | 0:30 | 3:25 |
+| 6 | Threat Graph (kill chain) | Dashboard | 0:30 | 3:55 |
+| 7 | MITRE per‑artifact + Ledger + **CACAO/Rekor** | Dashboard | 0:35 | 4:30 |
+| 8 | Close | Title/site | 0:20 | **4:50** |
 
-**TOTAL ≈ 4:35** (hard cap 5:00). See [MATCHING_PLAN.md](MATCHING_PLAN.md) for the
+**TOTAL ≈ 4:50** (hard cap 5:00). See [MATCHING_PLAN.md](MATCHING_PLAN.md) for the
 assembly table and [LIVE_SEGMENT_NOTES.md](LIVE_SEGMENT_NOTES.md) for the live‑vs‑
-pre‑computed breakdown.
+pre‑computed breakdown (incl. the MCP catalog read and the fractal‑pivot proof).

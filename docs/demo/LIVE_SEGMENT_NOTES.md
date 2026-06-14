@@ -24,6 +24,9 @@
 | **Live ingest** of the carved 142.250.64.106 → consensus finding signed | **LIVE** (~4 s) | bytewax fuses + signs in seconds; tip advances on camera |
 | **Live self-correction**: Yager `conflict_K=0.354` → `action=conflict_ledger` on 142.250.64.106 | **LIVE** (~4 s) | the deterministic swarm raises the conflict live |
 | The prosecutor/defense/judge **LLM verdict** text | **pre-computed** (signed at ledger **#985**) | the LLM debate runs off the hot path and is slow on CPU; the conflict_ledger trigger is shown live, the signed verdict is shown on the Debate tab |
+| **MCP typed-tool catalog** (62 tools, no execute_shell) — PART 3B | **LIVE read** (~3 s) | `demo_mcp_tools.sh` reads the real `findevil.tools.registry` at run time — nothing hardcoded; the GUARDRAIL ✓ line is computed from the actual registered names |
+| **Fractal pivot agents** existing & having run — PART 4 | **real, pre-existing** | bounds `max_depth=3, max_width=16` are real (`config/settings.py`, enforced by `fractal/watcher.py`); 5 real `fractal.*` findings are in the ledger (seq 321/935/936/1010/1047). Narrated accurately; the rich `spawner.js` spawn animation is **not wired into the current dashboard**, so it is **not shown** (only the event‑stream `fractal` lines + the ledger proof via C6) |
+| **CACAO containment** + **Rekor anchor** — PART 7 | **real** | CACAO actuators are real typed tools (`edr.network_isolate`, …); the ledger is anchored to the public Sigstore Rekor log — anchor batch #3 has real `rekor_log_index = 1492269391` (C7) |
 
 **Honest one-liner to say on camera (optional):** *"The full 17-minute carve I ran
 ahead of time — here's its output; now watch me carve a slice of the same real
@@ -72,6 +75,14 @@ bash /opt/findevil/repo/scripts/demo_rocba_carve.sh
    → conflict IP present in the live carve?
      YES — 142.250.64.106 extracted from the real image, live.
 ```
+
+### PART 3B — MCP architectural guardrail (on camera, ~3 s; LIVE registry read)
+```bash
+bash /opt/findevil/repo/scripts/demo_mcp_tools.sh
+```
+Prints the **62** real registered typed tools (Volatility, YARA, bulk_extractor,
+plaso, tshark, tsk … + bounded CACAO response tools) and the **GUARDRAIL ✓ — NO
+execute_shell** banner. Read live from `findevil.tools.registry`, not hardcoded.
 
 ### PART 4 — live ingest → self-correction (on camera, ~4–6 s)
 ```bash

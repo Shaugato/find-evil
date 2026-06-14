@@ -3,9 +3,9 @@
 > Record each block as its own audio file, in order. They're independent — re‑record
 > any one freely. Speak at a normal, unhurried pace; the durations assume ~150 wpm.
 > Save all clips in the same folder (suggested: `D:\Autonomous DFIR - Agentic SOC\docs\demo\audio\`).
-> Total target ≈ **4:35**. All numbers are real and match the live dashboard.
-> PARTS 3–4 are the **live ROCBA real‑data segment** — see
-> [LIVE_SEGMENT_NOTES.md](LIVE_SEGMENT_NOTES.md).
+> Total target ≈ **4:50** (cap 5:00). All numbers are real and match the live system.
+> PARTS 3–4 are the **live ROCBA real‑data segment**; PART 3B is the **MCP
+> architectural‑guardrail** beat — see [LIVE_SEGMENT_NOTES.md](LIVE_SEGMENT_NOTES.md).
 
 ---
 
@@ -17,14 +17,15 @@
 
 ---
 
-### vo_02_overview.wav — ~35 s — tone: confident, explanatory
-> This is Stigmergy — a local‑first, defensive DFIR platform. Sixty micro‑agents act
-> like an ant colony: each sensor drops "pheromone" on the artifacts it finds
-> suspicious — IPs, domains, processes, hashes — on a shared blackboard. A
-> deterministic hot path fuses those deposits with Dempster–Shafer evidence theory
-> into a single belief, signs the decision into a cryptographic ledger, and only then
-> does a language‑model debate explain it. Everything you'll see runs on this one
-> machine.
+### vo_02_overview.wav — ~38 s — tone: confident, explanatory  (GAP 2 speed + GAP 3 swarm)
+> This is Stigmergy — a local, defensive DFIR platform. Sixty micro‑agents — you can
+> watch them ticking here — act like an ant colony: each continuously scores artifacts
+> and drops "pheromone" on the IPs, domains, and processes it finds suspicious, on a
+> shared blackboard. A deterministic hot path fuses those deposits with Dempster–Shafer
+> evidence theory and decides in well under a millisecond — with no language model in
+> the loop — fast enough to keep pace with attacks that reach domain control in minutes.
+> The model only debates and explains afterward, off the critical path, where it can't
+> slow or corrupt the decision. And it all runs on this one machine.
 
 ---
 
@@ -40,15 +41,25 @@
 
 ---
 
-### vo_04_self_correction.wav — ~45 s — tone: the climax; slower on "knows when it doesn't know"  ⟵ LIVE self‑correction
-> Now feed that carved indicator into the swarm. Two sensors disagree — Suricata
-> calls it malicious command‑and‑control, the endpoint agent says benign. Watch:
-> the ledger advances live, and the consensus engine computes a Yager conflict —
-> point three five — and instead of guessing, it raises a conflict and escalates.
-> That's the self‑correction: the swarm knows when it doesn't know. Off the hot
-> path, an LLM prosecutor, defense, and judge debate it and sign a verdict — here
-> it is on the dashboard, the judge's ruling on one‑forty‑two‑dot‑two‑fifty,
-> recorded in the immutable ledger.
+### vo_03b_mcp.wav — ~16 s — tone: pointed, this is the architecture flex  ⟵ GAP 1 (MCP guardrail)
+> And notice — the agent only ever calls typed forensic tools. This is Approach #2:
+> a purpose‑built MCP server. Sixty‑two typed functions — Volatility, YARA,
+> bulk_extractor — and no execute_shell, no arbitrary command. It physically cannot
+> run a destructive command, because the architecture never exposes one. That's a
+> guardrail by construction, not a prompt.
+
+---
+
+### vo_04_self_correction.wav — ~45 s — tone: the climax; slower on "knows when it doesn't know"  ⟵ LIVE self‑correction + GAP 5 pivots
+> Now feed that carved indicator into the swarm. Two sensors disagree — Suricata says
+> malicious command‑and‑control, the endpoint agent says benign. Watch the ledger
+> advance live: the consensus engine computes a Yager conflict — point three five —
+> and instead of guessing, it raises a conflict and escalates. That's the
+> self‑correction: the swarm knows when it doesn't know. And suspicious artifacts
+> spawn ephemeral fractal pivot agents — bounded autonomous investigators, depth
+> three, width sixteen — that chase the related evidence and then dissolve. The
+> conflict goes to a prosecutor, defense, and judge debate, and the signed verdict on
+> one‑forty‑two‑dot‑two‑fifty lands in the immutable ledger.
 
 ---
 
@@ -70,13 +81,14 @@
 
 ---
 
-### vo_07_mitre_ledger.wav — ~40 s — tone: precise, closing the technical case
-> ATT&CK mapping is per‑threat, not just a global heatmap. Across the session,
-> thirteen techniques. But select one host and the matrix collapses to exactly what
-> that artifact did — this validation host only ran PowerShell, a single technique.
-> And every one of these decisions is court‑defensible: in the Merkle Ledger I can
-> open any finding and walk its BLAKE3 hash, Ed25519 signature, and chain of custody
-> back to the raw evidence.
+### vo_07_mitre_ledger.wav — ~38 s — tone: precise, closing the technical case  (GAP 4 CACAO + Rekor)
+> ATT&CK mapping is per‑threat, not just a global heatmap — select one host and the
+> matrix collapses to exactly what that artifact did; this validation host only ran
+> PowerShell. And on a confident malicious verdict the platform doesn't just alert —
+> it fires an automated CACAO containment playbook: detection through response,
+> autonomously. Every decision is court‑defensible too — each finding is BLAKE3‑hashed,
+> Ed25519‑signed, hash‑chained, and anchored to a public Sigstore transparency log,
+> so anyone can verify the record wasn't altered.
 
 ---
 
