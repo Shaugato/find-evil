@@ -720,3 +720,66 @@ narrator step so the verdict is already in the ledger to show.
   `window.MITRE_BY_ARTIFACT` and the contextual filter reads it → selecting
   10.1.0.32 vs a beacon now lights different tiles; header shows
   "N · artifact <key>" with a "show all" reset back to "session global".
+
+---
+
+## SESSION v8 — atom highlight, threat-graph reflow, MITRE filter-active header, real narrator verdicts
+
+### Fix 1 — atom highlight on blackboard click (selection ring)
+- **Cause:** the "frame" path set `selected` (a 1.18× size boost) but that is far
+  too subtle to spot among 202 atoms when the camera doesnt
+
+---
+
+## SESSION v8 — atom highlight, threat-graph reflow, MITRE filter-active header, real narrator verdicts
+
+### Fix 1 — atom highlight on blackboard click (selection ring)
+- **Cause:** the "frame" path set `selected` (a 1.18× size boost) but that is far
+  too subtle to spot among 202 atoms when the camera doesn't dive.
+- **Fix:** `fe-holo.js` adds a persistent **pulsing selection ring** (`selRing`,
+  additive cyan, ringTex) that tracks `selected` every frame; `__FE_GRAPH.deselect()`
+  clears it. The dashboard handler calls `selectArtifact` and, when the selection
+  resolves to no field atom (or clears), calls `deselect` so no stale ring lingers.
+- **Verified:** clicking 4 different blackboard entries → ring tracks each
+  (`selRingShown:true`, `selected` follows); clear → ring hides.
+
+### Fix 2 — Threat Graph tab: inspector reflow
+- The MITRE/Ledger/Debate reflow didn't cover the Threat Graph (a canvas).
+- **Fix:** `body.insp-open #view-graph { padding-right:360/446px }` shrinks the
+  canvas; the `.tg-bar` scrubber is pushed to `right:376/462px !important`; the
+  graph's `resize()` is exposed as `window.__TG_RESIZE` and nudged from
+  `setInspBodyState` so the canvas re-reads its width.
+- **Verified:** canvas 1000→640px, scrubber right 16→376px; both edges (920/904)
+  clear the inspector (1210). MITRE/Ledger reflow unaffected.
+
+### Fix 3 — MITRE per-artifact (filter-active header)
+- **Investigation:** IPs DO vary — 73 IP artifacts, 16 distinct technique-set
+  signatures (10.1.0.7→5, 10.1.0.9→3, many→1). The matrix "looked the same"
+  because the client only knows the recent ledger window; artifacts outside it
+  fell back to bare "session global", reading as unfiltered.
+- **Fix:** when a selection resolves to ANY artifact, the header always names it
+  ("N · artifact X · show all"); when the client knows its subset it lights/dims
+  those tiles, otherwise it shows the global count with a "full ATT&CK map after
+  dashboard restart" note. The complete index ships from `/api/mitre/coverage`
+  `by_artifact` (214 artifacts; verified 10.1.0.7→5, 10.1.0.9→3) and activates on
+  the next dashboard restart (uvicorn runs without `--reload`). Widened the live
+  ledger fetch 32→200 so far more artifacts subset live before any restart.
+- **Verified:** PID 6201 → "1 · artifact 6201" + 1 tile; IPs → named + restart note.
+
+### Fix 4 — Adversarial Debate verified against source docs
+- **Source of truth** (`narrator/graph.py` + `service.py`): START→prosecutor→
+  defense→judge→END; fires off-hot-path on `conflict_ledger`/`escalate_human`; the
+  judge Verdict (guilty/score/winning_argument/rationale, Zheng-2023 position-swap)
+  persists as `agent_id="narrator.judge"`, method LLM_INFERENCE.
+- **Live data:** 8 real narrator.judge verdicts (e.g. 203.0.113.207 NOT GUILTY/
+  defense; 142.250.64.106 NOT GUILTY/insufficient). Sensor deposits use
+  human_assertion/statistical_anomaly; the LLM debate uses slm_inference.
+- **Confirmed + enriched:** the dashboard correctly maps consensus→prosecution
+  (case for malice) and narrator/verdict→defense+judge. Added capture + display of
+  the REAL judge ruling (guilty/winning_argument/rationale) on the card and in the
+  debate inspector, and blended the ranking (real verdict +2, on-field +1,
+  two-sided +1) so authentic debates surface alongside field-coherent exchanges.
+- **Verified:** 2 real verdicts render with rulings in the debate tab.
+
+- Regression: `findevil verify` ok=true, tainted=[]; **96 passed, 1 skipped**;
+  zero console errors. Cache-bust `fe-holo.js?v=9`, `find-evil-live.js?v=9`.
