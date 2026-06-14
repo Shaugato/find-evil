@@ -59,12 +59,21 @@ between PARTS. Or record per‑segment files. Suggested approach:
 
 1. Start OBS recording.
 2. **PART 1–2** — browser full‑screen on the Pheromone Field (title/overview).
-3. **PART 3–4** — Alt+Tab to the **WSL2 terminal** (full‑screen); run C1→C2→C4,
-   then C3. Pause on each result (timings in TERMINAL_COMMANDS.md).
-4. **PART 5–7** — Alt+Tab back to the **browser**; do the field dive, threat graph
-   scrubber, debate ⚖ verdict, MITRE per‑artifact, ledger forensic block.
-5. **PART 8** — end on the title/field (or the website).
-6. Stop recording.
+3. **PART 3 (LIVE ROCBA carve)** — Alt+Tab to the **WSL2 terminal** (full‑screen);
+   run **C1** (`demo_rocba_carve.sh` — the 18G image carved live) then **C2**
+   (`findevil verify`). Narrate over the ~10–16 s carve.
+4. **PART 4 (self‑correction)** — still in the terminal, run **C3**
+   (`demo_rocba_conflict.py` — conflict_K 0.354 → conflict_ledger), then **Alt+Tab
+   to the browser → Adversarial Debate tab** and click the 142.250.64.106 ⚖ card.
+5. **PART 5–7** — in the **browser**: field dive + blackboard ring, threat‑graph
+   scrubber, MITRE per‑artifact (13→1 on PID 6201), ledger forensic block.
+6. **PART 8** — end on the title/field (or the website).
+7. Stop recording.
+
+> **Pre‑warm the carve** (do it once before recording, off camera): run
+> `bash /opt/findevil/repo/scripts/demo_rocba_carve.sh` once so the OS file cache is
+> warm — the on‑camera carve then runs at the snappy end (~10 s). See
+> [LIVE_SEGMENT_NOTES.md](LIVE_SEGMENT_NOTES.md).
 
 > Leave **~2 s of stillness** at the start and end of each PART's actions — it gives
 > the editor clean cut points to align the voiceover.
@@ -89,6 +98,8 @@ between PARTS. Or record per‑segment files. Suggested approach:
 
 ## Pre‑record checklist (tick before hitting Record)
 - [ ] WSL2 tab open, prompt `shaugato@AetherX`, venv activated, font 18–20 pt
+- [ ] ROCBA live segment ready: `Rocba-Memory.raw` (18G) present, `demo_rocba_carve.sh`
+      + `demo_rocba_conflict.py` in `/opt/findevil/repo/scripts/`, carve pre‑warmed once
 - [ ] Dashboard restarted (per‑artifact MITRE live); field shows stable atoms
 - [ ] Browser full‑screen, 100% zoom, on the Pheromone Field tab
 - [ ] Taskbar hidden, desktop icons hidden, Focus Assist ON, notifications off

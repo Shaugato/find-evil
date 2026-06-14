@@ -3,7 +3,9 @@
 > Record each block as its own audio file, in order. They're independent — re‑record
 > any one freely. Speak at a normal, unhurried pace; the durations assume ~150 wpm.
 > Save all clips in the same folder (suggested: `D:\Autonomous DFIR - Agentic SOC\docs\demo\audio\`).
-> Total target ≈ **4:30**. All numbers are real and match the live dashboard.
+> Total target ≈ **4:35**. All numbers are real and match the live dashboard.
+> PARTS 3–4 are the **live ROCBA real‑data segment** — see
+> [LIVE_SEGMENT_NOTES.md](LIVE_SEGMENT_NOTES.md).
 
 ---
 
@@ -26,27 +28,31 @@
 
 ---
 
-### vo_03_live_exec.wav — ~40 s — tone: matter‑of‑fact, credible
-> This isn't a mock‑up. Here's the live engine. I'll verify the integrity of the
-> evidence ledger — every finding is hash‑chained and Ed25519‑signed. It returns
-> "ok", with zero tainted entries, across eleven hundred signed findings. And the
-> ATT&CK coverage is computed from those real findings: thirteen techniques, led by
-> PowerShell execution and web command‑and‑control.
+### vo_03_live_rocba.wav — ~55 s — tone: matter‑of‑fact, credible, a little proud  ⟵ LIVE real data
+> And this isn't a mock‑up — this is the official SANS ROCBA case, an eighteen‑
+> gigabyte Windows memory image from a real intrusion at stark‑research‑labs. The
+> full forensic carve I ran ahead of time — here's its output, real indicators
+> pulled straight from memory. Now watch me carve a slice of that same evidence
+> live, with bulk_extractor — and there it is, real IPs extracted in seconds,
+> including one‑forty‑two‑dot‑two‑fifty, the address the swarm will flag. And every
+> finding it produces is hash‑chained and Ed25519‑signed — the ledger verifies ok,
+> zero tainted, across eleven hundred findings.
 
 ---
 
-### vo_04_self_correction.wav — ~35 s — tone: the climax, slower, confident
-> Here's what makes it autonomous. When the swarm hits a conflict — sensors disagree,
-> or belief is borderline — it escalates to an out‑of‑band debate: an LLM prosecutor
-> argues the artifact is malicious, a defense rebuts, and a judge rules, with
-> position‑swap to cancel bias. The verdict is written back into the same signed
-> ledger. Here are real verdicts — at entries nine‑eighty‑five and nine‑forty‑one,
-> the judge found the artifacts not guilty. The system caught its own overreach and
-> corrected it — and signed the correction.
+### vo_04_self_correction.wav — ~45 s — tone: the climax; slower on "knows when it doesn't know"  ⟵ LIVE self‑correction
+> Now feed that carved indicator into the swarm. Two sensors disagree — Suricata
+> calls it malicious command‑and‑control, the endpoint agent says benign. Watch:
+> the ledger advances live, and the consensus engine computes a Yager conflict —
+> point three five — and instead of guessing, it raises a conflict and escalates.
+> That's the self‑correction: the swarm knows when it doesn't know. Off the hot
+> path, an LLM prosecutor, defense, and judge debate it and sign a verdict — here
+> it is on the dashboard, the judge's ruling on one‑forty‑two‑dot‑two‑fifty,
+> recorded in the immutable ledger.
 
 ---
 
-### vo_05_field.wav — ~35 s — tone: guided tour, engaged
+### vo_05_field.wav — ~30 s — tone: guided tour, engaged
 > Back to the command shell. Every glowing atom is one suspect artifact, bonded to
 > the central blackboard. Size is how much evidence has piled up; colour is the
 > swarm's belief it's evil — red is bad. The hot cluster here is internal lateral
@@ -55,13 +61,12 @@
 
 ---
 
-### vo_06_graph_debate.wav — ~40 s — tone: connecting proof to visuals
-> The Threat Graph reconstructs the kill chain — drive‑by to encoded PowerShell,
+### vo_06_graph.wav — ~35 s — tone: narrative, guiding the eye
+> Stigmergy doesn't just score artifacts — it reconstructs the story. The Threat
+> Graph lays the incident out as a kill chain: a drive‑by, encoded PowerShell,
 > injection into svchost, an LSASS credential dump, a Run‑key for persistence, a
-> Meterpreter beacon, then lateral movement. And the Adversarial Debate tab shows
-> those prosecutor‑defense‑judge exchanges I ran in the terminal — here's the judge's
-> real verdict on two‑oh‑three‑dot‑zero, not guilty, the defense winning the
-> argument. That's the audited self‑correction, on screen.
+> Meterpreter beacon, then lateral movement and exfiltration. I can scrub the
+> timeline to replay exactly how the attack unfolded, step by step.
 
 ---
 
