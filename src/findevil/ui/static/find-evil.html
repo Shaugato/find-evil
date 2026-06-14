@@ -826,6 +826,32 @@
   #inspector.forensic .insp-kind { color: var(--holo-teal); }
   #inspector.forensic .insp-chain { background: rgba(0,255,159,0.05); border: 1px solid rgba(0,255,159,0.16); border-radius: 6px; padding: 7px 9px; justify-content: space-between; }
 
+  /* debate mode: a distinct exchange surface (amber accent), suited to a reasoning
+     exchange rather than an artifact card — clearly different from the inspector */
+  #inspector.debate { border-color: rgba(255,184,108,0.30); box-shadow: -18px 0 60px rgba(0,0,0,0.6), 0 0 30px rgba(255,184,108,0.10); }
+  #inspector.debate .insp-kind { color: var(--amber, #ffb86c); }
+  #inspector .dxi { border-radius:8px; padding:9px 11px; margin:10px 0; border:1px solid; }
+  #inspector .dxi-role { font-family:var(--mono); font-size:9px; letter-spacing:.1em; text-transform:uppercase; margin-bottom:5px; }
+  #inspector .dxi-arg { font-size:12px; line-height:1.5; color:var(--holo-text); }
+  #inspector .dxi.pros { background:rgba(255,56,100,0.06); border-color:rgba(255,56,100,0.22); }
+  #inspector .dxi.pros .dxi-role { color:#ff6680; }
+  #inspector .dxi.def { background:rgba(0,212,255,0.06); border-color:rgba(0,212,255,0.20); }
+  #inspector .dxi.def .dxi-role { color:var(--holo-cyan); }
+
+  /* Issue 2 — NON-OCCLUDING reflow: when the inspector is open the active content
+     view shrinks (push/reflow, not overlay) so MITRE columns / ledger entries /
+     debate cards stay fully readable beside it instead of hidden behind it. */
+  body.insp-open #mitre-view, body.insp-open #ledger-view, body.insp-open #debate-view {
+    padding-right: 360px; transition: padding-right .42s cubic-bezier(.2,.9,.3,1.05);
+  }
+  body.insp-open.insp-forensic #mitre-view, body.insp-open.insp-forensic #ledger-view, body.insp-open.insp-forensic #debate-view {
+    padding-right: 446px;
+  }
+
+  /* Issue 5(b): label what each panel's artifact set represents (so the divergent
+     IPs across panels read as different VIEWS of one dataset, not a mismatch) */
+  .panel-caption { font-family: var(--mono); font-size: 9.5px; letter-spacing: .06em; color: var(--holo-text2); text-transform: uppercase; padding: 2px 2px 10px; opacity: .8; }
+
   /* MITRE contextual filter */
   .mitre-cell.ctx-dim { opacity: 0.26; filter: grayscale(0.5); }
   .mitre-reset { display:inline-block; margin-left:8px; font-family:var(--mono); font-size:10px; color:var(--holo-cyan); cursor:pointer; border:1px solid var(--holo-border); border-radius:10px; padding:1px 9px; }
@@ -850,7 +876,7 @@
 <script type="importmap">
 { "imports": { "three": "/static/vendor/three.module.js" } }
 </script>
-<script type="module" src="/static/fe-holo.js"></script>
+<script type="module" src="/static/fe-holo.js?v=7"></script>
 </head>
 <body>
 
@@ -1267,7 +1293,7 @@ function renderAgents() {
 // ─── IOCs ───
 function renderIOCs() {
   const list = document.getElementById('ioc-list');
-  list.innerHTML = '';
+  list.innerHTML = '<div class="panel-caption">live pheromone field · highest-belief artifacts</div>';
   // Render the SAME artifacts the 3-D field instantiates (top 60 by belief,
   // matching fe-holo's beliefOf ranking) so every blackboard entry maps 1:1 to
   // an atom that can be selected/focused — no orphan entries without an atom.
@@ -1296,7 +1322,7 @@ function renderIOCs() {
       document.getElementById('bel-val').textContent = ioc.bel.toFixed(3);
       document.getElementById('pl-val').textContent = ioc.pl.toFixed(3);
       document.getElementById('k-val').textContent = ioc.k.toFixed(3);
-      window.SEL.set('artifact', ioc.key, ioc);   // → coordinated highlight + inspector + atom dive
+      window.SEL.set('artifact', ioc.key, ioc, 'blackboard');   // → right inspector + atom framed (no GREEN popup)
     };
     list.appendChild(card);
   });
@@ -1318,7 +1344,7 @@ function renderLedger() {
     div.className = `ledger-block ${b.type}${isNew ? ' is-new' : ''}`;
     div.setAttribute('data-seq', seqDigits(b.seq));
     if (window.SEL && window.SEL.type === 'finding' && window.SEL.value === seqDigits(b.seq)) div.classList.add('sel');
-    div.onclick = () => window.SEL.set('finding', seqDigits(b.seq), b);   // → forensic detail + chain
+    div.onclick = () => window.SEL.set('finding', seqDigits(b.seq), b, 'ledger');   // → forensic detail + chain (non-occluding)
     div.innerHTML = `
       <div class="ledger-seq">${b.seq}</div>
       <div class="ledger-content">
@@ -1368,13 +1394,20 @@ function renderMitre() {
   const counts = techniqueCounts();
   const maxC = Math.max(1, ...Object.values(counts).map(Number));
   const hitCount = Object.keys(counts).length;
-  // contextual filter: when an artifact is selected, the matrix shows that
-  // artifact's techniques as active and dims the rest (different threats light
-  // different tiles); a reset returns to the session-global view.
-  const ctx = (window.SEL && window.SEL.type === 'artifact') ? { key: window.SEL.value, set: artifactTechniques(window.SEL.value) } : null;
+  // contextual filter: when a selection resolves to a field artifact (a
+  // blackboard/atom artifact, a debate exchange, or a ledger finding's primary),
+  // the matrix lights that artifact's techniques and dims the rest (different
+  // threats light different tiles); a reset returns to the session-global view.
+  let ctxKey = null;
+  if (window.SEL) {
+    if (window.SEL.type === 'artifact' || window.SEL.type === 'debate') ctxKey = window.SEL.value;
+    else if (window.SEL.type === 'finding') { const e = (window.SEL.data && window.SEL.data.raw && window.SEL.data.raw.entry) || {}; ctxKey = e.primary_artifact_key || null; }
+  }
+  const ctx = ctxKey ? { key: ctxKey, set: artifactTechniques(ctxKey) } : null;
   const ctxName = ctx ? String((window.SEL.data && window.SEL.data.value) || ctx.key).split(':').pop().slice(0, 22) : '';
   const ctxOn = ctx && ctx.set.size;
-  let html = `<div class="mitre-head">MITRE ATT&CK — <b style="color:var(--holo-cyan)">${hitCount}</b> technique(s) detected${ctxOn ? ` · viewing <b style="color:var(--holo-amber)">${esc2(ctxName)}</b> <span class="mitre-reset" id="mitre-reset">show all</span>` : ' · session global'}</div><div class="mitre-grid">`;
+  const ctxCount = ctxOn ? ctx.set.size : hitCount;
+  let html = `<div class="mitre-head">MITRE ATT&CK — <b style="color:${ctxOn ? 'var(--holo-amber)' : 'var(--holo-cyan)'}">${ctxCount}</b> technique(s)${ctxOn ? ` · artifact <b style="color:var(--holo-amber)">${esc2(ctxName)}</b> <span class="mitre-reset" id="mitre-reset">show all</span>` : ' detected · session global'}</div><div class="mitre-grid">`;
   for (const tactic of MITRE_TACTICS) {
     html += `<div class="mitre-tactic"><div class="mitre-tactic-name">${tactic.name}</div>`;
     for (const tech of tactic.techs) {
@@ -1422,12 +1455,19 @@ function renderDebate() {
     else if (bel >= 0.5 || /malicious|mitigat|consensus/i.test(claim)) { if (!ex.pros) ex.pros = claim; }
     else if (!ex.def) ex.def = claim;
   });
+  // Issue 5 coherence: surface exchanges whose artifact is ALSO on the live field
+  // (the same high-belief set the blackboard shows) first, so the debate visibly
+  // correlates with the blackboard and cross-selection resolves between them.
+  const fieldKeys = new Set((IOC_DEFS || []).map((d) => d && d.key).filter(Boolean));
   const exchanges = [...byArt.values()]
     .filter((x) => String(x.key).startsWith('pher:') && (x.pros || x.def))   // real artifacts, not cacao/raw keys
-    .sort((a, b) => ((b.pros && b.def ? 1 : 0) - (a.pros && a.def ? 1 : 0)) || (b.bel - a.bel))   // two-sided debates first
+    .sort((a, b) =>
+      ((fieldKeys.has(b.key) ? 1 : 0) - (fieldKeys.has(a.key) ? 1 : 0)) ||   // artifacts also on the field first
+      ((b.pros && b.def ? 1 : 0) - (a.pros && a.def ? 1 : 0)) ||             // two-sided debates next
+      (b.bel - a.bel))
     .slice(0, 8);
   if (!exchanges.length) { view.innerHTML = '<div class="debate-empty">Waiting for consensus / narrator findings from the live ledger…</div>'; return; }
-  view.innerHTML = exchanges.map((x) => {
+  view.innerHTML = '<div class="panel-caption">consensus exchanges · artifacts under adversarial review (shared with the field)</div>' + exchanges.map((x) => {
     const a = actionBadge(x.bel, x.k);
     const selCls = (window.SEL && window.SEL.type === 'artifact' && window.SEL.value === x.key) ? ' sel' : '';
     return '<div class="debate-exchange' + selCls + '" data-art="' + esc2(x.key) + '">' +
@@ -1437,7 +1477,10 @@ function renderDebate() {
         '<div class="dx-side def"><div class="dx-role">DEFENSE · JUDGE</div><div class="dx-arg">' + esc2(x.def || 'awaiting verdict') + '</div></div>' +
       '</div></div>';
   }).join('');
-  view.querySelectorAll('.debate-exchange[data-art]').forEach((card) => { card.onclick = () => selectArtifactByKey(card.dataset.art); });
+  const exMap = {}; exchanges.forEach((x) => { exMap[x.key] = x; }); window.__DEBATE_EX = exMap;
+  // debate entry → its OWN debate inspector (the reasoning exchange), distinct
+  // from the artifact inspector, while still highlighting the artifact + atom.
+  view.querySelectorAll('.debate-exchange[data-art]').forEach((card) => { card.onclick = () => { const x = exMap[card.dataset.art]; window.SEL.set('debate', card.dataset.art, x || { key: card.dataset.art, value: String(card.dataset.art).split(':').pop() }, 'debate'); }; });
 }
 
 // ─── COORDINATED SELECTION + INSPECTOR (brushing-and-linking) ───
@@ -1445,9 +1488,11 @@ function renderDebate() {
 // anywhere highlights every representation of it and opens a unified right-side
 // inspector flyout. Pheromone nodes additionally reuse the 3-D atom-expansion.
 window.SEL = {
-  type: null, value: null, data: null, _subs: [],
-  set(type, value, data) { this.type = type; this.value = value; this.data = data || null; this._emit(); },
-  clear() { this.type = this.value = this.data = null; this._emit(); },
+  type: null, value: null, data: null, source: null, _subs: [],
+  // source routes the detail surface: 'field' → GREEN center popup (inspector
+  // hidden); 'blackboard'|'ledger'|'debate'|null → right inspector + atom framed.
+  set(type, value, data, source) { this.type = type; this.value = value; this.data = data || null; this.source = source || null; this._emit(); },
+  clear() { this.type = this.value = this.data = this.source = null; this._emit(); },
   on(fn) { this._subs.push(fn); },
   _emit() { this._subs.forEach((f) => { try { f(this); } catch (e) {} }); },
 };
@@ -1468,8 +1513,8 @@ function techniqueCounts() {
   (window.LIVE_TECHNIQUES || []).forEach((t) => { if (t && !c[t]) c[t] = (c[t] || 0) + 1; });
   return c;
 }
-function selectArtifactByKey(key) { const d = (IOC_DEFS || []).find((x) => x.key === key) || { key, value: String(key).split(':').pop() }; window.SEL.set('artifact', key, d); }
-function selectFinding(seq) { const b = findingBySeq(seq); window.SEL.set('finding', String(seqDigits(seq)), b || { seq }); }
+function selectArtifactByKey(key, source) { const d = (IOC_DEFS || []).find((x) => x.key === key) || { key, value: String(key).split(':').pop() }; window.SEL.set('artifact', key, d, source || 'blackboard'); }
+function selectFinding(seq, source) { const b = findingBySeq(seq); window.SEL.set('finding', String(seqDigits(seq)), b || { seq }, source || 'ledger'); }
 function cell2(k, v) { return '<div><label>' + k + '</label><b>' + v + '</b></div>'; }
 function actionBadge(bel, k) { return k >= 0.3 ? { t: 'CONFLICT → DEBATE', c: '#ffb86c' } : bel >= 0.85 ? { t: 'MITIGATED', c: '#ff3864' } : bel >= 0.55 ? { t: 'ESCALATED', c: '#ff6b35' } : { t: 'OBSERVED', c: '#00d4ff' }; }
 
@@ -1483,23 +1528,31 @@ function inspectorEl() {
   }
   return el;
 }
+function setInspBodyState(open, forensic) {
+  // Issue 2 (non-occlusion): when the drawer is open, content views reflow to
+  // make room (CSS body.insp-open …) so the inspector never covers MITRE/ledger.
+  document.body.classList.toggle('insp-open', !!open);
+  document.body.classList.toggle('insp-forensic', !!(open && forensic));
+}
 function renderInspector() {
   const sel = window.SEL, el = inspectorEl(), kind = el.querySelector('.insp-kind'), body = el.querySelector('.insp-body');
-  if (!sel.type) { el.classList.remove('open'); return; }
-  // agents + techniques use the anchored popover (shown at the click site), not
-  // the drawer — so the drawer stays for artifact / finding / debate.
-  if (sel.type === 'agent' || sel.type === 'technique') { el.classList.remove('open'); return; }
+  // hidden states: nothing selected; agents/techniques (anchored popover at the
+  // click site); or a FIELD selection — the GREEN center popup is the surface
+  // there, so the right inspector must NOT also open (Issue 1 routing rule).
+  if (!sel.type || sel.type === 'agent' || sel.type === 'technique' || sel.source === 'field') {
+    el.classList.remove('open'); setInspBodyState(false, false); return;
+  }
   el.classList.toggle('forensic', sel.type === 'finding');   // ledger → wider forensic surface
+  el.classList.toggle('debate', sel.type === 'debate');      // debate → distinct exchange surface
   if (sel.type === 'artifact') inspArtifact(kind, body, sel);
   else if (sel.type === 'finding') inspFinding(kind, body, sel);
-  else if (sel.type === 'technique') inspTechnique(kind, body, sel);
-  else if (sel.type === 'agent') inspAgent(kind, body, sel);
   else if (sel.type === 'debate') inspDebate(kind, body, sel);
   body.querySelectorAll('[data-seq]').forEach((n) => n.addEventListener('click', () => selectFinding(n.dataset.seq)));
   body.querySelectorAll('[data-art]').forEach((n) => n.addEventListener('click', () => selectArtifactByKey(n.dataset.art)));
   body.querySelectorAll('[data-agent]').forEach((n) => n.addEventListener('click', () => { const a = (AGENT_DEFS || []).find((x) => x.name === n.dataset.agent) || { name: n.dataset.agent }; window.SEL.set('agent', n.dataset.agent, a); }));
   body.querySelectorAll('[data-tech]').forEach((n) => n.addEventListener('click', () => window.SEL.set('technique', n.dataset.tech, { technique: n.dataset.tech })));
   el.classList.add('open');
+  setInspBodyState(true, sel.type === 'finding');
 }
 function inspArtifact(kind, body, sel) {
   const d = sel.data || {}; kind.textContent = 'Artifact · ' + (d.type || 'IOC');
@@ -1553,29 +1606,47 @@ function inspAgent(kind, body, sel) {
     '<div class="insp-sec">Artifacts it deposited evidence on</div>' + (arts.length ? arts.map((x) => '<div class="insp-row insp-clk" data-art="' + esc2(x.key) + '">' + esc2(x.type) + ' · ' + esc2(x.value) + '</div>').join('') : '<div class="insp-row">no current artifacts</div>');
 }
 function inspDebate(kind, body, sel) {
-  const m = sel.data || {}; kind.textContent = (m.side === 'red' ? 'Prosecution' : 'Defense / judge') + ' argument';
-  body.innerHTML = '<div class="insp-title">' + esc2(m.ts || '') + '</div><div class="insp-sub">' + (m.side === 'red' ? 'Case for malicious' : 'Defense & judge verdict') + '</div>' +
-    '<div class="insp-sec">Argument</div><div class="insp-row" style="white-space:normal">' + esc2(m.text || '') + '</div>' +
-    (m.seq ? '<div class="insp-sec">Underlying finding</div><div class="insp-row insp-clk" data-seq="' + esc2(seqDigits(m.seq)) + '">' + esc2(m.seq) + '</div>' : '');
+  // distinct surface for a reasoning exchange (prosecution vs defense+verdict),
+  // not an artifact card — but still links back to the artifact / finding.
+  const x = sel.data || {}; kind.textContent = 'Adversarial debate';
+  const a = actionBadge(x.bel || 0, x.k || 0);
+  body.innerHTML =
+    '<div class="insp-title">' + esc2(x.value || String(sel.value).split(':').pop()) + '</div><div class="insp-sub">' + esc2(sel.value) + '</div>' +
+    '<div class="insp-action" style="color:' + a.c + ';border-color:' + a.c + '">' + a.t + '</div>' +
+    '<div class="dxi pros"><div class="dxi-role">PROSECUTION · MALICIOUS</div><div class="dxi-arg">' + esc2(x.pros || 'no prosecution argument recorded') + '</div></div>' +
+    '<div class="dxi def"><div class="dxi-role">DEFENSE · JUDGE</div><div class="dxi-arg">' + esc2(x.def || 'awaiting verdict') + '</div></div>' +
+    '<div class="insp-grid">' + cell2('Belief (evil)', (x.bel || 0).toFixed(3)) + cell2('Conflict K', (x.k || 0).toFixed(3)) + '</div>' +
+    '<div class="insp-sec">Examine the artifact</div><div class="insp-row insp-clk" data-art="' + esc2(sel.value) + '">' + esc2(sel.value) + '</div>' +
+    (x.seq ? '<div class="insp-sec">Underlying ledger finding</div><div class="insp-row insp-clk" data-seq="' + esc2(seqDigits(x.seq)) + '">' + esc2(x.seq) + '</div>' : '');
 }
 
-// coordinated highlight: clear all, then light up every representation of the selection
+// coordinated highlight + ROUTING: clear all, light up every representation of
+// the selection, then route the field (dive vs frame) and the detail surface
+// (center popup vs inspector) by the selection SOURCE — never both at once.
 window.SEL.on((sel) => {
   document.querySelectorAll('.sel').forEach((n) => n.classList.remove('sel'));
-  if (sel.type === 'artifact') {
+  const fromField = sel.source === 'field';
+  const G = window.__FE_GRAPH;
+  // which field atom (if any) does this selection map onto?
+  let artKey = null;
+  if (sel.type === 'artifact' || sel.type === 'debate') artKey = sel.value;
+  else if (sel.type === 'finding') { const e = (sel.data && sel.data.raw && sel.data.raw.entry) || {}; artKey = e.primary_artifact_key || null; }
+  if (sel.type === 'artifact' || sel.type === 'debate') {
     document.querySelectorAll('.ioc-card[data-art="' + sel.value + '"]').forEach((n) => n.classList.add('sel'));
     ledgerForArtifact(sel.value).forEach((b) => document.querySelectorAll('.ledger-block[data-seq="' + seqDigits(b.seq) + '"]').forEach((n) => n.classList.add('sel')));
     document.querySelectorAll('.debate-exchange[data-art="' + sel.value + '"]').forEach((n) => n.classList.add('sel'));
-    if (window.__FE_GRAPH && window.__FE_GRAPH.selectArtifact) window.__FE_GRAPH.selectArtifact(sel.value);
   } else if (sel.type === 'finding') {
     document.querySelectorAll('.ledger-block[data-seq="' + sel.value + '"]').forEach((n) => n.classList.add('sel'));
-    const e = (sel.data && sel.data.raw && sel.data.raw.entry) || {};
-    if (e.primary_artifact_key && window.__FE_GRAPH && window.__FE_GRAPH.selectArtifact) window.__FE_GRAPH.selectArtifact(e.primary_artifact_key);
   } else if (sel.type === 'technique') {
     document.querySelectorAll('.mitre-cell[data-tech="' + sel.value + '"]').forEach((n) => n.classList.add('sel'));
   } else if (sel.type === 'agent') {
     document.querySelectorAll('.agent-row[data-agent="' + sel.value + '"]').forEach((n) => n.classList.add('sel'));
   }
+  // 3-D field routing: source='field' dives + opens the GREEN center popup; any
+  // side-panel source frames the atom only (highlight, NO popup). With no field
+  // atom, clear any stale GREEN popup so it never lingers behind the inspector.
+  if (G && G.selectArtifact && artKey) G.selectArtifact(artKey, { dive: fromField });
+  else if (!fromField && G && G.clearDetail) G.clearDetail();
   renderInspector();
   if (typeof renderMitre === 'function') renderMitre();   // contextual filter follows artifact selection
 });
@@ -1641,18 +1712,51 @@ function showTechniquePopover(cell, tech) {
 }
 function artifactTechniques(key) {
   const s = new Set();
+  // prefer the full-history per-artifact index (/api/mitre/coverage by_artifact)
+  // so contextual filtering works even when the artifact's findings are older
+  // than the recent client window; fall back to the window scan if not loaded.
+  const idx = window.MITRE_BY_ARTIFACT && window.MITRE_BY_ARTIFACT[key];
+  if (idx && idx.length) { idx.forEach((x) => x && s.add(x)); return s; }
   ledgerForArtifact(key).forEach((b) => { const e = (b.raw && b.raw.entry) || {}; const t = e.mitre_attack_technique; (Array.isArray(t) ? t : (t ? [t] : [])).forEach((x) => x && s.add(x)); });
   return s;
 }
 
 // ─── MITRE session-global coverage (global default + contextual filter) ───
 window.MITRE_GLOBAL = {};
+window.MITRE_BY_ARTIFACT = {};   // artifact_key → [techniques] (full ledger, Issue 4 contextual)
 async function refreshMitreCoverage() {
   try {
-    let cov = null;
-    try { const res = await fetch('/api/mitre/coverage', { cache: 'no-store' }); if (res.ok) { const j = await res.json(); if (j && j.techniques && Object.keys(j.techniques).length) cov = j.techniques; } } catch (e) {}
-    if (!cov) { const r2 = await fetch('/api/ledger/recent?n=200', { cache: 'no-store' }); const rows = await r2.json(); cov = {}; (rows || []).forEach((row) => { const e = row.entry || {}; const t = e.mitre_attack_technique; (Array.isArray(t) ? t : (t ? [t] : [])).forEach((x) => { if (x) cov[x] = (cov[x] || 0) + 1; }); }); }
-    for (const k in cov) window.MITRE_GLOBAL[k] = Math.max(window.MITRE_GLOBAL[k] || 0, cov[k]);   // accumulate across the session
+    let cov = null, hadIndex = false;
+    try {
+      const res = await fetch('/api/mitre/coverage', { cache: 'no-store' });
+      if (res.ok) {
+        const j = await res.json();
+        if (j && j.techniques && Object.keys(j.techniques).length) cov = j.techniques;
+        // full-history per-artifact index (best source — live after a dashboard restart)
+        if (j && j.by_artifact && Object.keys(j.by_artifact).length) { window.MITRE_BY_ARTIFACT = j.by_artifact; hadIndex = true; }
+      }
+    } catch (e) {}
+    if (!cov || !hadIndex) {
+      // recent-window fallback: aggregate global counts (if the coverage route is
+      // unavailable) AND accumulate a per-artifact technique index across refreshes
+      // so contextual filtering works even before the full by_artifact route is live.
+      try {
+        const rows = await (await fetch('/api/ledger/recent?n=200', { cache: 'no-store' })).json();
+        const c = {};
+        (rows || []).forEach((row) => {
+          const e = row.entry || {};
+          const t = e.mitre_attack_technique; const techs = (Array.isArray(t) ? t : (t ? [t] : [])).filter(Boolean);
+          if (!techs.length) return;
+          techs.forEach((x) => { c[x] = (c[x] || 0) + 1; });
+          if (!hadIndex) {
+            const key = e.primary_artifact_key;
+            if (key) { const cur = new Set(window.MITRE_BY_ARTIFACT[key] || []); techs.forEach((x) => cur.add(x)); window.MITRE_BY_ARTIFACT[key] = [...cur]; }
+          }
+        });
+        if (!cov) cov = c;
+      } catch (e) {}
+    }
+    for (const k in (cov || {})) window.MITRE_GLOBAL[k] = Math.max(window.MITRE_GLOBAL[k] || 0, cov[k]);   // accumulate across the session
     if (typeof renderMitre === 'function') renderMitre();
   } catch (e) {}
 }
