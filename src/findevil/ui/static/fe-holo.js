@@ -423,15 +423,21 @@ import { OrbitControls } from '/static/vendor/OrbitControls.js';
       // route through the shared selection store so the blackboard/ledger/MITRE
       // highlight in sync; SEL → selectArtifact() flies the camera + expands.
       const d = { key: n.id, value: n.value, type: n.type, bel: n.bel, pl: n.pl, tau: n.tau, k: n.k, sensor: n.sensor };
-      if (window.SEL) window.SEL.set('artifact', n.id, d); else { selected = n.id; flyToNode(n); }
+      // source='field' → the routing layer shows the GREEN center popup and keeps
+      // the right inspector hidden (atom click → in-field detail).
+      if (window.SEL) window.SEL.set('artifact', n.id, d, 'field'); else { selected = n.id; flyToNode(n); }
     }
   }
-  function flyToNode(n) {
+  // expand=true dives + opens the GREEN center HUD (atom/field detail). expand=false
+  // just frames the atom in view (side-panel selection: highlight, no center popup).
+  function flyToNode(n, expand) {
+    if (expand === undefined) expand = true;
+    const dist = expand ? 64 : 108;   // frame-only stays a touch further out
     const dir = camera.position.clone().sub(controls.target).normalize();
     camTween = {
-      active: true, t: 0, dur: 0.8,
-      fromPos: camera.position.clone(), toPos: n.pos.clone().add(dir.multiplyScalar(64)),
-      fromTgt: controls.target.clone(), toTgt: n.pos.clone(), then: () => expandNode(n),
+      active: true, t: 0, dur: expand ? 0.8 : 0.6,
+      fromPos: camera.position.clone(), toPos: n.pos.clone().add(dir.multiplyScalar(dist)),
+      fromTgt: controls.target.clone(), toTgt: n.pos.clone(), then: expand ? () => expandNode(n) : null,
     };
     controls.enabled = false;
   }
@@ -455,13 +461,19 @@ import { OrbitControls } from '/static/vendor/OrbitControls.js';
     showDetailHud(n);
     document.body.classList.add('holo-focus');
   }
-  function collapseDetail() {
-    const was = expanded;
+  function closeDetailHud() {
+    // drop the GREEN center HUD WITHOUT flying the camera back out — used when a
+    // side-panel selection supersedes an atom click (the camera then frames the
+    // newly selected atom instead of returning to the overview).
     expanded = null;
     if (hud) hud.classList.remove('open');
     document.body.classList.remove('holo-focus');
-    if (was) flyToOverview();          // fly the camera back out to the overview
     // detailGroup is disposed in animate() once expandT eases to 0
+  }
+  function collapseDetail() {
+    const was = expanded;
+    closeDetailHud();
+    if (was) flyToOverview();          // fly the camera back out to the overview
   }
   function buildDetailGroup(n) {
     destroyDetailGroup();
@@ -782,11 +794,18 @@ import { OrbitControls } from '/static/vendor/OrbitControls.js';
     boot, sync: () => { if (booted) sync(); }, onResize,
     focusTop: () => { let best = null; nodes.forEach((n) => { if (!n.isNucleus && !n.dead && (!best || n.tau > best.tau)) best = n; }); if (best) { hovered = best; flyToNode(best); } return best ? best.id : null; },
     collapse: collapseDetail,
-    selectArtifact: (key) => {
+    clearDetail: closeDetailHud,    // close GREEN HUD without flying out (routing layer)
+    selectArtifact: (key, opts) => {
       const n = nodes.get(key); if (!n || n.isNucleus) return false;
       selected = n.id;
-      const vp = document.getElementById('view-pheromone');
-      if (vp && vp.classList.contains('active')) flyToNode(n);   // dive only when the field is on screen
+      const dive = !!(opts && opts.dive);
+      const onField = (() => { const vp = document.getElementById('view-pheromone'); return vp && vp.classList.contains('active'); })();
+      if (dive) {
+        if (onField) flyToNode(n, true);            // field click → dive + GREEN center popup
+      } else {
+        if (expanded) closeDetailHud();             // side-panel click → never leave a GREEN popup open
+        if (onField) flyToNode(n, false);           // frame the atom in view (highlight, no popup)
+      }
       return true;
     },
     nav: () => (camera && controls) ? {
