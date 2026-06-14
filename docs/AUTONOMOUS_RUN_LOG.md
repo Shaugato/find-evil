@@ -650,3 +650,73 @@ narrator step so the verdict is already in the ledger to show.
   console errors. (Drag/hover need the live draw loop → exercise in a visible
   browser; hidden preview pauses rAF.)
 - Status: done
+
+---
+
+## SESSION v7 — detail-surface ROUTING, non-occluding layout, MITRE per-artifact, data-coherence (decided before building)
+
+### Issue 5 — cross-panel IP mismatch: INVESTIGATION FINDING (foundational)
+- **Question:** blackboard shows `10.1.0.x` lab IPs; debate/ledger show public IPs
+  (`52.249.x`, `172.217.x`, `142.250.x`). Disjoint datasets?
+- **Data (measured against the live stack):**
+  - field keys (`/api/pher/snapshot`) = **202**; ledger keys = **302**;
+    **in BOTH = 137**. NOT disjoint — a large shared core.
+  - field-only (65) = `*.validation.invalid` test domains + benign domains
+    (slack-edge, crl.pki.goog) that never crossed consensus → legitimately
+    on the field but not the ledger (a pheromone field tracks *all* observations).
+  - ledger-only (165) = `cacao:instance:*` playbook runs + `hash:*` — not
+    pheromone artifacts, so correctly absent from the field.
+- **Root cause = RANKING/WINDOWING, not two datasets:** the blackboard sorts by
+  *belief* (surfacing the high-belief `10.1.0.x` kill-chain hosts, bel 0.95+),
+  while the debate derived from the *recency* tail of the ledger (public-IP C2
+  beacons, T1071.001 only). Both live on the same field; the public IPs are
+  present at lower τ, below the blackboard top-60 cut. One coherent ROCBA dataset.
+- **Resolution:** (a) re-rank the debate derivation to prefer high-belief
+  artifacts that are ALSO on the field (so the debate shows the same hosts the
+  blackboard does → visible correlation + working cross-selection); (b) label
+  each panel with what view/window it shows; (c) cross-selection already resolves
+  by shared `pher:` key for the 137-artifact overlap. No data regeneration needed.
+
+### Issue 1 — detail-surface routing by CLICK SOURCE (the core fix)
+- **Research (coordinated-views / detail-on-demand):** detail belongs *where the
+  user is looking* — click in the spatial field → detail in the field; click in a
+  side list → detail in the side panel. Two entry points must not both fire.
+- **Decision — add `source` to the shared selection store** (`SEL.set(type,value,
+  data,source)`), and route:
+  - `source = "field"` (atom dbl-click) → **center popup (GREEN `#holo-detail`)**
+    via `selectArtifact(key,{dive:true})`; inspector stays **hidden**.
+  - `source = "blackboard"|"ledger"|"debate"|null` (side panels) → **right
+    inspector** + atom **framed/highlighted** via `selectArtifact(key,{dive:false})`
+    (camera frames the atom, **no** GREEN popup); any open GREEN popup is cleared.
+  - Center popup (GREEN) and right inspector (YELLOW) are now **mutually
+    exclusive**; the BLUE hover tooltip may still coexist with the GREEN popup.
+
+### Issue 2 — inspector must NOT occlude tab content (push/reflow)
+- **Research:** professional SOC consoles (Sentinel/Falcon flyouts) **push/reflow**
+  the working area rather than cover it. Chosen **Option A**.
+- **Decision:** body gets `insp-open` (+`insp-forensic`) when the drawer is open;
+  the active content views (`#mitre-view`,`#ledger-view`,`#debate-view`) gain a
+  `padding-right` equal to the inspector footprint (≈356px, ≈442px forensic) so
+  the MITRE columns / ledger entries reflow into the remaining width and stay
+  fully readable. The 3-D field/graph are canvas — the inspector is hidden for
+  field selections, so no reflow needed there.
+
+### Issue 3 — per-source detail differentiation
+- blackboard entry → **artifact inspector** (cyan) + atom highlight (non-occluding).
+- ledger entry → **forensic provenance** surface (teal, wider) + atom highlight.
+- debate entry → **debate inspector** (`.debate` modifier: amber prosecution /
+  cyan defense exchange + verdict) — visibly distinct from the artifact inspector,
+  suited to a reasoning exchange, still highlights the artifact across panels.
+
+### Issue 4 — MITRE per-artifact (global + contextual), now data-backed
+- **Data:** 214 artifacts carry techniques across **29 distinct technique-set
+  signatures** — per-artifact filtering IS meaningful (10.1.0.x hosts = full
+  5-technique kill chain T1003.001/T1055/T1059.001/T1071.001/T1078; public beacons
+  = T1071.001 only). The matrix "never changed" because the client `artifactTech-
+  niques()` read only the recent client window, which often lacked the selected
+  artifact's older findings → empty → fell back to global.
+- **Decision:** extend `/api/mitre/coverage` to also return `by_artifact`
+  (artifact_key → technique list) from the FULL ledger; client builds
+  `window.MITRE_BY_ARTIFACT` and the contextual filter reads it → selecting
+  10.1.0.32 vs a beacon now lights different tiles; header shows
+  "N · artifact <key>" with a "show all" reset back to "session global".

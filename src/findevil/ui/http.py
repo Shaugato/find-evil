@@ -98,13 +98,23 @@ async def api_mitre_coverage() -> JSONResponse:
     finally:
         r.close()
     counts: dict[str, int] = {}
+    by_artifact: dict[str, set[str]] = {}
     for row in rows:
         e = row.get("entry") or {}
         t = e.get("mitre_attack_technique")
-        for x in (t if isinstance(t, list) else ([t] if t else [])):
-            if x:
-                counts[str(x)] = counts.get(str(x), 0) + 1
-    return JSONResponse({"techniques": counts, "total_findings": len(rows)})
+        techs = [str(x) for x in (t if isinstance(t, list) else ([t] if t else [])) if x]
+        if not techs:
+            continue
+        for x in techs:
+            counts[x] = counts.get(x, 0) + 1
+        key = e.get("primary_artifact_key")
+        if key:
+            by_artifact.setdefault(str(key), set()).update(techs)
+    # serialise per-artifact technique sets (sorted lists) for the contextual matrix
+    by_art = {k: sorted(v) for k, v in by_artifact.items()}
+    return JSONResponse(
+        {"techniques": counts, "by_artifact": by_art, "total_findings": len(rows)}
+    )
 
 
 @app.get("/api/attack_path")
