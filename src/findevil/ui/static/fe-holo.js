@@ -100,6 +100,20 @@ import { OrbitControls } from '/static/vendor/OrbitControls.js';
   const K_CENTER = 0.0042;   // mild pull to origin
   const DAMP = 0.86;
   const MAXV = 2.4;
+  // ── simulation cooling (anti-flicker) ──────────────────────────────────────
+  // The force sim used to run at full energy every frame with a frame-rate-
+  // dependent step, so 60 mutually-repelling atoms never settled and the step
+  // overshot whenever the frame rate dipped (e.g. under screen-recording load)
+  // → visible jitter/flicker. Now it COOLS: `alpha` decays to 0 (frozen, no
+  // jitter) and only reheats on real data change, and we integrate with a fixed
+  // step so the layout is identical at 30 or 60 fps.
+  let alpha = 1;                  // sim temperature: 1 = hot, 0 = settled/frozen
+  const ALPHA_DECAY = 0.96;      // cool ~4%/step → settles in ~1.5–2 s
+  const ALPHA_FREEZE = 0.004;    // below this, freeze completely (zero motion)
+  const ALPHA_REHEAT = 0.55;     // gentle reheat when live data changes
+  const ALPHA_NEW = 0.85;        // stronger reheat when a new atom appears
+  const STEP = 0.95;             // fixed integration step (frame-rate independent)
+  function reheat(a) { if (a > alpha) alpha = a; }
 
   function getIocs() {
     const a = window.__FE_IOCS;
@@ -223,7 +237,10 @@ import { OrbitControls } from '/static/vendor/OrbitControls.js';
         n = { id, pos, vel: new THREE.Vector3(), glow, core, born: performance.now(), appear: 0 };
         nodes.set(id, n);
         spawnBurst(pos, color);
+        reheat(ALPHA_NEW);                       // a new atom joined → re-settle the layout
       }
+      if (n.dead) reheat(ALPHA_REHEAT);          // revived from fade-out → re-settle
+      if (Math.abs((n.tau || 0) - tau) > 0.08) reheat(ALPHA_REHEAT);   // material τ change shifts spring rest
       n.type = d.type || 'IOC';
       n.value = String(d.value || '').slice(0, 22);
       n.sensor = d.sensor || '';
@@ -237,7 +254,7 @@ import { OrbitControls } from '/static/vendor/OrbitControls.js';
     });
 
     // mark missing nodes for fade-out
-    nodes.forEach((n, id) => { if (!seen.has(id)) n.dead = true; });
+    nodes.forEach((n, id) => { if (!seen.has(id) && !n.dead) { n.dead = true; reheat(ALPHA_REHEAT); } });
 
     deriveEdges();
   }
@@ -527,7 +544,14 @@ import { OrbitControls } from '/static/vendor/OrbitControls.js';
   }
 
   // ── layout physics (3-D force-directed) ──────────────────────────────────
-  function step(dt) {
+  function step() {
+    // Once cooled, freeze the layout entirely — no perpetual micro-oscillation,
+    // so the atoms sit rock-still for recording. Zero residual velocity on the
+    // freeze frame so a later reheat re-settles gently (no pop). Reheat revives it.
+    if (alpha <= ALPHA_FREEZE) {
+      if (alpha !== 0) { alpha = 0; nodes.forEach((n) => { if (!n.isNucleus) n.vel.set(0, 0, 0); }); }
+      return;
+    }
     const arr = []; nodes.forEach((n) => { if (!n.dead || n.appear > 0.01) arr.push(n); });
     // repulsion
     for (let i = 0; i < arr.length; i++) {
@@ -553,14 +577,21 @@ import { OrbitControls } from '/static/vendor/OrbitControls.js';
       if (!a.isNucleus) { a.vel.x += fx; a.vel.y += fy; a.vel.z += fz; }
       if (!b.isNucleus) { b.vel.x -= fx; b.vel.y -= fy; b.vel.z -= fz; }
     }
-    // centering + integrate
+    // centering + integrate (FIXED step × alpha — frame-rate independent, cooling)
     for (const n of arr) {
       if (n.isNucleus) { n.pos.set(0, 0, 0); continue; }
       n.vel.x += -n.pos.x * K_CENTER; n.vel.y += -n.pos.y * K_CENTER; n.vel.z += -n.pos.z * K_CENTER;
       n.vel.multiplyScalar(DAMP);
       const sp = n.vel.length(); if (sp > MAXV) n.vel.multiplyScalar(MAXV / sp);
-      n.pos.addScaledVector(n.vel, dt * 60 * 0.016 * 60); // dt-normalised step
+      n.pos.addScaledVector(n.vel, STEP * alpha);   // alpha→0 ⇒ motion→0 (no jitter)
+      // NaN/Inf guard: if the integrator ever produces a bad coordinate, reset the
+      // atom to a safe shell point instead of letting it flicker/vanish.
+      if (!Number.isFinite(n.pos.x) || !Number.isFinite(n.pos.y) || !Number.isFinite(n.pos.z)) {
+        const dir = new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).normalize();
+        n.pos.copy(dir.multiplyScalar(R_SPHERE)); n.vel.set(0, 0, 0);
+      }
     }
+    alpha *= ALPHA_DECAY;   // cool toward rest
   }
 
   // ── render loop ──────────────────────────────────────────────────────────
@@ -568,7 +599,7 @@ import { OrbitControls } from '/static/vendor/OrbitControls.js';
   function animate() {
     requestAnimationFrame(animate);
     const dt = Math.min(0.05, clock.getDelta()); _t += dt;
-    step(dt);
+    step();
 
     // node visuals
     nodes.forEach((n) => {
@@ -842,6 +873,9 @@ import { OrbitControls } from '/static/vendor/OrbitControls.js';
     get booted() { return booted; }, get expanded() { return expanded; },
     get selected() { return selected; },
     get selRingShown() { return !!(selRing && selRing.visible && selRing.material.opacity > 0.05); },
+    get simAlpha() { return +alpha.toFixed(4); },   // 0 = settled/frozen (no jitter)
+    get simEnergy() { let s = 0, c = 0; nodes.forEach((n) => { if (!n.isNucleus && !n.dead) { s += n.vel.length(); c++; } }); return c ? +(s / c).toFixed(4) : 0; },
+    get posHash() { let h = 0; nodes.forEach((n) => { if (!n.isNucleus) h += n.pos.x + n.pos.y * 1.3 + n.pos.z * 1.7; }); return +h.toFixed(3); },   // identical across frames ⇒ positions frozen
   };
   window.fireConsensusRipple = function (color) { if (booted) fireRipple(color); };
 
