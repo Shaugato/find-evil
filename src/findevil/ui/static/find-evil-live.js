@@ -221,7 +221,7 @@
     const started = performance.now();
     const [pher, ledger, tip, attack, cacao] = await Promise.all([
       getJson('/api/pher/snapshot', { nodes: [], valkey_available: false }),
-      getJson('/api/ledger/recent?n=32', []),
+      getJson('/api/ledger/recent?n=200', []),   // wide window so real narrator verdicts + varied findings surface in the ledger/debate tabs
       getJson('/api/ledger/tip', {}),
       getJson('/api/attack_path', { techniques: [] }),
       getJson('/api/cacao/instances', { instances: [] }),
@@ -369,7 +369,7 @@ MERKLE LEDGER:
     connectStream('ledger', '/stream/ledger', (payload) => {
       const summary = ledgerSummary(payload);
       if (!LEDGER_DEFS.some((row) => row.raw?.seq === payload.seq)) LEDGER_DEFS.unshift(summary);
-      if (LEDGER_DEFS.length > 32) LEDGER_DEFS.pop();
+      if (LEDGER_DEFS.length > 200) LEDGER_DEFS.pop();   // keep the wide window so verdicts/varied findings persist between refreshes
       design.addEvent({ src: 'ledger', level: summary.type === 'critical' ? 'alert' : 'info', msg: `${summary.seq} ${summary.event}: ${summary.detail}` });
       design.renderLedger();
     });

@@ -847,6 +847,13 @@
   body.insp-open.insp-forensic #mitre-view, body.insp-open.insp-forensic #ledger-view, body.insp-open.insp-forensic #debate-view {
     padding-right: 446px;
   }
+  /* Fix 2: Threat Graph is a canvas (width:100%) — shrink its container (snap, no
+     transition, so the canvas resize() reads the final width) and push the
+     absolutely-positioned scrubber bar left so neither hides behind the inspector. */
+  body.insp-open #view-graph { padding-right: 360px; }
+  body.insp-open.insp-forensic #view-graph { padding-right: 446px; }
+  body.insp-open #view-graph .tg-bar { right: 376px !important; }
+  body.insp-open.insp-forensic #view-graph .tg-bar { right: 462px !important; }
 
   /* Issue 5(b): label what each panel's artifact set represents (so the divergent
      IPs across panels read as different VIEWS of one dataset, not a mismatch) */
@@ -856,6 +863,7 @@
   .mitre-cell.ctx-dim { opacity: 0.26; filter: grayscale(0.5); }
   .mitre-reset { display:inline-block; margin-left:8px; font-family:var(--mono); font-size:10px; color:var(--holo-cyan); cursor:pointer; border:1px solid var(--holo-border); border-radius:10px; padding:1px 9px; }
   .mitre-reset:hover { background:rgba(0,212,255,0.14); }
+  .mitre-note { font-family:var(--mono); font-size:9.5px; color:var(--holo-text2); opacity:.75; }
 
   /* ════ adversarial debate — paired exchange cards (prosecution | defense+judge) ════ */
   #view-debate #debate-view { display:block; overflow-y:auto; padding:14px; }
@@ -872,11 +880,17 @@
   .dx-side.pros .dx-role { color:var(--red2); } .dx-side.def .dx-role { color:var(--holo-cyan); }
   .dx-arg { font-family:var(--mono); font-size:10.5px; color:var(--holo-text); line-height:1.5; }
   .debate-empty { font-family:var(--mono); font-size:12px; color:var(--holo-text2); text-align:center; padding:40px 20px; }
+  /* Fix 4: a real narrator (prosecutor→defense→judge) verdict on this artifact */
+  .debate-exchange.has-verdict { border-color:rgba(255,184,108,0.35); }
+  .dx-real { font-family:var(--mono); font-size:8.5px; color:var(--amber,#ffb86c); border:1px solid rgba(255,184,108,0.4); border-radius:4px; padding:1px 5px; margin-left:6px; letter-spacing:.05em; }
+  .dx-ruling { font-family:var(--mono); font-size:10px; color:var(--holo-text); padding:7px 12px; border-top:1px solid rgba(255,184,108,0.25); background:rgba(255,184,108,0.06); letter-spacing:.03em; }
+  #inspector .dxi.judge { background:rgba(255,184,108,0.07); border-color:rgba(255,184,108,0.28); }
+  #inspector .dxi.judge .dxi-role { color:var(--amber,#ffb86c); }
 </style>
 <script type="importmap">
 { "imports": { "three": "/static/vendor/three.module.js" } }
 </script>
-<script type="module" src="/static/fe-holo.js?v=7"></script>
+<script type="module" src="/static/fe-holo.js?v=9"></script>
 </head>
 <body>
 
@@ -1405,15 +1419,24 @@ function renderMitre() {
   }
   const ctx = ctxKey ? { key: ctxKey, set: artifactTechniques(ctxKey) } : null;
   const ctxName = ctx ? String((window.SEL.data && window.SEL.data.value) || ctx.key).split(':').pop().slice(0, 22) : '';
-  const ctxOn = ctx && ctx.set.size;
-  const ctxCount = ctxOn ? ctx.set.size : hitCount;
-  let html = `<div class="mitre-head">MITRE ATT&CK — <b style="color:${ctxOn ? 'var(--holo-amber)' : 'var(--holo-cyan)'}">${ctxCount}</b> technique(s)${ctxOn ? ` · artifact <b style="color:var(--holo-amber)">${esc2(ctxName)}</b> <span class="mitre-reset" id="mitre-reset">show all</span>` : ' detected · session global'}</div><div class="mitre-grid">`;
+  // Fix 3: distinguish "an artifact is selected" (filter ACTIVE → always name it,
+  // never silently fall back to 'session global') from "we know its technique
+  // subset" (→ light that subset + dim the rest). The per-artifact subset is
+  // exact for any artifact in the client index; the complete index for every
+  // artifact loads from /api/mitre/coverage by_artifact on the next restart.
+  const ctxSel = !!ctx;
+  const ctxHasSet = !!(ctx && ctx.set.size);
+  const ctxCount = ctxHasSet ? ctx.set.size : hitCount;
+  const headTail = ctxSel
+    ? ` · artifact <b style="color:var(--holo-amber)">${esc2(ctxName)}</b> <span class="mitre-reset" id="mitre-reset">show all</span>${ctxHasSet ? '' : ' <span class="mitre-note">· full ATT&CK map after dashboard restart</span>'}`
+    : ' detected · session global';
+  let html = `<div class="mitre-head">MITRE ATT&CK — <b style="color:${ctxSel ? 'var(--holo-amber)' : 'var(--holo-cyan)'}">${ctxCount}</b> technique(s)${headTail}</div><div class="mitre-grid">`;
   for (const tactic of MITRE_TACTICS) {
     html += `<div class="mitre-tactic"><div class="mitre-tactic-name">${tactic.name}</div>`;
     for (const tech of tactic.techs) {
       const c = counts[tech] || 0, hit = c > 0;
       const inCtx = ctx && ctx.set.has(tech);
-      const dim = ctxOn && hit && !inCtx;
+      const dim = ctxHasSet && hit && !inCtx;
       const heat = hit ? (0.16 + 0.5 * (c / maxC)) : 0;             // heatmap by detection frequency
       const newHit = hit && !MITRE_SEEN[tech];                      // pulse when freshly detected
       const style = hit ? ` style="background:rgba(0,212,255,${heat.toFixed(2)});border-color:rgba(0,212,255,0.4);color:#e8ecf0"` : '';
@@ -1447,10 +1470,18 @@ function renderDebate() {
     const cons = e.consensus || null;
     const bel = cons && cons.belief_evil != null ? cons.belief_evil : (Number(e.confidence) || 0);
     const k = cons && cons.conflict_K != null ? cons.conflict_K : 0;
-    if (!byArt.has(key)) byArt.set(key, { key, value: String(key).split(':').pop(), pros: null, def: null, bel: 0, k: 0, seq: b.seq });
+    if (!byArt.has(key)) byArt.set(key, { key, value: String(key).split(':').pop(), pros: null, def: null, bel: 0, k: 0, seq: b.seq, verdict: null });
     const ex = byArt.get(key);
     ex.bel = Math.max(ex.bel, bel); ex.k = Math.max(ex.k, k);
-    const isVerdict = aid.includes('narrator') || aid.includes('judge') || aid.includes('cacao') || aid.includes('conflict') || /conflict|verdict|observe|benign/i.test(claim) || (cons && bel < 0.5);
+    // Fix 4: a real narrator.judge entry is an actual prosecutor→defense→judge
+    // ruling — capture the judge's Verdict (guilty / winning_argument / rationale)
+    // so the authentic verdict shows, not just a derived claim.
+    const isNarrator = aid.includes('narrator') || aid.includes('judge');
+    if (isNarrator) {
+      const params = (Array.isArray(e.reasoning_trace) && e.reasoning_trace[0] && e.reasoning_trace[0].params) || {};
+      ex.verdict = { guilty: String(params.guilty), winning: String(params.winning_argument || ''), rationale: claim, seq: b.seq };
+    }
+    const isVerdict = isNarrator || aid.includes('cacao') || aid.includes('conflict') || /conflict|verdict|observe|benign/i.test(claim) || (cons && bel < 0.5);
     if (isVerdict) { if (!ex.def) ex.def = claim; }
     else if (bel >= 0.5 || /malicious|mitigat|consensus/i.test(claim)) { if (!ex.pros) ex.pros = claim; }
     else if (!ex.def) ex.def = claim;
@@ -1459,23 +1490,27 @@ function renderDebate() {
   // (the same high-belief set the blackboard shows) first, so the debate visibly
   // correlates with the blackboard and cross-selection resolves between them.
   const fieldKeys = new Set((IOC_DEFS || []).map((d) => d && d.key).filter(Boolean));
+  // Blended ranking (Fix 4 + Issue 5 coherence): a REAL narrator verdict (+2) is
+  // an authentic prosecutor/defense/judge debate and the hackathon's self-
+  // correction signal, so surface it; field presence (+1) keeps cross-selection
+  // with the blackboard; two-sided (+1) prefers complete exchanges.
+  const score = (x) => (x.verdict ? 2 : 0) + (fieldKeys.has(x.key) ? 1 : 0) + (x.pros && x.def ? 1 : 0);
   const exchanges = [...byArt.values()]
-    .filter((x) => String(x.key).startsWith('pher:') && (x.pros || x.def))   // real artifacts, not cacao/raw keys
-    .sort((a, b) =>
-      ((fieldKeys.has(b.key) ? 1 : 0) - (fieldKeys.has(a.key) ? 1 : 0)) ||   // artifacts also on the field first
-      ((b.pros && b.def ? 1 : 0) - (a.pros && a.def ? 1 : 0)) ||             // two-sided debates next
-      (b.bel - a.bel))
+    .filter((x) => String(x.key).startsWith('pher:') && (x.pros || x.def || x.verdict))   // real artifacts, not cacao/raw keys
+    .sort((a, b) => (score(b) - score(a)) || (b.bel - a.bel))
     .slice(0, 8);
   if (!exchanges.length) { view.innerHTML = '<div class="debate-empty">Waiting for consensus / narrator findings from the live ledger…</div>'; return; }
-  view.innerHTML = '<div class="panel-caption">consensus exchanges · artifacts under adversarial review (shared with the field)</div>' + exchanges.map((x) => {
+  view.innerHTML = '<div class="panel-caption">prosecutor · defense · judge exchanges — real narrator verdicts (⚖) + consensus cases under review</div>' + exchanges.map((x) => {
     const a = actionBadge(x.bel, x.k);
-    const selCls = (window.SEL && window.SEL.type === 'artifact' && window.SEL.value === x.key) ? ' sel' : '';
-    return '<div class="debate-exchange' + selCls + '" data-art="' + esc2(x.key) + '">' +
-      '<div class="dx-head"><span class="dx-art">' + esc2(x.value) + '</span><span class="dx-verdict" style="color:' + a.c + ';border-color:' + a.c + '">' + a.t + '</span></div>' +
+    const selCls = (window.SEL && (window.SEL.type === 'artifact' || window.SEL.type === 'debate') && window.SEL.value === x.key) ? ' sel' : '';
+    const v = x.verdict;
+    const ruling = v ? '<div class="dx-ruling">⚖ NARRATOR VERDICT · ' + (v.guilty === 'True' ? '<b style="color:#ff6680">GUILTY</b>' : 'NOT GUILTY') + (v.winning ? ' · winning: ' + esc2(v.winning) : '') + '</div>' : '';
+    return '<div class="debate-exchange' + (v ? ' has-verdict' : '') + selCls + '" data-art="' + esc2(x.key) + '">' +
+      '<div class="dx-head"><span class="dx-art">' + esc2(x.value) + (v ? ' <span class="dx-real">⚖ debated</span>' : '') + '</span><span class="dx-verdict" style="color:' + a.c + ';border-color:' + a.c + '">' + a.t + '</span></div>' +
       '<div class="dx-cols">' +
         '<div class="dx-side pros"><div class="dx-role">PROSECUTION · MALICIOUS</div><div class="dx-arg">' + esc2(x.pros || 'no prosecution argument recorded') + '</div></div>' +
         '<div class="dx-side def"><div class="dx-role">DEFENSE · JUDGE</div><div class="dx-arg">' + esc2(x.def || 'awaiting verdict') + '</div></div>' +
-      '</div></div>';
+      '</div>' + ruling + '</div>';
   }).join('');
   const exMap = {}; exchanges.forEach((x) => { exMap[x.key] = x; }); window.__DEBATE_EX = exMap;
   // debate entry → its OWN debate inspector (the reasoning exchange), distinct
@@ -1528,11 +1563,21 @@ function inspectorEl() {
   }
   return el;
 }
+let _inspWasOpen = null;
 function setInspBodyState(open, forensic) {
   // Issue 2 (non-occlusion): when the drawer is open, content views reflow to
   // make room (CSS body.insp-open …) so the inspector never covers MITRE/ledger.
+  const wasForensic = document.body.classList.contains('insp-forensic');
   document.body.classList.toggle('insp-open', !!open);
   document.body.classList.toggle('insp-forensic', !!(open && forensic));
+  // Fix 2: the Threat Graph canvas only re-reads its width on resize, so nudge
+  // JUST that canvas (not a global resize, which would re-sync the 3-D field on
+  // every selection) whenever the reflow width changes.
+  if (open !== _inspWasOpen || (open && forensic !== wasForensic)) {
+    const tg = () => { try { window.__TG_RESIZE && window.__TG_RESIZE(); } catch (e) {} };
+    tg(); setTimeout(tg, 80);
+  }
+  _inspWasOpen = !!open;
 }
 function renderInspector() {
   const sel = window.SEL, el = inspectorEl(), kind = el.querySelector('.insp-kind'), body = el.querySelector('.insp-body');
@@ -1610,14 +1655,24 @@ function inspDebate(kind, body, sel) {
   // not an artifact card — but still links back to the artifact / finding.
   const x = sel.data || {}; kind.textContent = 'Adversarial debate';
   const a = actionBadge(x.bel || 0, x.k || 0);
+  const v = x.verdict;
+  const verdictBlock = v
+    ? '<div class="insp-sec">Narrator judge verdict (LLM debate)</div>' +
+      '<div class="dxi judge"><div class="dxi-role">⚖ JUDGE RULING</div><div class="dxi-arg">' +
+        (v.guilty === 'True' ? '<b style="color:#ff6680">GUILTY</b>' : 'NOT GUILTY') + (v.winning ? ' · winning argument: <b>' + esc2(v.winning) + '</b>' : '') +
+        '<div style="margin-top:6px;color:var(--holo-text2)">' + esc2(v.rationale || '') + '</div>' +
+      '</div></div>'
+    : '';
   body.innerHTML =
-    '<div class="insp-title">' + esc2(x.value || String(sel.value).split(':').pop()) + '</div><div class="insp-sub">' + esc2(sel.value) + '</div>' +
+    '<div class="insp-title">' + esc2(x.value || String(sel.value).split(':').pop()) + (v ? ' <span class="dx-real">⚖ debated</span>' : '') + '</div><div class="insp-sub">' + esc2(sel.value) + '</div>' +
     '<div class="insp-action" style="color:' + a.c + ';border-color:' + a.c + '">' + a.t + '</div>' +
     '<div class="dxi pros"><div class="dxi-role">PROSECUTION · MALICIOUS</div><div class="dxi-arg">' + esc2(x.pros || 'no prosecution argument recorded') + '</div></div>' +
     '<div class="dxi def"><div class="dxi-role">DEFENSE · JUDGE</div><div class="dxi-arg">' + esc2(x.def || 'awaiting verdict') + '</div></div>' +
+    verdictBlock +
     '<div class="insp-grid">' + cell2('Belief (evil)', (x.bel || 0).toFixed(3)) + cell2('Conflict K', (x.k || 0).toFixed(3)) + '</div>' +
     '<div class="insp-sec">Examine the artifact</div><div class="insp-row insp-clk" data-art="' + esc2(sel.value) + '">' + esc2(sel.value) + '</div>' +
-    (x.seq ? '<div class="insp-sec">Underlying ledger finding</div><div class="insp-row insp-clk" data-seq="' + esc2(seqDigits(x.seq)) + '">' + esc2(x.seq) + '</div>' : '');
+    ((v && v.seq) ? '<div class="insp-sec">Underlying ledger finding</div><div class="insp-row insp-clk" data-seq="' + esc2(seqDigits(v.seq)) + '">' + esc2('#' + seqDigits(v.seq)) + '</div>'
+       : (x.seq ? '<div class="insp-sec">Underlying ledger finding</div><div class="insp-row insp-clk" data-seq="' + esc2(seqDigits(x.seq)) + '">' + esc2(x.seq) + '</div>' : ''));
 }
 
 // coordinated highlight + ROUTING: clear all, light up every representation of
@@ -1643,10 +1698,12 @@ window.SEL.on((sel) => {
     document.querySelectorAll('.agent-row[data-agent="' + sel.value + '"]').forEach((n) => n.classList.add('sel'));
   }
   // 3-D field routing: source='field' dives + opens the GREEN center popup; any
-  // side-panel source frames the atom only (highlight, NO popup). With no field
-  // atom, clear any stale GREEN popup so it never lingers behind the inspector.
-  if (G && G.selectArtifact && artKey) G.selectArtifact(artKey, { dive: fromField });
-  else if (!fromField && G && G.clearDetail) G.clearDetail();
+  // side-panel source frames the atom only (highlight ring, NO popup). When the
+  // selection has no field atom (or is cleared), drop the GREEN popup AND the
+  // selection ring so nothing stale lingers.
+  let atomOk = false;
+  if (G && G.selectArtifact && artKey) atomOk = G.selectArtifact(artKey, { dive: fromField });
+  if (!atomOk) { if (!fromField && G && G.clearDetail) G.clearDetail(); if (G && G.deselect) G.deselect(); }
   renderInspector();
   if (typeof renderMitre === 'function') renderMitre();   // contextual filter follows artifact selection
 });
@@ -2225,6 +2282,7 @@ function initThreatGraphCanvas() {
     H = canvas.height = canvas.offsetHeight;
     layout();
   }
+  window.__TG_RESIZE = resize;   // Fix 2: let the inspector reflow shrink this canvas
 
   const toScreen = (lx, ly) => ({ x: (lx - W / 2) * zoom + W / 2 + panX, y: (ly - H / 2) * zoom + H / 2 + panY });
   const toWorld = (sx, sy) => ({ x: (sx - W / 2 - panX) / zoom + W / 2, y: (sy - H / 2 - panY) / zoom + H / 2 });
@@ -2766,6 +2824,6 @@ function toggleSound() {
 // ─── LAUNCH ───
 runBoot();
 </script>
-<script src="/static/find-evil-live.js?v=6"></script>
+<script src="/static/find-evil-live.js?v=9"></script>
 </body>
 </html>
