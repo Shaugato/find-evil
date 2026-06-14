@@ -37,9 +37,11 @@
    [LIVE_SEGMENT_NOTES.md](LIVE_SEGMENT_NOTES.md).
 5. Full OBS / window setup: see [OBS_AND_RECORDING_SETUP.md](OBS_AND_RECORDING_SETUP.md).
 
-**Live numbers you will reference (real, as of recording):** 203 artifacts on the
-field · **1,077** signed ledger findings · **60** live micro‑agents · **13**
-ATT&CK techniques · self‑correction verdicts at ledger **#985** and **#941**.
+**Live numbers you will reference (real, current — see the canonical table in
+[LIVE_SEGMENT_NOTES.md](LIVE_SEGMENT_NOTES.md)):** **203** artifacts on the field ·
+**more than a thousand** signed ledger findings (tip **1085** now, climbs each conflict
+run) · **60** live micro‑agents · **13** ATT&CK techniques · **62** typed MCP tools ·
+self‑correction verdict on 142.250.64.106 at ledger **#985**.
 
 ---
 
@@ -112,7 +114,7 @@ the **live swarm** (GAP 3):
 > live, with bulk_extractor — and there it is, real IPs extracted in seconds,
 > including one‑forty‑two‑two‑fifty, the address the swarm will flag. And every
 > finding it produces is hash‑chained and Ed25519‑signed — the ledger verifies ok,
-> zero tainted, across eleven hundred findings."
+> zero tainted, across more than a thousand signed findings."
 >
 > Tone: matter‑of‑fact, credible, a little proud. Save as `vo_03_live_rocba.wav`.
 
@@ -176,19 +178,21 @@ PowerShell; font 18–20 pt):
 
 ## PART 4 — The Self‑Correction, on the Real ROCBA Data  (target: 45 s)  ⟵ TERMINAL + dashboard (the heart)
 
-**VOICEOVER** (`vo_04_self_correction.wav`) — lands the self‑correction **and** the
-ephemeral **fractal pivot agents** (GAP 5, distinct from the 60 persistent sensors):
+**VOICEOVER** (`vo_04_self_correction.wav`) — honest split of **live conflict** vs
+**pre‑signed verdict** (Fix 2), and the ephemeral **fractal pivot agents** (GAP 5 /
+Fix 3, distinct from the 60 persistent sensors):
 > "Now feed that carved indicator into the swarm. Two sensors disagree — Suricata says
 > malicious command‑and‑control, the endpoint agent says benign. Watch the ledger
 > advance live: the consensus engine computes a Yager conflict — point three five —
-> and instead of guessing, it raises a conflict and escalates. That's the
-> self‑correction: the swarm knows when it doesn't know. And suspicious artifacts
-> spawn ephemeral fractal pivot agents — bounded autonomous investigators, depth
-> three, width sixteen — that chase the related evidence and then dissolve. The
-> conflict goes to a prosecutor, defense, and judge debate, and the signed verdict on
-> one‑forty‑two‑two‑fifty lands in the immutable ledger."
+> and instead of guessing, it raises a conflict and escalates, live. And suspicious
+> artifacts also spawn ephemeral fractal pivot agents — bounded autonomous
+> investigators, depth three, width sixteen — that chase related evidence and then
+> dissolve; here are their signed findings in the ledger. The prosecutor‑defense‑judge
+> debate runs off the hot path, so here's the verdict it already signed for this same
+> address, on the dashboard."
 >
-> Tone: the climax — slower on "the swarm knows when it doesn't know." Save as
+> Tone: the climax — slower on "it raises a conflict … live." Note the honesty: the
+> conflict is live; the shown verdict was signed earlier. Save as
 > `vo_04_self_correction.wav`.
 
 **SCREEN + TERMINAL** (WSL2 tab, then browser):
@@ -196,22 +200,26 @@ ephemeral **fractal pivot agents** (GAP 5, distinct from the 60 persistent senso
   ```bash
   python /opt/findevil/repo/scripts/demo_rocba_conflict.py
   ```
-- `[0:03]` It prints the carved IP under analysis, then **"ledger tip MOVED 1081 →
-  1085 ✓ real findings signed live"**, then the **SELF‑CORRECTION** block:
-  `Yager conflict_K = 0.354 … action = conflict_ledger`. Pause 4 s — read the
-  conflict_K and `conflict_ledger` aloud.
-- `[0:18]` *(optional, while saying the "fractal pivot agents" line)* the **EVENT
-  STREAM** (bottom‑left) tails `fractal` pivot lines when they fire; or run **C6** to
-  show the real `fractal.*` spawned‑pivot findings in the ledger. Keep it brief.
-- `[0:24]` **Alt+Tab to the browser.** Click the **ADVERSARIAL DEBATE** tab.
-- `[0:28]` Find the card for **142.250.64.106** (or another **⚖ debated** card) and
-  **click it** → the amber debate inspector shows PROSECUTION, DEFENSE·JUDGE, and
-  the **⚖ JUDGE RULING**. Pause 4 s.
-- Focus: `conflict_K = 0.354`, `action = conflict_ledger`, then the ⚖ ruling.
-- Don't: don't expect a fresh LLM verdict in the terminal (the debate runs off the
-  hot path) — the live part is the **conflict_ledger** escalation; the signed verdict
-  is shown on the dashboard. Don't call the 60 sensors "spawned" — the *pivot* agents
-  are the ephemeral spawned ones.
+- `[0:03]` It prints the carved IP, then **"ledger tip MOVED 1085 → 1089 ✓ real
+  findings signed live"** (your numbers may be higher — they climb each run), then the
+  **SELF‑CORRECTION** block: `Yager conflict_K = 0.354 … action = conflict_ledger`.
+  Pause 4 s — read `conflict_K` and `conflict_ledger` aloud. **This part is LIVE.**
+- `[0:18]` **Run C6 while saying the "fractal pivot agents" line** so the claim is
+  backed on screen:
+  ```bash
+  sqlite3 /opt/findevil/data/ledger/ledger.sqlite \
+    "SELECT seq, agent_id FROM (SELECT seq, json_extract(CAST(payload AS TEXT),'\$.agent_id') AS agent_id FROM ledger) WHERE agent_id LIKE 'fractal%';"
+  ```
+  → 5 real `fractal.*` rows (seq 321/935/936/1010/1047). Pause 2 s.
+- `[0:26]` **Alt+Tab to the browser.** Click the **ADVERSARIAL DEBATE** tab; click the
+  **142.250.64.106** ⚖ card → the amber debate inspector (PROSECUTION, DEFENSE·JUDGE,
+  **⚖ JUDGE RULING**). Pause 4 s — say "the verdict it **already signed**."
+- Focus: `conflict_K = 0.354` / `conflict_ledger` (live) → the `fractal.*` rows → the
+  pre‑signed ⚖ ruling.
+- Don't (HONESTY): don't imply the shown verdict was generated live — the LIVE part is
+  the **conflict_ledger** escalation; the verdict (ledger **#985**) was signed earlier
+  off the hot path. Don't call the 60 sensors "spawned" — the *pivot* agents are the
+  ephemeral spawned ones.
 - End state: debate inspector open on the 142.250.64.106 verdict.
 
 ---

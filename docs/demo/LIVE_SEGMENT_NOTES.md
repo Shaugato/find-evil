@@ -6,6 +6,33 @@
 > versus what was computed beforehand, so the framing is honest, and gives the
 > rehearsed command sequence with **real captured output**.
 
+## ⭐ CANONICAL NUMBERS — single source of truth (pulled live 2026‑06‑14)
+> Every demo doc cites these. Confirm they still match before recording by re‑running
+> the **Fix‑1 pull** (below). If you reseed, update here first, then the other docs.
+
+| What the narrator/screen shows | Canonical value | Spoken as |
+|---|---|---|
+| Signed ledger findings (tip) | **1085** (advances ~+4 each conflict run) | "**more than a thousand** signed findings" |
+| Artifacts on the pheromone field | **203** | "over two hundred artifacts" / "203" |
+| Live micro‑agents (swarm badge) | **60 LIVE** | "sixty micro‑agents" |
+| Distinct ATT&CK techniques | **13** | "thirteen techniques" |
+| Typed MCP tools (guardrail) | **62** | "sixty‑two typed functions" |
+| Ephemeral fractal pivot agents (signed `fractal.*` findings) | **5** (seq 321/935/936/1010/1047) | "ephemeral fractal pivot agents … depth 3, width 16" |
+| Yager conflict on 142.250.64.106 | **conflict_K = 0.354 → conflict_ledger** | "point three five … it raises a conflict" |
+| Pre‑signed narrator verdict on 142.250.64.106 | ledger **#985** | "the verdict it already signed" |
+
+**The ledger tip moves.** It is **1085 now**; each `demo_rocba_conflict.py` run adds
+~4 (1085→1089→1093…). So the narration says **"more than a thousand,"** which stays
+true across re‑takes — never a fixed "eleven hundred" that the screen could contradict.
+
+**Re‑pull command (run before recording to confirm):**
+```bash
+source /opt/findevil/venv/bin/activate && findevil verify \
+ && echo "tip: $(sqlite3 /opt/findevil/data/ledger/ledger.sqlite 'SELECT MAX(seq) FROM ledger;')" \
+ && curl -s http://127.0.0.1:9400/api/pher/snapshot | python3 -c "import sys,json;print('artifacts:',len(json.load(sys.stdin)['nodes']))" \
+ && curl -s http://127.0.0.1:9400/api/mitre/coverage | python3 -c "import sys,json;j=json.load(sys.stdin);print('techniques:',len(j['techniques']))"
+```
+
 ## What is REAL (all of it)
 - **The evidence is real.** `/opt/findevil/data/cases/rocba/Rocba-Memory.raw` —
   the genuine **18 GB** SANS ROCBA memory image (victim org *stark-research-labs.com*).
@@ -88,21 +115,29 @@ execute_shell** banner. Read live from `findevil.tools.registry`, not hardcoded.
 ```bash
 python /opt/findevil/repo/scripts/demo_rocba_conflict.py
 ```
-**Real captured output:**
+**Representative output (tip is 1085 now → your first run shows ~1085 → 1089; it
+climbs ~+4 each run):**
 ```
   carved indicator under analysis : 142.250.64.106
-  ledger tip before               : 1081
+  ledger tip before               : 1085
   depositing 2 CONFLICTING sensor reports (Suricata=malicious, EDR=benign)…
-  [4s] ledger tip MOVED 1081 → 1085  ✓ real findings signed live
+  [4s] ledger tip MOVED 1085 → 1089  ✓ real findings signed live
   ── SELF-CORRECTION ─────────────────────────────────────────
-     consensus finding #1085 on 142.250.64.106
+     consensus finding #1089 on 142.250.64.106
        Yager conflict_K = 0.354   belief_evil = 0.130
        action           = conflict_ledger
      → sensors disagree → escalated to the prosecutor/defense/
        judge debate (narrator), whose verdict is signed back in.
 ```
 > The `tip before/after` numbers **advance every run** — that advancing tip is the
-> proof the pipeline is processing live. Re-running is safe (it appends).
+> proof the pipeline is processing live. Re-running is safe (it appends). The
+> `conflict_K = 0.354` and `action = conflict_ledger` are deterministic and stable.
+>
+> **HONESTY (Fix 2):** the **conflict** above is detected and escalated **LIVE** on
+> camera. The **prosecutor/defense/judge verdict** you then show on the Debate tab
+> for this same IP was produced **earlier, off the hot path,** and signed at ledger
+> **#985** — narration must say "the verdict it *already signed*," not imply it was
+> generated live. See vo_04.
 
 ### Integrity (fold into PART 3 narration, or show after)
 ```bash
@@ -114,7 +149,12 @@ findevil verify
 - The carve script **clears its scratch dir** (`/tmp/be_demo`) each run — safe to
   re-run for multiple takes.
 - The conflict script **appends** new findings each run; the tip just keeps
-  climbing (1081→1085→1089…). That's expected and is the proof.
+  climbing (1085→1089→1093…). That's expected and is the proof.
+- **Fractal pivots (Fix 3):** the rich spawn animation isn't wired into the current
+  dashboard, so back the pivot line with **C6** on screen — the 5 real `fractal.*`
+  signed findings (seq 321/935/936/1010/1047). Bounds depth≤3/width≤16 are real
+  (`config/settings.py`). Keep the 60 persistent sensor agents distinct from these
+  ephemeral spawned investigators.
 - If `bulk_extractor` feels slow on your machine under OBS load, lower the slice:
   `ROCBA_COUNT_MIB=200 bash …/demo_rocba_carve.sh` (still contains 142.250.64.106).
 - If the tip doesn't move: confirm the dashboard/pipeline is up

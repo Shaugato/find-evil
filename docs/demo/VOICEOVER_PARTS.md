@@ -37,7 +37,7 @@
 > live, with bulk_extractor — and there it is, real IPs extracted in seconds,
 > including one‑forty‑two‑dot‑two‑fifty, the address the swarm will flag. And every
 > finding it produces is hash‑chained and Ed25519‑signed — the ledger verifies ok,
-> zero tainted, across eleven hundred findings.
+> zero tainted, across more than a thousand signed findings.
 
 ---
 
@@ -50,16 +50,16 @@
 
 ---
 
-### vo_04_self_correction.wav — ~45 s — tone: the climax; slower on "knows when it doesn't know"  ⟵ LIVE self‑correction + GAP 5 pivots
+### vo_04_self_correction.wav — ~45 s — tone: the climax; slower on "raises a conflict … live"  ⟵ LIVE self‑correction + GAP 5 pivots (honest: live conflict, pre‑signed verdict)
 > Now feed that carved indicator into the swarm. Two sensors disagree — Suricata says
 > malicious command‑and‑control, the endpoint agent says benign. Watch the ledger
 > advance live: the consensus engine computes a Yager conflict — point three five —
-> and instead of guessing, it raises a conflict and escalates. That's the
-> self‑correction: the swarm knows when it doesn't know. And suspicious artifacts
-> spawn ephemeral fractal pivot agents — bounded autonomous investigators, depth
-> three, width sixteen — that chase the related evidence and then dissolve. The
-> conflict goes to a prosecutor, defense, and judge debate, and the signed verdict on
-> one‑forty‑two‑dot‑two‑fifty lands in the immutable ledger.
+> and instead of guessing, it raises a conflict and escalates, live. And suspicious
+> artifacts also spawn ephemeral fractal pivot agents — bounded autonomous
+> investigators, depth three, width sixteen — that chase related evidence and then
+> dissolve; here are their signed findings in the ledger. The prosecutor‑defense‑judge
+> debate runs off the hot path, so here's the verdict it already signed for this same
+> address, on the dashboard.
 
 ---
 

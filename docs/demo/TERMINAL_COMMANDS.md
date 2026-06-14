@@ -126,7 +126,7 @@ findevil verify
 sqlite3 /opt/findevil/data/ledger/ledger.sqlite \
   "SELECT MAX(seq)||' signed findings in the chain' FROM ledger;"
 ```
-→ `1077 signed findings in the chain` (the number grows as you run C3).
+→ `1085 signed findings in the chain` (current tip; it grows ~+4 each time you run C3).
 
 ---
 
@@ -134,22 +134,26 @@ sqlite3 /opt/findevil/data/ledger/ledger.sqlite \
 ```bash
 python /opt/findevil/repo/scripts/demo_rocba_conflict.py
 ```
-**Real output** (on‑camera ~4–6 s):
+**Representative output** (tip is **1085** now → your first run shows ~1085 → 1089;
+it climbs ~+4 each run. `conflict_K = 0.354` / `conflict_ledger` are stable):
 ```
   carved indicator under analysis : 142.250.64.106
-  ledger tip before               : 1081
+  ledger tip before               : 1085
   depositing 2 CONFLICTING sensor reports (Suricata=malicious, EDR=benign)…
-  [4s] ledger tip MOVED 1081 → 1085  ✓ real findings signed live
+  [4s] ledger tip MOVED 1085 → 1089  ✓ real findings signed live
   ── SELF-CORRECTION ─────────────────────────────────────────
-     consensus finding #1085 on 142.250.64.106
+     consensus finding #1089 on 142.250.64.106
        Yager conflict_K = 0.354   belief_evil = 0.130
        action           = conflict_ledger
      → sensors disagree → escalated to the prosecutor/defense/
        judge debate (narrator), whose verdict is signed back in.
 ```
-*Say:* "Two sensors disagree… Yager conflict point‑three‑five… it raises a conflict
-instead of guessing — that's the self‑correction." Then **Alt+Tab to the dashboard →
-Adversarial Debate tab** and click the 142.250.64.106 card for the signed verdict.
+*Say (honest — Fix 2):* "Two sensors disagree… Yager conflict point‑three‑five… it
+raises a conflict and escalates — **live**." Then **C6** (below) to show the fractal
+pivots, then **Alt+Tab → Adversarial Debate tab** and click the 142.250.64.106 card:
+"the prosecutor‑defense‑judge debate runs off the hot path, so here's the verdict it
+**already signed** for this same address." (The conflict is live; the shown verdict
+was pre‑computed at #985 — don't imply it was just generated.)
 > The `tip before/after` numbers **advance every run** — that's the live proof.
 > Safe to re‑run for multiple takes (it appends).
 
@@ -198,10 +202,12 @@ seq  artifact                agent
 
 ---
 
-## C6 — (OPTIONAL) Proof the ephemeral fractal pivot agents really spawned  → PART 4 (GAP 5)
+## C6 — Proof the ephemeral fractal pivot agents really spawned  → **PART 4** (GAP 5, shown)
+> **Show this on screen while you speak the "fractal pivot agents" line** so the claim
+> is backed by something real (the spawn animation isn't wired into the dashboard).
 > Distinct from the 60 persistent sensor agents — these are short‑lived investigators
-> spawned on demand (bounded depth ≤ 3, width ≤ 16) that chase related evidence then
-> dissolve. They sign their findings to the ledger as `fractal.*`:
+> spawned on demand (bounded **depth ≤ 3, width ≤ 16** — real, from `config/settings.py`)
+> that chase related evidence then dissolve. They sign their findings as `fractal.*`:
 ```bash
 sqlite3 /opt/findevil/data/ledger/ledger.sqlite \
   "SELECT seq, agent_id FROM (
@@ -235,8 +241,10 @@ sqlite3 /opt/findevil/data/ledger/ledger.sqlite \
 1. **C1** — live ROCBA carve  (PART 3)
 2. **C2** — `findevil verify`  (PART 3, same breath)
 3. **C1B** — `demo_mcp_tools.sh` — the MCP typed‑tool guardrail  (PART 3B)
-4. **C3** — live conflict ingest → self‑correction  (PART 4) → Alt+Tab to Debate tab
-5. *(optional)* C4 (MITRE), C5 (signed verdicts), C6 (fractal pivots), C7 (Rekor)
+4. **C3** — live conflict ingest → self‑correction  (PART 4)
+5. **C6** — fractal‑pivot proof (`fractal.*` rows) — show while saying the pivot line  (PART 4)
+6. then **Alt+Tab → Adversarial Debate tab** → click 142.250.64.106 (the pre‑signed verdict)
+7. *(optional)* C4 (MITRE), C5 (signed verdicts), C7 (Rekor)
 
 **Don't** clear the screen between C1–C3 — let the carve + verify + MCP catalog +
 conflict stack so the whole real‑data story stays on one screen.
