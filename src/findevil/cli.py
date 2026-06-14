@@ -173,9 +173,19 @@ def list_tools() -> None:
 
 
 @cli.command()
-def mcp() -> None:
-    """Launch the MCP blackboard server."""
-    from findevil.mcp_server.server import run as _run
+def mcp(
+    stdio: bool = typer.Option(
+        False,
+        "--stdio",
+        help="Serve over stdio for a standard MCP client (Claude Desktop / Code) "
+        "instead of the HTTP service.",
+    ),
+) -> None:
+    """Launch the MCP blackboard server (HTTP by default, or --stdio for clients)."""
+    if stdio:
+        from findevil.mcp_server.server import run_stdio as _run
+    else:
+        from findevil.mcp_server.server import run as _run
 
     _run()
 

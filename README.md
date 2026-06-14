@@ -147,11 +147,21 @@ findevil recent -n 20
 findevil list-tools
 findevil ingest
 findevil cacao
-findevil mcp
+findevil mcp           # custom MCP server over HTTP (streamable-http, :9310/mcp)
+findevil mcp --stdio   # …or over stdio for Claude Desktop / Claude Code
 findevil narrator
 findevil watcher
 findevil dashboard
 ```
+
+**Connect a standard MCP client** (Claude Desktop / Claude Code / Cursor) to the
+typed forensic tool catalog — the Approach #2 guardrail in your own client:
+```bash
+claude mcp add stigmergy -- "$(pwd)/.venv/bin/python" -m findevil.mcp_server
+```
+See [Option E in try-it-out.md](docs/hackathon/try-it-out.md#option-e--connect-with-an-mcp-client-claude-desktop--claude-code)
+for Claude Desktop, HTTP/URL, and generic-client configs (you should see ~64 typed
+tools and **no `execute_shell`**).
 
 Run the public validation harness:
 

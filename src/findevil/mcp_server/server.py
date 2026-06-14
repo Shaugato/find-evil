@@ -437,7 +437,7 @@ async def _run_async() -> None:
                 pass
 
 
-def run() -> None:  # entry-point: `findevil-mcp`
+def run() -> None:  # entry-point: `findevil mcp`
     os.umask(0o077)
     from findevil.observability.logging import configure_logging
     from findevil.observability.metrics import start_metrics_server
@@ -449,5 +449,31 @@ def run() -> None:  # entry-point: `findevil-mcp`
     asyncio.run(_run_async())
 
 
+def run_stdio() -> None:
+    """Serve the SAME typed-tool catalog over **stdio** for standard MCP clients
+    (Claude Desktop / Claude Code / Cursor / Cline) to spawn directly.
+
+    Reuses ``build_server()`` — one tool catalog, one guardrail (no execute_shell).
+    The HTTP service's background tasks (keyspace notifier, shadow publisher,
+    anchor-age gauge) are intentionally NOT started here: they are live-service
+    concerns and would require NATS just to connect, whereas tool discovery and
+    invocation do not need them. Resources still read Valkey lazily when present.
+
+    CRITICAL: the stdio transport owns **stdout** for JSON-RPC, so we must not let
+    the project's stdout JSON logger (configure_logging) run — it would corrupt the
+    protocol. stdlib logging is pinned to stderr and any build-time stdout is
+    redirected to stderr; FastMCP itself logs to stderr.
+    """
+    import contextlib
+    import logging
+    import sys
+
+    os.umask(0o077)
+    logging.basicConfig(stream=sys.stderr, level=logging.WARNING, force=True)
+    with contextlib.redirect_stdout(sys.stderr):
+        mcp = build_server()
+    mcp.run(transport="stdio")
+
+
 if __name__ == "__main__":  # pragma: no cover
-    run()
+    run_stdio()

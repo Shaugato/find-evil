@@ -129,8 +129,12 @@ Protocol SIFT is a **Claude Code skill-file + permissions configuration** for a
 SIFT workstation (behavioral rules, `settings.json` allow-lists, a `Stop` audit
 hook). It is *prompt-and-permission* tuning of a general agent. Stigmergy is a
 **standalone Custom MCP Server** that runs **alongside** Protocol SIFT: a judge
-can point any MCP-capable agent (Claude Code included) at Stigmergy's blackboard
-on `127.0.0.1:9310/mcp` and get deterministic fusion + a signed ledger that
-Protocol SIFT's skill layer does not itself provide. The two are complementary —
-Protocol SIFT shapes *how the agent thinks*; Stigmergy constrains *what the
-agent can do and proves what it did.* See [try-it-out.md](try-it-out.md).
+can point any MCP-capable client (Claude Desktop, Claude Code, Cursor) at
+Stigmergy's blackboard — over **streamable-http** at `127.0.0.1:9310/mcp` or over
+**stdio** (`python -m findevil.mcp_server`) — and see the same typed tool catalog
+(~64 tools, **no `execute_shell`**) plus deterministic fusion + a signed ledger
+that Protocol SIFT's skill layer does not itself provide. The client surface is
+the trust boundary: it advertises only typed, audited functions. The two are
+complementary — Protocol SIFT shapes *how the agent thinks*; Stigmergy constrains
+*what the agent can do and proves what it did.* See
+[try-it-out.md → Option E](try-it-out.md#option-e--connect-with-an-mcp-client-claude-desktop--claude-code).

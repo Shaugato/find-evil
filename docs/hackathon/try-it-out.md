@@ -125,6 +125,99 @@ for the exact tier built and per-OS instructions.
 
 ---
 
+## Option E — Connect with an MCP client (Claude Desktop / Claude Code)
+
+This is **Approach #2** in the judge's own client: connect a standard MCP client to
+Stigmergy's custom server and confirm the **typed forensic tool catalog** appears —
+and that there is **no `execute_shell`/arbitrary command**. The guardrail is
+architectural (the server only exposes typed functions), visible live in your client.
+
+**Prereqs.** Clone the repo and install it into a venv so the server is importable:
+```bash
+git clone https://github.com/Shaugato/find-evil.git && cd find-evil
+python -m venv .venv && . .venv/bin/activate     # WSL2 / Linux / macOS
+pip install -e .
+```
+Tool **discovery** works with just this. Tool **invocation** of live blackboard
+resources needs the stack up (Option B/C); the forensic tools operate on the
+sample/official case data per [dataset.md](dataset.md). No keys of ours are required.
+
+Two transports are supported (same single tool catalog, same guardrail):
+- **stdio** — the client spawns the server. Simplest for "clone and connect".
+  `python -m findevil.mcp_server`  (equivalently `findevil mcp --stdio`)
+- **streamable-http** — connect to the already-running service by URL.
+  `http://127.0.0.1:9310/mcp`  (started by `findevil mcp`, Docker, or systemd)
+
+### Claude Code
+```bash
+# stdio (recommended) — everything after `--` is the command Claude Code runs:
+claude mcp add stigmergy -- "$(pwd)/.venv/bin/python" -m findevil.mcp_server
+
+# …or connect to the running HTTP service by URL:
+claude mcp add --transport http stigmergy http://127.0.0.1:9310/mcp
+
+# confirm it connected and list the tools:
+claude mcp get stigmergy
+```
+Project-scoped form (checked-in `.mcp.json` at the repo root):
+```json
+{
+  "mcpServers": {
+    "stigmergy": {
+      "command": "${CLAUDE_PROJECT_DIR:-.}/.venv/bin/python",
+      "args": ["-m", "findevil.mcp_server"]
+    }
+  }
+}
+```
+
+### Claude Desktop
+Edit `claude_desktop_config.json` (macOS: `~/Library/Application Support/Claude/`;
+Windows: `%APPDATA%\Claude\`), then fully restart Claude Desktop:
+```json
+{
+  "mcpServers": {
+    "stigmergy": {
+      "command": "/ABSOLUTE/PATH/TO/find-evil/.venv/bin/python",
+      "args": ["-m", "findevil.mcp_server"]
+    }
+  }
+}
+```
+> Use an **absolute** interpreter path (Claude Desktop does not inherit your shell
+> `PATH`/venv). On Windows point `command` at the venv's `python.exe`. To use the
+> remote HTTP service instead, add it as a **custom connector** (Settings →
+> Connectors → Add) with URL `http://127.0.0.1:9310/mcp`, or bridge with
+> `npx mcp-remote http://127.0.0.1:9310/mcp` as the stdio `command`.
+
+### Generic MCP client (Cursor / Cline / others)
+Same `mcpServers` block — `command`+`args` for stdio, or for HTTP:
+```json
+{ "mcpServers": { "stigmergy": { "type": "http", "url": "http://127.0.0.1:9310/mcp" } } }
+```
+(`type` accepts `streamable-http` as an alias for `http`.)
+
+### What you should see (verified)
+- The client lists the **full typed catalog — ~64 tools** (the 62 forensic/response
+  actuators plus a couple of server-native control tools): e.g. `volatility.pslist`,
+  `volatility.malfind`, `yara.scan`, `bulk_extractor.scan`, `tshark.summary`,
+  `tsk.fls`, `plaso.extract`, alongside bounded response tools (`edr.network_isolate`,
+  `iam.disable_account`).
+- **No `execute_shell`, no arbitrary-command tool** — the architectural guardrail.
+- Try a safe call: ask the client to run **`ledger.tip`** → returns a structured
+  `{ "ok": true, "tip": { "seq": …, "entry_hash": … } }`, or **`volatility.version`**.
+
+### Troubleshooting
+- **No tools / handshake fails:** make sure `command` is the **venv** interpreter
+  (absolute path) and the package is installed (`pip install -e .`). The stdio server
+  keeps `stdout` for JSON-RPC and logs to `stderr` — a stray stdout print breaks it;
+  use the provided entry point, don't wrap it in a shell that echoes.
+- **HTTP `url` refused:** start the service (`findevil mcp` / Docker / systemd) and
+  confirm `ss -tlnp | grep 9310`; the path is `/mcp`.
+- **WSL2:** run all of this in the **Ubuntu/WSL** shell, not PowerShell.
+
+---
+
 ## What a judge should see
 
 1. `findevil verify` → `ok=true, tainted_seqs=[]` — the ledger is intact.
@@ -134,3 +227,6 @@ for the exact tier built and per-OS instructions.
 4. A **self-correction**: a Yager conflict on a real IP, resolved by the
    prosecutor/defense/judge narrator — preserved in
    [execution-logs/](execution-logs/).
+5. **From your own MCP client** (Option E): the typed Stigmergy tool catalog
+   (~64 tools, no `execute_shell`) and a working `ledger.tip` / `volatility.version`
+   call — the Approach #2 architectural guardrail, demonstrated in the judge's client.
