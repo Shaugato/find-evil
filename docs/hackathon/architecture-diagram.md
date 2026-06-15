@@ -30,7 +30,7 @@ flowchart TB
 
         subgraph MCP["MCP Blackboard — fastmcp 2.x (Approach #2)"]
             direction TB
-            TOOLS["60 typed tool shims<br/>volatility.* tsk.* yara.* zeek.*<br/>bulk_extractor.* taxii.* diamond.*<br/>(reference-resolved exhibit IDs;<br/>NO arbitrary shell)"]
+            TOOLS["62 typed tool shims<br/>volatility.* tsk.* yara.* zeek.*<br/>bulk_extractor.* taxii.* diamond.*<br/>(reference-resolved exhibit IDs;<br/>NO arbitrary shell)"]
             RES["bb:// resources<br/>ledger/tip · ioc/* · cti/diamond"]
         end
 
@@ -137,4 +137,4 @@ that Protocol SIFT's skill layer does not itself provide. The client surface is
 the trust boundary: it advertises only typed, audited functions. The two are
 complementary — Protocol SIFT shapes *how the agent thinks*; Stigmergy constrains
 *what the agent can do and proves what it did.* See
-[try-it-out.md → Option E](try-it-out.md#option-e--connect-with-an-mcp-client-claude-desktop--claude-code).
+[try-it-out.md → Option E](try-it-out.md) (Claude Desktop / Claude Code / OpenClaw / Cursor / Cline / Aider).

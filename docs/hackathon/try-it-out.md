@@ -2,6 +2,10 @@
 
 Three ways to evaluate Stigmergy, fastest first.
 
+> **▶ Watch the 5-minute demo (no install):** **https://youtu.be/5gMkFg-347k**
+> Live ROCBA carve on the real memory image → a real self-correction → the MCP
+> typed-tool guardrail → the dashboard.
+>
 > **Live companion site (no install):** **https://web-eight-sage-34.vercel.app**
 > Explore the architecture and replay the real ROCBA run in your browser with
 > zero setup.
@@ -125,7 +129,7 @@ for the exact tier built and per-OS instructions.
 
 ---
 
-## Option E — Connect with an MCP client (Claude Desktop / Claude Code)
+## Option E — Connect any MCP client (Claude Desktop / Claude Code / OpenClaw / Cursor / Cline / Aider)
 
 This is **Approach #2** in the judge's own client: connect a standard MCP client to
 Stigmergy's custom server and confirm the **typed forensic tool catalog** appears —
@@ -190,12 +194,40 @@ Windows: `%APPDATA%\Claude\`), then fully restart Claude Desktop:
 > Connectors → Add) with URL `http://127.0.0.1:9310/mcp`, or bridge with
 > `npx mcp-remote http://127.0.0.1:9310/mcp` as the stdio `command`.
 
-### Generic MCP client (Cursor / Cline / others)
-Same `mcpServers` block — `command`+`args` for stdio, or for HTTP:
+### OpenClaw
+OpenClaw nests servers under `mcp.servers` in `~/.openclaw/openclaw.json` (then
+restart the gateway), or use `openclaw mcp add`:
+```bash
+# stdio:
+openclaw mcp add stigmergy --command /ABSOLUTE/PATH/find-evil/.venv/bin/python \
+  --arg -m --arg findevil.mcp_server
+# …or the running HTTP service:
+openclaw mcp add stigmergy --url http://127.0.0.1:9310/mcp --transport streamable-http
+```
+Equivalent `openclaw.json`:
+```json
+{
+  "mcp": {
+    "servers": {
+      "stigmergy": {
+        "command": "/ABSOLUTE/PATH/find-evil/.venv/bin/python",
+        "args": ["-m", "findevil.mcp_server"]
+      }
+    }
+  }
+}
+```
+(For the HTTP form: `{ "url": "http://127.0.0.1:9310/mcp", "transport": "streamable-http" }`.)
+
+### Generic MCP client (Cursor / Cline / Aider / others)
+Most clients use the standard top-level `mcpServers` block — `command`+`args` for
+stdio, or for HTTP:
 ```json
 { "mcpServers": { "stigmergy": { "type": "http", "url": "http://127.0.0.1:9310/mcp" } } }
 ```
-(`type` accepts `streamable-http` as an alias for `http`.)
+(`type` accepts `streamable-http` as an alias for `http`. Cursor: Settings → MCP →
+Add; Cline: the `cline_mcp_settings.json` `mcpServers` block; Aider: `--mcp-server`
+/ its MCP config — all accept this same shape.)
 
 ### What you should see (verified)
 - The client lists the **full typed catalog — ~64 tools** (the 62 forensic/response

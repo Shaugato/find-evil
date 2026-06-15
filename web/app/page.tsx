@@ -188,13 +188,15 @@ export default function Home() {
       <section className="mx-auto max-w-5xl px-6 pb-24">
         <Reveal>
           <div className="rounded-2xl border border-edge bg-panel/50 p-2">
-            <div className="flex aspect-video items-center justify-center rounded-xl border border-dashed border-edge bg-ink/60 text-center">
-              <div>
-                <div className="text-2xl">▶</div>
-                <div className="mt-2 text-sm text-muted">
-                  Demo video — embedded after recording
-                </div>
-              </div>
+            <div className="aspect-video overflow-hidden rounded-xl border border-edge bg-ink/60">
+              <iframe
+                className="h-full w-full"
+                src="https://www.youtube-nocookie.com/embed/5gMkFg-347k"
+                title="Stigmergy Demo"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                referrerPolicy="strict-origin-when-cross-origin"
+                allowFullScreen
+              />
             </div>
           </div>
         </Reveal>

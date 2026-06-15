@@ -6,7 +6,7 @@
 | # | Deliverable | Present | Location | Status |
 |---|---|:--:|---|---|
 | 1 | **Code repository** (public, MIT or Apache 2.0) | ✅ | [github.com/Shaugato/find-evil](https://github.com/Shaugato/find-evil) — **MIT** ([LICENSE](../../LICENSE)) | Public, pushed |
-| 2 | **Demo video** (≤5 min, real data, self-correction) | ◻️→📝 | Pre-staged script: [demo-video-script.md](demo-video-script.md) | **Requires user to record** (only item needing direct user action) |
+| 2 | **Demo video** (≤5 min, real data, self-correction) | ✅ | **[▶ youtu.be/5gMkFg-347k](https://youtu.be/5gMkFg-347k)** · [script](demo-video-script.md) | Published (unlisted); live ROCBA carve + self-correction + MCP guardrail |
 | 3 | **Architecture diagram** (components, pattern name, arch-vs-prompt guardrails) | ✅ | [architecture-diagram.md](architecture-diagram.md) (Mermaid) | Done — names "Custom MCP Server (Approach #2)" |
 | 4 | **Written project description** (Devpost story) | ✅ | [project-description.md](project-description.md) | Done |
 | 5 | **Dataset documentation** (source, provenance, findings) | ✅ | [dataset.md](dataset.md) | Done — official ROCBA image + provenance |

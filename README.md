@@ -25,7 +25,7 @@ The eight required deliverables live under [`docs/hackathon/`](docs/hackathon):
 | # | Deliverable | Location |
 |---|---|---|
 | 1 | Code repository (MIT) | this repo |
-| 2 | Demo video script | [demo-video-script.md](docs/hackathon/demo-video-script.md) |
+| 2 | Demo video (≤5 min) | **[▶ Watch on YouTube](https://youtu.be/5gMkFg-347k)** · [script](docs/hackathon/demo-video-script.md) |
 | 3 | Architecture diagram | [architecture-diagram.md](docs/hackathon/architecture-diagram.md) |
 | 4 | Project description | [project-description.md](docs/hackathon/project-description.md) |
 | 5 | Dataset documentation | [dataset.md](docs/hackathon/dataset.md) |
@@ -33,7 +33,8 @@ The eight required deliverables live under [`docs/hackathon/`](docs/hackathon):
 | 7 | Try-it-out instructions | [try-it-out.md](docs/hackathon/try-it-out.md) · [Docker](deploy/README.md) · [installer](installer/README.md) |
 | 8 | Agent execution logs | [execution-logs/](docs/hackathon/execution-logs) |
 
-Fastest paths to evaluate: the **live companion site →
+Fastest paths to evaluate: **[▶ watch the 5-minute demo](https://youtu.be/5gMkFg-347k)**
+(live ROCBA carve + self-correction + the MCP guardrail), the **live companion site →
 https://web-eight-sage-34.vercel.app** (zero install — architecture explainer +
 real-run replay viewer), the **Docker stack** (`deploy/`, one command), or the
 **one-click launcher** (`installer/`).
@@ -154,14 +155,15 @@ findevil watcher
 findevil dashboard
 ```
 
-**Connect a standard MCP client** (Claude Desktop / Claude Code / Cursor) to the
-typed forensic tool catalog — the Approach #2 guardrail in your own client:
+**Connect any MCP client** (Claude Desktop / Claude Code / OpenClaw / Cursor /
+Cline / Aider) to the typed forensic tool catalog — the Approach #2 guardrail in
+your own client:
 ```bash
 claude mcp add stigmergy -- "$(pwd)/.venv/bin/python" -m findevil.mcp_server
 ```
-See [Option E in try-it-out.md](docs/hackathon/try-it-out.md#option-e--connect-with-an-mcp-client-claude-desktop--claude-code)
-for Claude Desktop, HTTP/URL, and generic-client configs (you should see ~64 typed
-tools and **no `execute_shell`**).
+See **Option E** in [try-it-out.md](docs/hackathon/try-it-out.md) for the
+per-client configs (Claude Desktop, OpenClaw, generic) and the HTTP/URL form — you
+should see ~64 typed tools and **no `execute_shell`**.
 
 Run the public validation harness:
 

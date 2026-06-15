@@ -39,7 +39,7 @@ deterministic hot path and an out-of-band reasoning plane:
   dashboard.
 
 The agent reaches all of this through a **Custom MCP Server** (the brief's
-Approach #2): 60 typed, schema-validated tools with reference-resolved exhibit
+Approach #2): 62 typed, schema-validated tools with reference-resolved exhibit
 IDs. There is **no `execute_shell_cmd`** — the agent physically cannot run an
 arbitrary command.
 

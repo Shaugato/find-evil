@@ -77,3 +77,10 @@ _extract.py
 # Generated caches
 __pycache__/
 *.pyc
+
+# Personal video-production workspace (recording notes + Obsidian vault) — kept locally, not published
+docs/demo/
+
+# Local demo video file(s) — hosted on YouTube (youtu.be/5gMkFg-347k); never commit the MP4 blob
+demo_Video/
+*.mp4

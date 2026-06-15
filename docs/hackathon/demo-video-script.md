@@ -1,8 +1,9 @@
 # Stigmergy — Demo Video Script (Deliverable 2)
 
-> **⚠️ This is the one deliverable that requires YOU to hit record.** Everything
-> below is pre-staged: exact commands, expected output, and narration. Target
-> **≤ 5 minutes.** Record terminal + browser with OBS/ScreenStudio/QuickTime.
+> **▶ Final video (published, ≤5 min): https://youtu.be/5gMkFg-347k**
+> Live ROCBA carve on the real 18 GB memory image → a real self-correction
+> (Yager conflict → signed verdict) → the MCP typed-tool guardrail → the
+> dashboard. The script below is the production reference used to record it.
 
 ## Pre-flight (before recording — do NOT film this)
 
