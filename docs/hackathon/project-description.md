@@ -32,8 +32,15 @@ deterministic hot path and an out-of-band reasoning plane:
   UUIDv7 IDs, BLAKE3 hash chain, Ed25519 signatures, Merkle-batched and anchored
   to Sigstore Rekor.
 - **Only then**, off the hot path, do LLM **fractal pivot agents** (depth ≤3,
-  width ≤16) and a **prosecutor/defense/judge debate narrator** (with Zheng-2023
-  position-swap bias mitigation) explain and enrich the finding.
+  width ≤16) **re-sequence the investigation**: a finding spawns an ephemeral,
+  depth-bounded pivot that **chooses the next related artifact to examine from the
+  real evidence** — in the carved ROCBA run it pivoted from the C2 IP
+  `142.250.64.106` to `192.168.1.5`, the host that had contacted it (a real pcap
+  co-occurrence), with `parent_id`/`seed_technique`/`depth` lineage signed to the
+  ledger (see [execution-logs/pivot_chain.md](execution-logs/pivot_chain.md)). A
+  **prosecutor/defense/judge debate narrator** (Zheng-2023 position-swap bias
+  mitigation) then rules on contested findings. The math already decided *whether*
+  an artifact is evil; the agent decides *where to look next* based on what it finds.
 - Response is **CACAO 2.0** safe-mode playbooks; interop is **STIX 2.1 / OCSF
   2004 / Diamond Model**; the whole thing is visible in a six-pane live
   dashboard.

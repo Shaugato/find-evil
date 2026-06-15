@@ -1,6 +1,6 @@
 # Stigmergy — Demo Video Script (Deliverable 2)
 
-> **▶ Final video (published, ≤5 min): https://youtu.be/5gMkFg-347k**
+> **▶ Final video (published, ≤5 min): https://youtu.be/4xOz7jFWh9s**
 > Live ROCBA carve on the real 18 GB memory image → a real self-correction
 > (Yager conflict → signed verdict) → the MCP typed-tool guardrail → the
 > dashboard. The script below is the production reference used to record it.

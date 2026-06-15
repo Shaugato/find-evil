@@ -81,6 +81,6 @@ __pycache__/
 # Personal video-production workspace (recording notes + Obsidian vault) — kept locally, not published
 docs/demo/
 
-# Local demo video file(s) — hosted on YouTube (youtu.be/5gMkFg-347k); never commit the MP4 blob
+# Local demo video file(s) — hosted on YouTube (youtu.be/4xOz7jFWh9s); never commit the MP4 blob
 demo_Video/
 *.mp4

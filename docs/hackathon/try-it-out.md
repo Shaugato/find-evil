@@ -2,7 +2,7 @@
 
 Three ways to evaluate Stigmergy, fastest first.
 
-> **▶ Watch the 5-minute demo (no install):** **https://youtu.be/5gMkFg-347k**
+> **▶ Watch the 5-minute demo (no install):** **https://youtu.be/4xOz7jFWh9s**
 > Live ROCBA carve on the real memory image → a real self-correction → the MCP
 > typed-tool guardrail → the dashboard.
 >

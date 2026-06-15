@@ -25,7 +25,7 @@ The eight required deliverables live under [`docs/hackathon/`](docs/hackathon):
 | # | Deliverable | Location |
 |---|---|---|
 | 1 | Code repository (MIT) | this repo |
-| 2 | Demo video (≤5 min) | **[▶ Watch on YouTube](https://youtu.be/5gMkFg-347k)** · [script](docs/hackathon/demo-video-script.md) |
+| 2 | Demo video (≤5 min) | **[▶ Watch on YouTube](https://youtu.be/4xOz7jFWh9s)** · [script](docs/hackathon/demo-video-script.md) |
 | 3 | Architecture diagram | [architecture-diagram.md](docs/hackathon/architecture-diagram.md) |
 | 4 | Project description | [project-description.md](docs/hackathon/project-description.md) |
 | 5 | Dataset documentation | [dataset.md](docs/hackathon/dataset.md) |
@@ -33,7 +33,7 @@ The eight required deliverables live under [`docs/hackathon/`](docs/hackathon):
 | 7 | Try-it-out instructions | [try-it-out.md](docs/hackathon/try-it-out.md) · [Docker](deploy/README.md) · [installer](installer/README.md) |
 | 8 | Agent execution logs | [execution-logs/](docs/hackathon/execution-logs) |
 
-Fastest paths to evaluate: **[▶ watch the 5-minute demo](https://youtu.be/5gMkFg-347k)**
+Fastest paths to evaluate: **[▶ watch the 5-minute demo](https://youtu.be/4xOz7jFWh9s)**
 (live ROCBA carve + self-correction + the MCP guardrail), the **live companion site →
 https://web-eight-sage-34.vercel.app** (zero install — architecture explainer +
 real-run replay viewer), the **Docker stack** (`deploy/`, one command), or the

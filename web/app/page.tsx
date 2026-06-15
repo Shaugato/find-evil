@@ -191,7 +191,7 @@ export default function Home() {
             <div className="aspect-video overflow-hidden rounded-xl border border-edge bg-ink/60">
               <iframe
                 className="h-full w-full"
-                src="https://www.youtube-nocookie.com/embed/5gMkFg-347k"
+                src="https://www.youtube-nocookie.com/embed/4xOz7jFWh9s"
                 title="Stigmergy Demo"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 referrerPolicy="strict-origin-when-cross-origin"
