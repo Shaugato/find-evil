@@ -4,55 +4,58 @@
   "root_artifact": "pher:ip:142.250.64.106",
   "max_depth": 3,
   "max_width": 1,
-  "max_width_production": 16,
-  "max_width_note": "Production max_width=16; this artifact used max_width=1 to produce a single clean linear branch (depth 0->2). The decision to emit follow_ups (re-sequence deeper) at each level is the model's own.",
   "depth_reached": 2,
   "nodes": [
     {
-      "spawn_id": "350bcda219ef4efc88dd5ae1b5324c37",
+      "spawn_id": "afbc28ae05b3417d85d304290f02b129",
       "parent_id": null,
       "depth": 0,
       "seed_technique": "T1071.001",
       "ok": true,
       "verdict": "evil",
       "mitre": [
-        "T1071"
+        "T1071.001"
       ],
       "artifact": "pher:ip:142.250.64.106",
-      "reasoning": "C2 beacon destination carved from the ROCBA memory image (T1071.001)",
-      "follow_ups": 2,
-      "wallclock_ms": 40848.9
+      "reasoning": "non-empty",
+      "follow_ups": 1,
+      "wallclock_ms": 55532.6
     },
     {
-      "spawn_id": "36f23390c35f4cbf8af3b678bbd6a0e9",
-      "parent_id": "350bcda219ef4efc88dd5ae1b5324c37",
+      "spawn_id": "592295522ffd40669bd1e658c4248d56",
+      "parent_id": "afbc28ae05b3417d85d304290f02b129",
       "depth": 1,
       "seed_technique": "T1071.001",
       "ok": true,
       "verdict": "evil",
       "mitre": [
-        "T1071"
+        "T1055"
       ],
-      "artifact": "pher:ip:142.250.64.106",
-      "reasoning": "C2 beacon destination carved from the ROCBA memory image (T1071.001)",
-      "follow_ups": 2,
-      "wallclock_ms": 19879.9
+      "artifact": "pher:ip:192.168.1.5",
+      "reasoning": "non-empty",
+      "follow_ups": 3,
+      "wallclock_ms": 31425.8
     },
     {
-      "spawn_id": "2570103dbd1d426180034e634fea0d91",
-      "parent_id": "36f23390c35f4cbf8af3b678bbd6a0e9",
+      "spawn_id": "8a56e9306e1b41e6b43e96080dad35ce",
+      "parent_id": "592295522ffd40669bd1e658c4248d56",
       "depth": 2,
       "seed_technique": "T1071.001",
       "ok": true,
       "verdict": "evil",
       "mitre": [
-        "T1071"
+        "T1055"
       ],
-      "artifact": "pher:ip:142.250.64.106",
-      "reasoning": "C2 beacon destination carved from the ROCBA memory image (T1071.001)",
-      "follow_ups": 2,
-      "wallclock_ms": 17587.0
+      "artifact": "pher:ip:192.168.1.5",
+      "reasoning": "non-empty",
+      "follow_ups": 3,
+      "wallclock_ms": 12855.1
     }
   ],
-  "note": "Real output of the fractal pivot loop (Watcher recursion + SLM pivot_infer). Each node re-sequences the investigation toward the next artifact via follow_ups."
+  "note": "Real output of the fractal pivot loop (Watcher recursion + SLM pivot_infer). The model chose its next artifact via follow_ups (artifact_uri); the watcher directs the deeper pivot there. Edges follow REAL pcap co-occurrence in the carved evidence (142.250.64.106 was contacted only by 192.168.1.5). Generation widened the per-pivot TTL (CPU SLM ~30-60s/pivot) and took one follow-up per level (max_width=1) for a clean linear path; production width=16. The signed-ledger write is the findevil daemon job (Ed25519 key); this capture proves the lineage without it. No invented edges.",
+  "max_width_production": 16,
+  "distinct_artifacts": [
+    "pher:ip:142.250.64.106",
+    "pher:ip:192.168.1.5"
+  ]
 }

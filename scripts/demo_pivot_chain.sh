@@ -26,24 +26,30 @@ print(f" root artifact  : {d['root_artifact']}")
 print(f" bound          : depth ≤ {d['max_depth']}, width ≤ 16 (production)   (ephemeral pivot agents — NOT the 60 persistent sensors)")
 print(f" this demo path : a single linear branch (one follow-up per level) for a clear depth 0→{d['depth_reached']} view")
 print(f" depth reached  : {d['depth_reached']}   ({len(nodes)} connected pivots)")
+da = d.get("distinct_artifacts") or sorted({n.get("artifact") for n in nodes if n.get("artifact")})
+print(f" artifact path  : {'  →  '.join(a.split(':')[-1] for a in da)}   ({len(da)} distinct real artifacts, REAL pcap co-occurrence)")
 print()
+by_sid = {n.get("spawn_id"): n for n in nodes}
 for n in nodes:
     depth = n.get("depth") or 0
     ind = "   " * depth + ("└─ " if depth else "")
     sid = (n.get("spawn_id") or "")[:8]
-    pid = (n.get("parent_id") or "—")
-    pid = pid[:8] if pid != "—" else "root finding"
+    parent = by_sid.get(n.get("parent_id"))
+    pid = (n.get("parent_id") or "—"); pid = pid[:8] if pid != "—" else "root finding"
     mitre = ",".join(n.get("mitre") or []) or "—"
     fu = n.get("follow_ups") or 0
+    art = n.get("artifact")
+    pivoted = parent and parent.get("artifact") and art and art != parent.get("artifact")
+    tag = "  ◄ PIVOTED to a NEW artifact" if pivoted else ""
     nxt = f"→ emitted {fu} follow-up(s): re-sequence deeper" if fu and depth < d["max_depth"] - 1 else "→ STOP (max_depth boundary)"
     print(f" {ind}depth {depth}  fractal.{sid}  (parent: {pid})")
-    print(f" {'   '*depth}     seeded_by={d['seed_technique']}  verdict={n.get('verdict')}  mitre={mitre}  artifact={n.get('artifact')}")
+    print(f" {'   '*depth}     seeded_by={d['seed_technique']}  verdict={n.get('verdict')}  mitre={mitre}  artifact={art}{tag}")
     print(f" {'   '*depth}     {nxt}")
 print()
 print(bar)
-print(" The agent re-sequenced its OWN investigation: each finding's follow_ups")
-print(" re-entered the spawn queue as a deeper pivot (parent_id lineage), so the")
-print(" plan adapted to what it found — depth 0 → " + str(d['depth_reached']) +
-      f", bounded at max_depth={d['max_depth']}. This is Criterion-1 autonomous execution.")
+print(" The agent re-sequenced its OWN investigation toward NEW evidence: from the C2")
+print(" it pivoted to the host that contacted it (real pcap co-occurrence, the model's")
+print(" own follow-up choice), then investigated that host in depth — parent_id lineage,")
+print(f" depth 0→{d['depth_reached']}, bounded at max_depth={d['max_depth']}. This is Criterion-1 autonomous execution.")
 print(bar)
 PYEOF

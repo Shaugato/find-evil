@@ -7,8 +7,10 @@ official ROCBA memory image.**
 
 > **See also — autonomous re-sequencing (Criterion 1):** beyond this conflict/debate
 > path, the agent re-sequences its *own* investigation via the fractal pivot loop —
-> each finding's follow-ups seed a deeper pivot (`parent_id` lineage, depth 0→2,
-> bounded at `max_depth=3`). The real connected chain is in
+> following the evidence to **new related artifacts**: from the C2 `142.250.64.106`
+> (T1071.001) it pivoted to `192.168.1.5`, the host that contacted it (T1055), a real
+> pcap co-occurrence and the model's own follow-up choice, with `parent_id` lineage
+> (depth 0→2, bounded `max_depth=3`). The real connected chain is in
 > [pivot_chain.md](pivot_chain.md) — `bash scripts/demo_pivot_chain.sh`.
 
 > **Provenance & honesty:** the conflicting evidence is *deliberately

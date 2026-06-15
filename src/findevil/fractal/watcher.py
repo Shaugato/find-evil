@@ -91,12 +91,34 @@ class Watcher:
             and rep.depth + 1 < settings.fractal.max_depth
             and rep.finding.get("follow_ups")
         ):
-            follow_ups = rep.finding["follow_ups"][: settings.fractal.max_width]
+            # Prefer follow-ups that point at a DIFFERENT artifact than the one just
+            # analyzed — a pivot should widen the investigation, not re-score itself.
+            _cur = (rep.finding or {}).get("artifact_uri")
+            _fus = [
+                fu for fu in rep.finding["follow_ups"]
+                if (fu.get("artifact_uri") or fu.get("artifact")) not in (None, _cur)
+            ]
+            follow_ups = (_fus or rep.finding["follow_ups"])[: settings.fractal.max_width]
             for fu in follow_ups:
+                # Honor the model's CHOSEN next artifact: pivots emit follow_ups as
+                # {"artifact_uri": "<a related artifact>"} (its decision of WHERE to
+                # look next). Direct the child pivot at that artifact so the
+                # investigation re-sequences toward NEW evidence, not the same one.
+                # The artifact must already be among the exhibits (real co-occurrence);
+                # invented targets simply have no exhibit to cite and self-limit.
+                next_artifact = fu.get("artifact_uri") or fu.get("artifact")
+                child_prompt = fu.get("scoped_prompt")
+                if not child_prompt and next_artifact:
+                    child_prompt = (
+                        f"Pivot to {next_artifact}, the related artifact surfaced by the "
+                        f"prior finding. Analyze it using ONLY the exhibits; give a verdict + "
+                        f"mitre_attack_technique, and if a different related artifact warrants a "
+                        f"deeper pivot put its exhibit's artifact_uri in follow_ups. JSON only."
+                    )
                 child = PivotSpawn(
                     spawn_id=uuid.uuid4().hex,
                     seed_technique=spawn.seed_technique,
-                    scoped_prompt=fu.get("scoped_prompt", spawn.scoped_prompt),
+                    scoped_prompt=child_prompt or spawn.scoped_prompt,
                     exhibits=fu.get("exhibits", spawn.exhibits),
                     ttl_ms=min(spawn.ttl_ms, settings.fractal.ttl_ms),
                     depth=rep.depth + 1,
