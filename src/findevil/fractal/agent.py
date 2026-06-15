@@ -173,6 +173,13 @@ def _append_finding(spawn: PivotSpawn, finding: PivotFinding) -> None:
                     confidence=finding.confidence,
                     params={
                         "spawn_id": spawn.spawn_id,
+                        # lineage: parent_id links this pivot to the finding/pivot
+                        # that seeded it, and seed_technique is the ATT&CK technique
+                        # that triggered the pivot — so the autonomous re-sequencing
+                        # chain (finding → seeded pivot → deeper pivot, depth 0→max)
+                        # is fully reconstructable from the signed ledger.
+                        "parent_id": spawn.parent_id or "",
+                        "seed_technique": spawn.seed_technique or "",
                         "depth": str(spawn.depth),
                         "verdict": finding.verdict,
                         "declared_ignorance": str(finding.declared_ignorance),

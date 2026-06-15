@@ -5,6 +5,12 @@ read of one indicator *changed* as evidence accumulated. It walks the **Yager
 conflict → re-investigation → resolution** path on a **real IP carved from the
 official ROCBA memory image.**
 
+> **See also — autonomous re-sequencing (Criterion 1):** beyond this conflict/debate
+> path, the agent re-sequences its *own* investigation via the fractal pivot loop —
+> each finding's follow-ups seed a deeper pivot (`parent_id` lineage, depth 0→2,
+> bounded at `max_depth=3`). The real connected chain is in
+> [pivot_chain.md](pivot_chain.md) — `bash scripts/demo_pivot_chain.sh`.
+
 > **Provenance & honesty:** the conflicting evidence is *deliberately
 > constructed* on a real carved IP (a severity-1 Suricata "malicious" alert vs a
 > high-confidence EDR "benign" reputation), because the carved indicators alone
@@ -15,6 +21,13 @@ official ROCBA memory image.**
 > platform behavior. The exact `seq` numbers below are populated by
 > `scripts/real_data_carve_run.py --export`; see
 > [rocba_carve_run.json](rocba_carve_run.json) for the machine record.
+>
+> **The conflict/self-correction mechanism also fires *organically*** across the
+> 33-scenario synthetic validation battery (`scripts/whitehat_validation.py` —
+> contradictory sensors → `conflict_ledger`, total conflict → `escalate_human`;
+> see [accuracy-report.md §4](../accuracy-report.md)). It is not unique to this one
+> induced conflict — the induced conflict simply puts a *real carved IP* on the
+> exact same code path so the demo can show it on real evidence.
 
 ## The mechanism (always true, in code)
 

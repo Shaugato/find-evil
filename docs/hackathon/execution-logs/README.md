@@ -31,3 +31,15 @@ Chain of custody: every entry carries a UUIDv7 `finding_id`, a `prev_hash` link,
 a BLAKE3 `entry_hash`, an Ed25519 signature, and `chain_of_custody` references to
 parent findings. `findevil verify` walks the whole chain; Merkle batches are
 anchored to Sigstore Rekor.
+
+## Logs in this folder
+
+- [`iteration_trace.md`](iteration_trace.md) — the **self-correction** sequence
+  (Dempster–Shafer conflict → prosecutor/defense/judge debate → signed verdict) on
+  the real carved IP `142.250.64.106`.
+- [`pivot_chain.md`](pivot_chain.md) + [`pivot_chain.json`](pivot_chain.json) —
+  **autonomous re-sequencing** (Criterion 1): a real connected fractal pivot chain
+  (depth 0→2, `parent_id` lineage) where each finding's follow-ups seed a deeper
+  pivot. Render with `bash scripts/demo_pivot_chain.sh`.
+- [`rocba_carve_run.json`](rocba_carve_run.json) — the real ROCBA bulk_extractor
+  carve → ingest → signed-findings run.
